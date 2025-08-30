@@ -1,4 +1,8 @@
 from fastapi import FastAPI
+from lib.monitoring.logging import configure_logging, get_logger, set_correlation_id
+
+configure_logging("development")
+logger = get_logger(__name__)
 
 app = FastAPI(
     title="py-core",
@@ -8,6 +12,8 @@ app = FastAPI(
 
 @app.get("/")
 async def root():
+    set_correlation_id()
+    logger.info("Root endpoint accessed", user_type="anonymous")
     return {"message": "Hello world", "status": "running"}
 
 @app.get("/health")
