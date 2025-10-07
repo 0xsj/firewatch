@@ -1,4 +1,7 @@
-.PHONY: help install dev test lint format clean
+.PHONY: help install dev test lint format clean shell
+
+# Set PYTHONPATH for all commands
+export PYTHONPATH := src
 
 help:
 	@echo "Available commands:"
@@ -7,6 +10,7 @@ help:
 	@echo "  make test       - Run tests"
 	@echo "  make lint       - Run linters"
 	@echo "  make format     - Format code"
+	@echo "  make shell      - Open Python shell"
 	@echo "  make clean      - Clean cache files"
 
 install:
@@ -29,6 +33,9 @@ format:
 	poetry run ruff format .
 	poetry run ruff check --fix .
 
+shell:
+	poetry run python
+
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete
@@ -37,4 +44,4 @@ clean:
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	rm -rf htmlcov
-	rm -f .coverage
+	rm -rf .coverage
