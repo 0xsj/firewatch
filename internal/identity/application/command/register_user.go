@@ -6,102 +6,138 @@ import (
 
 	"github.com/0xsj/hexagonal-go/internal/identity/application/dto"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
+	pkgerrors "github.com/0xsj/hexagonal-go/pkg/errors"
+	"github.com/0xsj/hexagonal-go/pkg/messaging"
+	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/0xsj/hexagonal-go/pkg/types"
 )
 
-// RegisterUserCommand handles user registration with password authentication.
-// This is an application service that orchestrates the registration use case.
-//
-// Responsibilities:
-//   - Validate input
-//   - Check business rules (email uniqueness)
-//   - Create domain aggregate
-//   - Persist via repository
-//   - Return DTO for API response
-//
-// Does NOT:
-//   - Know about HTTP, JSON, or request/response details
-//   - Contain domain logic (that's in User aggregate)
-//   - Know about database implementation (uses repository interface)
+// RegisterUserCommand handles user registration.
 type RegisterUserCommand struct {
-	repo user.Repository
+	repo      user.Repository
+	publisher messaging.Publisher
+	logger    logger.Logger
 }
 
-// NewRegisterUserCommand creates a new register user command.
-func NewRegisterUserCommand(repo user.Repository) *RegisterUserCommand {
+// NewRegisterUserCommand creates a new RegisterUserCommand.
+func NewRegisterUserCommand(
+	repo user.Repository,
+	publisher messaging.Publisher,
+	logger logger.Logger,
+) *RegisterUserCommand {
 	return &RegisterUserCommand{
-		repo: repo,
+		repo:      repo,
+		publisher: publisher,
+		logger:    logger,
 	}
 }
 
-// Handle executes the user registration command.
-func (c *RegisterUserCommand) Handle(ctx context.Context, req dto.RegisterUserRequest) (*dto.UserDTO, error) {
+// RegisterRequest is the input for user registration.
+type RegisterRequest struct {
+	TenantID string
+	Email    string
+	Password string
+	Role     user.Role
+}
+
+// Handle executes the register user command.
+func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (*dto.UserDTO, error) {
 	const op = "RegisterUserCommand.Handle"
 
-	// 1. Parse and validate email
+	// Check if email already exists
 	email, err := user.NewEmail(req.Email)
 	if err != nil {
-		return nil, user.ErrEmailInvalid(op, req.Email)
+		return nil, pkgerrors.Validation(op, "invalid email format")
 	}
 
-	// 2. Validate email for registration (checks disposable domains, etc.)
-	if err := email.ValidateForRegistration(); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	// 3. Check email uniqueness within tenant
-	// The repository automatically filters by tenant_id from context
 	exists, err := c.repo.EmailExists(ctx, email)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to check email existence: %w", op, err)
-	}
-	if exists {
-		return nil, user.ErrEmailAlreadyTaken(op, email.String())
+		return nil, fmt.Errorf("%s: failed to check email: %w", op, err)
 	}
 
-	// 4. Create and validate password
+	if exists {
+		return nil, pkgerrors.Conflict(op, "email address is already registered")
+	}
+
+	// Hash password with default requirements
 	password, err := user.NewPassword(req.Password, user.DefaultPasswordRequirements())
 	if err != nil {
-		return nil, user.ErrPasswordTooWeak(op, err.Error())
+		return nil, pkgerrors.Validation(op, err.Error())
 	}
 
-	// 5. Create user aggregate
-	// This is where domain logic lives - the User.Register factory method
-	// enforces all business rules and emits domain events
+	// Create user
+	userID := types.NewID()
 	u, err := user.Register(
-		types.NewID(),
+		userID,
 		req.TenantID,
 		email,
 		password,
-		user.DefaultRole(), // New users get "user" role by default
+		req.Role,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create user: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// 6. Persist the user
-	// Repository handles database-specific details
+	// Save to repository
 	if err := c.repo.Save(ctx, u); err != nil {
 		return nil, fmt.Errorf("%s: failed to save user: %w", op, err)
 	}
 
-	// 7. TODO: Publish domain events (when we add messaging)
-	// This would notify other services about the user registration
-	// for _, event := range u.Events() {
-	//     if err := c.publisher.Publish(ctx, event); err != nil {
-	//         // Log but don't fail - events are eventually consistent
-	//         logger.Warn("failed to publish event", logger.Err(err))
-	//     }
-	// }
-	// u.ClearEvents()
+	c.logger.Info("user registered",
+		logger.String("user_id", u.ID().String()),
+		logger.String("email", u.Email().String()),
+		logger.String("tenant_id", u.TenantID()),
+	)
 
-	// 8. TODO: Send verification email (when we add email service)
-	// token := generateVerificationToken(u.ID())
-	// if err := c.emailService.SendVerificationEmail(ctx, u.Email(), token); err != nil {
-	//     // Log but don't fail - user can resend verification
-	//     logger.Warn("failed to send verification email", logger.Err(err))
-	// }
+	// Publish domain events
+	if err := c.publishEvents(ctx, u); err != nil {
+		// Log but don't fail - event publishing is best-effort
+		c.logger.Error("failed to publish events",
+			logger.String("user_id", u.ID().String()),
+			logger.Err(err),
+		)
+	}
 
-	// 9. Map domain aggregate to DTO and return
-	return dto.MapUserToDTO(u), nil
+	return dto.NewUserResponse(u), nil
+}
+
+// publishEvents publishes all domain events from the aggregate.
+func (c *RegisterUserCommand) publishEvents(ctx context.Context, u *user.User) error {
+	events := u.Events()
+	defer u.ClearEvents() // Clear after publishing
+
+	for _, domainEvent := range events {
+		// Convert domain event to messaging event
+		event := c.convertDomainEvent(ctx, domainEvent)
+
+		// Publish to event bus
+		if err := c.publisher.Publish(ctx, event); err != nil {
+			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
+		}
+
+		c.logger.Debug("event published",
+			logger.String("event_type", event.Type()),
+			logger.String("event_id", event.ID()),
+		)
+	}
+
+	return nil
+}
+
+// convertDomainEvent converts a domain event to a messaging event.
+func (c *RegisterUserCommand) convertDomainEvent(ctx context.Context, domainEvent user.Event) *messaging.BaseEvent {
+	// Create messaging event with context metadata
+	event := messaging.NewEventFromContext(
+		ctx,
+		"identity."+domainEvent.Type(), // Prefix with domain: "identity.user.registered"
+		"identity",
+		domainEvent.Payload(),
+	)
+
+	// Add aggregate metadata
+	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
+	event.WithMetadata("aggregate_type", "user")
+	event.WithMetadata("aggregate_tenant_id", domainEvent.AggregateTenantID())
+
+	return event
 }

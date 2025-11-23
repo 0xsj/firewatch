@@ -374,3 +374,9 @@ func EstimateStrength(password string) int {
 
 	return strength
 }
+
+func NewPasswordFromHash(hash string) *Password {
+	return &Password{
+		hash: hash,
+	}
+}

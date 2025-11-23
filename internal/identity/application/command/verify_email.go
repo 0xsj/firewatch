@@ -4,92 +4,108 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/0xsj/hexagonal-go/internal/identity/application/dto"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
+	pkgerrors "github.com/0xsj/hexagonal-go/pkg/errors"
+	"github.com/0xsj/hexagonal-go/pkg/messaging"
+	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/0xsj/hexagonal-go/pkg/types"
 )
 
-// VerifyEmailCommand handles email verification for user accounts.
-// Activates pending accounts after email is verified.
-//
-// Responsibilities:
-//   - Validate verification token
-//   - Find user by ID (from token)
-//   - Mark email as verified in domain
-//   - Activate account if pending
-//   - Persist changes
-//
-// Note: Token validation logic will be added when we build the token service.
-// For now, this assumes a valid user ID is extracted from the token.
+// VerifyEmailCommand handles email verification.
 type VerifyEmailCommand struct {
-	repo user.Repository
+	repo      user.Repository
+	publisher messaging.Publisher
+	logger    logger.Logger
 }
 
-// NewVerifyEmailCommand creates a new verify email command.
-func NewVerifyEmailCommand(repo user.Repository) *VerifyEmailCommand {
+// NewVerifyEmailCommand creates a new VerifyEmailCommand.
+func NewVerifyEmailCommand(
+	repo user.Repository,
+	publisher messaging.Publisher,
+	logger logger.Logger,
+) *VerifyEmailCommand {
 	return &VerifyEmailCommand{
-		repo: repo,
+		repo:      repo,
+		publisher: publisher,
+		logger:    logger,
 	}
 }
 
-// Handle executes the email verification command.
-func (c *VerifyEmailCommand) Handle(ctx context.Context, req dto.VerifyEmailRequest) (*dto.MessageResponse, error) {
+// VerifyEmailRequest is the input for email verification.
+type VerifyEmailRequest struct {
+	Token string // User ID used as token for now
+}
+
+// Handle executes the verify email command.
+func (c *VerifyEmailCommand) Handle(ctx context.Context, req VerifyEmailRequest) error {
 	const op = "VerifyEmailCommand.Handle"
 
-	// 1. TODO: Validate and parse verification token (when we build token service)
-	// For now, we'll accept a user ID directly as the "token"
-	// In production, this would:
-	//   - Verify JWT signature
-	//   - Check expiration (24-48 hours)
-	//   - Extract user ID from token payload
-	//   - Verify token hasn't been used already
-	//
-	// userID, err := c.tokenService.ValidateVerificationToken(req.Token)
-	// if err != nil {
-	//     return nil, user.ErrEmailVerificationExpired(op, "")
-	// }
-
-	// Temporary: parse token as user ID directly
+	// Parse token as user ID (simplified - in production use JWT or unique tokens)
 	userID, err := types.ParseID(req.Token)
 	if err != nil {
-		return nil, fmt.Errorf("%s: invalid verification token: %w", op, err)
+		return pkgerrors.Validation(op, "invalid verification token")
 	}
 
-	// 2. Find user by ID
+	// Find user
 	u, err := c.repo.FindByID(ctx, userID)
 	if err != nil {
-		return nil, user.ErrUserNotFound(op, userID.String())
+		if pkgerrors.IsNotFound(err) {
+			return pkgerrors.NotFound(op, "user not found")
+		}
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	// 3. Verify email in domain
-	// This method:
-	//   - Marks email as verified
-	//   - Sets email_verified_at timestamp
-	//   - Activates account if status is pending
-	//   - Emits UserEmailVerified event
-	//   - Is idempotent (safe to call multiple times)
+	// Verify email
 	if err := u.VerifyEmail(); err != nil {
-		return nil, fmt.Errorf("%s: failed to verify email: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	// 4. Persist changes
+	// Save
 	if err := c.repo.Save(ctx, u); err != nil {
-		return nil, fmt.Errorf("%s: failed to save user: %w", op, err)
+		return fmt.Errorf("%s: failed to save user: %w", op, err)
 	}
 
-	// 5. TODO: Publish domain events (when we build messaging)
-	// for _, event := range u.Events() {
-	//     c.publisher.Publish(ctx, event)
-	// }
-	// u.ClearEvents()
+	c.logger.Info("email verified",
+		logger.String("user_id", u.ID().String()),
+		logger.String("email", u.Email().String()),
+	)
 
-	// 6. TODO: Send welcome email (when we build email service)
-	// if u.EmailVerified() {
-	//     c.emailService.SendWelcomeEmail(ctx, u.Email())
-	// }
+	// Publish domain events
+	if err := c.publishEvents(ctx, u); err != nil {
+		c.logger.Error("failed to publish events",
+			logger.String("user_id", u.ID().String()),
+			logger.Err(err),
+		)
+	}
 
-	// 7. Return success message
-	return &dto.MessageResponse{
-		Message: "Email verified successfully. Your account is now active.",
-	}, nil
+	return nil
+}
+
+// publishEvents publishes all domain events from the aggregate.
+func (c *VerifyEmailCommand) publishEvents(ctx context.Context, u *user.User) error {
+	events := u.Events()
+	defer u.ClearEvents()
+
+	for _, domainEvent := range events {
+		event := messaging.NewEventFromContext(
+			ctx,
+			domainEvent.Type(),
+			"identity",
+			domainEvent.Payload(),
+		).
+			WithMetadata("aggregate_id", domainEvent.AggregateID()).
+			WithMetadata("aggregate_type", "user").
+			WithMetadata("event_version", domainEvent.Version())
+
+		if err := c.publisher.Publish(ctx, event); err != nil {
+			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
+		}
+
+		c.logger.Debug("event published",
+			logger.String("event_type", event.Type()),
+			logger.String("event_id", event.ID()),
+		)
+	}
+
+	return nil
 }

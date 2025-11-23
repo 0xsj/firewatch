@@ -2,6 +2,8 @@ package dto
 
 import (
 	"time"
+
+	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
 )
 
 // UserDTO is the data transfer object for user responses.
@@ -34,3 +36,53 @@ type UserSummaryDTO struct {
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+// ============================================================================
+// Constructors - Convert Domain to DTO
+// ============================================================================
+
+// NewUserResponse creates a UserDTO from a User aggregate.
+func NewUserResponse(u *user.User) *UserDTO {
+	dto := &UserDTO{
+		ID:            u.ID().String(),
+		TenantID:      u.TenantID(),
+		Email:         u.Email().String(),
+		Status:        u.Status().String(),
+		Role:          u.Role().String(),
+		EmailVerified: u.EmailVerified(),
+		CreatedAt:     u.CreatedAt().Time(),
+		UpdatedAt:     u.UpdatedAt().Time(),
+	}
+
+	// Optional fields
+	if u.EmailVerifiedAt() != nil {
+		t := u.EmailVerifiedAt().Time()
+		dto.EmailVerifiedAt = &t
+	}
+
+	if u.LastLoginAt() != nil {
+		t := u.LastLoginAt().Time()
+		dto.LastLoginAt = &t
+	}
+
+	return dto
+}
+
+// NewUserSummary creates a UserSummaryDTO from a User aggregate.
+func NewUserSummary(u *user.User) *UserSummaryDTO {
+	return &UserSummaryDTO{
+		ID:        u.ID().String(),
+		Email:     u.Email().String(),
+		Status:    u.Status().String(),
+		Role:      u.Role().String(),
+		CreatedAt: u.CreatedAt().Time(),
+	}
+}
+
+// ToUserResponse converts UserDTO to the response format.
+// (Alias for consistency with API naming)
+type UserResponse = UserDTO
+
+// ToUserSummary converts UserSummaryDTO to the response format.
+// (Alias for consistency with API naming)
+type UserSummary = UserSummaryDTO

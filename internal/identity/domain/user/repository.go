@@ -54,6 +54,9 @@ type Repository interface {
 
 // Filters defines query filters for listing users.
 type Filters struct {
+	// Tenant filtering
+	TenantID *string
+
 	// Status filter (optional)
 	Status *Status
 
