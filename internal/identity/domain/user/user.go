@@ -37,9 +37,11 @@ type User struct {
 	lockedUntil         *time.Time
 
 	// Timestamps
-	createdAt   types.Timestamp
-	updatedAt   types.Timestamp
-	lastLoginAt *types.Timestamp
+	createdAt          types.Timestamp
+	updatedAt          types.Timestamp
+	lastLoginAt        *types.Timestamp
+	lastLoginIP        *string
+	lastLoginUserAgent *string
 
 	// Domain events (uncommitted)
 	events []Event
@@ -65,6 +67,8 @@ func (u *User) LockedUntil() *time.Time           { return u.lockedUntil }
 func (u *User) CreatedAt() types.Timestamp        { return u.createdAt }
 func (u *User) UpdatedAt() types.Timestamp        { return u.updatedAt }
 func (u *User) LastLoginAt() *types.Timestamp     { return u.lastLoginAt }
+func (u *User) LastLoginIP() *string              { return u.lastLoginIP }
+func (u *User) LastLoginUserAgent() *string       { return u.lastLoginUserAgent }
 func (u *User) Version() int                      { return u.version }
 
 // HasPassword returns true if the user has password authentication enabled.
@@ -135,6 +139,8 @@ func Register(
 		createdAt:           now,
 		updatedAt:           now,
 		lastLoginAt:         nil,
+		lastLoginIP:         nil,
+		lastLoginUserAgent:  nil,
 		events:              make([]Event, 0),
 		version:             1,
 	}
@@ -202,6 +208,8 @@ func RegisterPasswordless(
 		createdAt:           now,
 		updatedAt:           now,
 		lastLoginAt:         nil,
+		lastLoginIP:         nil,
+		lastLoginUserAgent:  nil,
 		events:              make([]Event, 0),
 		version:             1,
 	}
@@ -248,6 +256,8 @@ func Reconstitute(
 		createdAt:           createdAt,
 		updatedAt:           updatedAt,
 		lastLoginAt:         lastLoginAt,
+		lastLoginIP:         nil,
+		lastLoginUserAgent:  nil,
 		events:              make([]Event, 0),
 		version:             version,
 	}
@@ -369,9 +379,11 @@ func (u *User) recordSuccessfulLogin(ipAddress, userAgent, method string) {
 	// Reset failed attempts
 	u.failedLoginAttempts = 0
 
-	// Update last login
+	// Update last login info
 	now := types.Now()
 	u.lastLoginAt = &now
+	u.lastLoginIP = &ipAddress
+	u.lastLoginUserAgent = &userAgent
 	u.updatedAt = now
 
 	// Emit event
@@ -618,4 +630,103 @@ func (u *User) addEvent(event Event) {
 func (u *User) IncrementVersion() {
 	u.version++
 	u.updatedAt = types.Now()
+}
+
+// ============================================================================
+// Snapshot for Persistence
+// ============================================================================
+
+// Snapshot represents the complete state of a User.
+// Used for persistence and reconstruction.
+type Snapshot struct {
+	ID                  string
+	TenantID            string
+	Email               string
+	PasswordHash        *string
+	Status              string
+	Role                string
+	EmailVerified       bool
+	EmailVerifiedAt     *types.Timestamp
+	FailedLoginAttempts int
+	LockedUntil         *time.Time
+	LastLoginAt         *types.Timestamp
+	LastLoginIP         *string
+	LastLoginUserAgent  *string
+	CreatedAt           types.Timestamp
+	UpdatedAt           types.Timestamp
+}
+
+// Snapshot returns a snapshot of the user's current state.
+func (u *User) Snapshot() Snapshot {
+	return Snapshot{
+		ID:                  u.id.String(),
+		TenantID:            u.tenantID,
+		Email:               u.email.String(),
+		PasswordHash:        u.passwordHash(),
+		Status:              string(u.status),
+		Role:                string(u.role),
+		EmailVerified:       u.emailVerified,
+		EmailVerifiedAt:     u.emailVerifiedAt,
+		FailedLoginAttempts: u.failedLoginAttempts,
+		LockedUntil:         u.lockedUntil,
+		LastLoginAt:         u.lastLoginAt,
+		LastLoginIP:         u.lastLoginIP,
+		LastLoginUserAgent:  u.lastLoginUserAgent,
+		CreatedAt:           u.createdAt,
+		UpdatedAt:           u.updatedAt,
+	}
+}
+
+// passwordHash returns the password hash or nil if passwordless.
+func (u *User) passwordHash() *string {
+	if u.password == nil {
+		return nil
+	}
+	hash := u.password.Hash()
+	return &hash
+}
+
+// LoadFromSnapshot reconstructs a User from a snapshot.
+func LoadFromSnapshot(snapshot Snapshot) (*User, error) {
+	const op = "User.LoadFromSnapshot"
+
+	id, err := types.ParseID(snapshot.ID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: invalid ID: %w", op, err)
+	}
+
+	email, err := NewEmail(snapshot.Email)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var password *Password
+	if snapshot.PasswordHash != nil {
+		password = NewPasswordFromHash(*snapshot.PasswordHash)
+	}
+
+	status := Status(snapshot.Status)
+	role := Role(snapshot.Role)
+
+	user := &User{
+		id:                  id,
+		tenantID:            snapshot.TenantID,
+		email:               email,
+		password:            password,
+		status:              status,
+		role:                role,
+		emailVerified:       snapshot.EmailVerified,
+		emailVerifiedAt:     snapshot.EmailVerifiedAt,
+		failedLoginAttempts: snapshot.FailedLoginAttempts,
+		lockedUntil:         snapshot.LockedUntil,
+		lastLoginAt:         snapshot.LastLoginAt,
+		lastLoginIP:         snapshot.LastLoginIP,
+		lastLoginUserAgent:  snapshot.LastLoginUserAgent,
+		createdAt:           snapshot.CreatedAt,
+		updatedAt:           snapshot.UpdatedAt,
+		events:              make([]Event, 0),
+		version:             1,
+	}
+
+	return user, nil
 }

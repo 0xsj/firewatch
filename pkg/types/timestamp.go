@@ -36,6 +36,12 @@ func NewTimestamp(t time.Time) Timestamp {
 	}
 }
 
+// TimestampFromTime is an alias for NewTimestamp for consistency.
+// Creates a timestamp from a time.Time value.
+func TimestampFromTime(t time.Time) Timestamp {
+	return NewTimestamp(t)
+}
+
 // FromUnixMilli creates a timestamp from Unix milliseconds.
 //
 // Example:

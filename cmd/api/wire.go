@@ -16,6 +16,7 @@ func InitializeApp() (*App, func(), error) {
 		// Infrastructure (from pkg/provider)
 		provider.ProvideLogger,
 		provider.ProvideDatabase,
+		provider.ProvideEventBus, // ← Add this!
 
 		// Identity domain (from internal/identity)
 		identity.IdentitySet,

@@ -6,89 +6,127 @@ import (
 
 	"github.com/0xsj/hexagonal-go/internal/identity/application/dto"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
+	pkgerrors "github.com/0xsj/hexagonal-go/pkg/errors"
+	"github.com/0xsj/hexagonal-go/pkg/messaging"
+	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 )
 
-// LoginCommand handles user login with password authentication.
-// This command authenticates a user and returns access tokens.
-//
-// Responsibilities:
-//   - Find user by email
-//   - Validate credentials via domain logic
-//   - Update login state (last_login_at, failed attempts)
-//   - Generate authentication tokens
-//   - Return login response with user info and tokens
+// LoginCommand handles user login/authentication.
 type LoginCommand struct {
-	repo user.Repository
+	repo      user.Repository
+	publisher messaging.Publisher
+	logger    logger.Logger
 }
 
-// NewLoginCommand creates a new login command.
-func NewLoginCommand(repo user.Repository) *LoginCommand {
+// NewLoginCommand creates a new LoginCommand.
+func NewLoginCommand(
+	repo user.Repository,
+	publisher messaging.Publisher,
+	logger logger.Logger,
+) *LoginCommand {
 	return &LoginCommand{
-		repo: repo,
+		repo:      repo,
+		publisher: publisher,
+		logger:    logger,
 	}
+}
+
+// LoginRequest is the input for login.
+type LoginRequest struct {
+	Email     string
+	Password  string
+	IPAddress string
+	UserAgent string
 }
 
 // Handle executes the login command.
-func (c *LoginCommand) Handle(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error) {
+func (c *LoginCommand) Handle(ctx context.Context, req LoginRequest) (*dto.LoginResponse, error) {
 	const op = "LoginCommand.Handle"
 
-	// 1. Parse and validate email
+	// Parse email
 	email, err := user.NewEmail(req.Email)
 	if err != nil {
-		// Don't reveal if email format is invalid - use generic credentials error
-		return nil, user.ErrInvalidCredentials(op)
+		return nil, pkgerrors.Validation(op, "invalid email format")
 	}
 
-	// 2. Find user by email
-	// Note: We don't reveal if the user exists or not (security best practice)
+	// Find user by email
 	u, err := c.repo.FindByEmail(ctx, email)
 	if err != nil {
-		// Whether user not found or other error, return generic credentials error
-		return nil, user.ErrInvalidCredentials(op)
+		if pkgerrors.IsNotFound(err) {
+			return nil, user.ErrInvalidCredentials(op)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// 3. Authenticate user
-	// This method in the domain:
-	//   - Checks account status (active, locked, suspended)
-	//   - Verifies password
-	//   - Tracks failed login attempts
-	//   - Locks account if too many failures
-	//   - Updates last_login_at on success
+	// Authenticate
 	if err := u.Authenticate(req.Password, req.IPAddress, req.UserAgent); err != nil {
-		// Save the user even on failure (to persist failed attempt count)
-		_ = c.repo.Save(ctx, u)
+		// Save failed attempt
+		if saveErr := c.repo.Save(ctx, u); saveErr != nil {
+			c.logger.Error("failed to save user after failed login",
+				logger.String("user_id", u.ID().String()),
+				logger.Err(saveErr),
+			)
+		}
+
+		// Publish failed login event
+		c.publishEvents(ctx, u)
+
 		return nil, err
 	}
 
-	// 4. Save successful login state
-	// This persists:
-	//   - Updated last_login_at
-	//   - Reset failed_login_attempts to 0
-	//   - Domain events (UserLoggedIn)
+	// Save successful login
 	if err := c.repo.Save(ctx, u); err != nil {
-		return nil, fmt.Errorf("%s: failed to save login state: %w", op, err)
+		return nil, fmt.Errorf("%s: failed to save user: %w", op, err)
 	}
 
-	// 5. TODO: Generate JWT tokens (when we build auth package)
-	// For now, return placeholder tokens
-	// accessToken, err := c.jwtService.GenerateAccessToken(u)
-	// refreshToken, err := c.jwtService.GenerateRefreshToken(u)
-	accessToken := "jwt-access-token-placeholder"
-	refreshToken := "jwt-refresh-token-placeholder"
-	expiresIn := 3600 // 1 hour in seconds
+	c.logger.Info("user logged in",
+		logger.String("user_id", u.ID().String()),
+		logger.String("email", u.Email().String()),
+	)
 
-	// 6. TODO: Publish domain events (when we build messaging)
-	// for _, event := range u.Events() {
-	//     c.publisher.Publish(ctx, event)
-	// }
-	// u.ClearEvents()
+	// Publish login event
+	if err := c.publishEvents(ctx, u); err != nil {
+		c.logger.Error("failed to publish events",
+			logger.String("user_id", u.ID().String()),
+			logger.Err(err),
+		)
+	}
 
-	// 7. Build and return login response
+	// Return response with placeholder tokens
 	return &dto.LoginResponse{
-		User:         dto.MapUserToDTO(u),
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    expiresIn,
+		User:         dto.NewUserResponse(u),
+		AccessToken:  "jwt-access-token-placeholder",
+		RefreshToken: "jwt-refresh-token-placeholder",
+		ExpiresIn:    3600,
 		TokenType:    "Bearer",
 	}, nil
+}
+
+// publishEvents publishes all domain events from the aggregate.
+func (c *LoginCommand) publishEvents(ctx context.Context, u *user.User) error {
+	events := u.Events()
+	defer u.ClearEvents()
+
+	for _, domainEvent := range events {
+		event := messaging.NewEventFromContext(
+			ctx,
+			domainEvent.Type(),
+			"identity",
+			domainEvent.Payload(),
+		).
+			WithMetadata("aggregate_id", domainEvent.AggregateID()).
+			WithMetadata("aggregate_type", "user").
+			WithMetadata("event_version", domainEvent.Version())
+
+		if err := c.publisher.Publish(ctx, event); err != nil {
+			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
+		}
+
+		c.logger.Debug("event published",
+			logger.String("event_type", event.Type()),
+			logger.String("event_id", event.ID()),
+		)
+	}
+
+	return nil
 }

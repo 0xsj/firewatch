@@ -1,0 +1,90 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: hexagonal-postgres
+    restart: unless-stopped
+    platform: linux/arm64
+    environment:
+      POSTGRES_USER: hexagonal
+      POSTGRES_PASSWORD: hexagonal_dev_pass
+      POSTGRES_DB: hexagonal_identity
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5435:5432" # Changed to 5435
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - hexagonal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hexagonal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: hexagonal-redis
+    restart: unless-stopped
+    platform: linux/arm64
+    ports:
+      - "6382:6379" # Changed to 6382
+    volumes:
+      - redis_data:/data
+    networks:
+      - hexagonal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # PostgreSQL Admin (Optional - PgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hexagonal-pgadmin
+    restart: unless-stopped
+    platform: linux/arm64
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hexagonal.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5052:80" # Changed to 5052
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - hexagonal-network
+    depends_on:
+      - postgres
+
+  # Redis Commander (Optional - Redis GUI)
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest
+    container_name: hexagonal-redis-commander
+    restart: unless-stopped
+    platform: linux/arm64
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8083:8081" # Changed to 8083
+    networks:
+      - hexagonal-network
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  hexagonal-network:
+    driver: bridge

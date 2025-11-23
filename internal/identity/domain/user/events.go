@@ -9,7 +9,10 @@ import (
 // Event is the base interface for all user domain events.
 // All user events embed EventMetadata for common fields.
 type Event interface {
-	// EventType returns the event type identifier
+	// Type returns the event type identifier
+	Type() string
+
+	// EventType returns the event type identifier (alias)
 	EventType() string
 
 	// EventTime returns when the event occurred
@@ -20,26 +23,37 @@ type Event interface {
 
 	// AggregateTenantID returns the tenant ID
 	AggregateTenantID() string
+
+	// Payload returns the event data as a map
+	Payload() map[string]any
+
+	// Version returns the aggregate version
+	Version() int
 }
 
 // EventMetadata contains common fields for all domain events.
 type EventMetadata struct {
-	Type     string         `json:"type"`
-	Time     time.Time      `json:"time"`
-	UserID   types.ID       `json:"user_id"`
-	TenantID string         `json:"tenant_id"`
-	Version  int            `json:"version"`  // Aggregate version
-	Metadata map[string]any `json:"metadata"` // Additional context
+	EventType_ string         `json:"type"`
+	Time_      time.Time      `json:"time"`
+	UserID     types.ID       `json:"user_id"`
+	TenantID   string         `json:"tenant_id"`
+	Version_   int            `json:"version"`  // Aggregate version
+	Metadata   map[string]any `json:"metadata"` // Additional context
+}
+
+// Type returns the event type.
+func (m EventMetadata) Type() string {
+	return m.EventType_
 }
 
 // EventType returns the event type.
 func (m EventMetadata) EventType() string {
-	return m.Type
+	return m.EventType_
 }
 
 // EventTime returns when the event occurred.
 func (m EventMetadata) EventTime() time.Time {
-	return m.Time
+	return m.Time_
 }
 
 // AggregateID returns the user ID.
@@ -50,6 +64,11 @@ func (m EventMetadata) AggregateID() types.ID {
 // AggregateTenantID returns the tenant ID.
 func (m EventMetadata) AggregateTenantID() string {
 	return m.TenantID
+}
+
+// Version returns the aggregate version.
+func (m EventMetadata) Version() int {
+	return m.Version_
 }
 
 // ============================================================================
@@ -91,18 +110,31 @@ type UserRegistered struct {
 func NewUserRegistered(userID types.ID, tenantID string, email Email, role Role, hasPassword bool, source string) UserRegistered {
 	return UserRegistered{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserRegistered,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Version:  1,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserRegistered,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Version_:   1,
+			Metadata:   make(map[string]any),
 		},
 		Email:         email.String(),
 		Role:          role.String(),
 		HasPassword:   hasPassword,
 		EmailVerified: !hasPassword, // SSO/magic link users are pre-verified
 		Source:        source,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserRegistered) Payload() map[string]any {
+	return map[string]any{
+		"user_id":        e.UserID.String(),
+		"tenant_id":      e.TenantID,
+		"email":          e.Email,
+		"role":           e.Role,
+		"has_password":   e.HasPassword,
+		"email_verified": e.EmailVerified,
+		"source":         e.Source,
 	}
 }
 
@@ -121,14 +153,24 @@ type UserEmailVerified struct {
 func NewUserEmailVerified(userID types.ID, tenantID string, email Email) UserEmailVerified {
 	return UserEmailVerified{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserEmailVerified,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserEmailVerified,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		Email:      email.String(),
 		VerifiedAt: time.Now(),
+	}
+}
+
+// Payload returns the event payload.
+func (e UserEmailVerified) Payload() map[string]any {
+	return map[string]any{
+		"user_id":     e.UserID.String(),
+		"tenant_id":   e.TenantID,
+		"email":       e.Email,
+		"verified_at": e.VerifiedAt,
 	}
 }
 
@@ -146,13 +188,22 @@ type UserPasswordChanged struct {
 func NewUserPasswordChanged(userID types.ID, tenantID string, changedBy string) UserPasswordChanged {
 	return UserPasswordChanged{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserPasswordChanged,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserPasswordChanged,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		ChangedBy: changedBy,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserPasswordChanged) Payload() map[string]any {
+	return map[string]any{
+		"user_id":    e.UserID.String(),
+		"tenant_id":  e.TenantID,
+		"changed_by": e.ChangedBy,
 	}
 }
 
@@ -167,14 +218,24 @@ type UserPasswordReset struct {
 func NewUserPasswordReset(userID types.ID, tenantID string, email Email, ipAddress string) UserPasswordReset {
 	return UserPasswordReset{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserPasswordReset,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserPasswordReset,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		Email:     email.String(),
 		IPAddress: ipAddress,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserPasswordReset) Payload() map[string]any {
+	return map[string]any{
+		"user_id":    e.UserID.String(),
+		"tenant_id":  e.TenantID,
+		"email":      e.Email,
+		"ip_address": e.IPAddress,
 	}
 }
 
@@ -196,17 +257,30 @@ type UserLoggedIn struct {
 func NewUserLoggedIn(userID types.ID, tenantID string, email Email, method, ipAddress, userAgent, sessionID string) UserLoggedIn {
 	return UserLoggedIn{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserLoggedIn,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserLoggedIn,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		Email:     email.String(),
 		Method:    method,
 		IPAddress: ipAddress,
 		UserAgent: userAgent,
 		SessionID: sessionID,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserLoggedIn) Payload() map[string]any {
+	return map[string]any{
+		"user_id":    e.UserID.String(),
+		"tenant_id":  e.TenantID,
+		"email":      e.Email,
+		"method":     e.Method,
+		"ip_address": e.IPAddress,
+		"user_agent": e.UserAgent,
+		"session_id": e.SessionID,
 	}
 }
 
@@ -221,14 +295,24 @@ type UserLoggedOut struct {
 func NewUserLoggedOut(userID types.ID, tenantID string, sessionID, reason string) UserLoggedOut {
 	return UserLoggedOut{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserLoggedOut,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserLoggedOut,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		SessionID: sessionID,
 		Reason:    reason,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserLoggedOut) Payload() map[string]any {
+	return map[string]any{
+		"user_id":    e.UserID.String(),
+		"tenant_id":  e.TenantID,
+		"session_id": e.SessionID,
+		"reason":     e.Reason,
 	}
 }
 
@@ -246,17 +330,30 @@ type UserLoginFailed struct {
 func NewUserLoginFailed(userID types.ID, tenantID string, email Email, reason, ipAddress, userAgent string, attemptNum int) UserLoginFailed {
 	return UserLoginFailed{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserLoginFailed,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserLoginFailed,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		Email:      email.String(),
 		Reason:     reason,
 		IPAddress:  ipAddress,
 		UserAgent:  userAgent,
 		AttemptNum: attemptNum,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserLoginFailed) Payload() map[string]any {
+	return map[string]any{
+		"user_id":     e.UserID.String(),
+		"tenant_id":   e.TenantID,
+		"email":       e.Email,
+		"reason":      e.Reason,
+		"ip_address":  e.IPAddress,
+		"user_agent":  e.UserAgent,
+		"attempt_num": e.AttemptNum,
 	}
 }
 
@@ -276,16 +373,30 @@ type UserAccountLocked struct {
 func NewUserAccountLocked(userID types.ID, tenantID string, reason string, lockedUntil *time.Time, lockedBy string) UserAccountLocked {
 	return UserAccountLocked{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserAccountLocked,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserAccountLocked,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		Reason:      reason,
 		LockedUntil: lockedUntil,
 		LockedBy:    lockedBy,
 	}
+}
+
+// Payload returns the event payload.
+func (e UserAccountLocked) Payload() map[string]any {
+	payload := map[string]any{
+		"user_id":   e.UserID.String(),
+		"tenant_id": e.TenantID,
+		"reason":    e.Reason,
+		"locked_by": e.LockedBy,
+	}
+	if e.LockedUntil != nil {
+		payload["locked_until"] = e.LockedUntil
+	}
+	return payload
 }
 
 // UserAccountUnlocked is emitted when a locked account is unlocked.
@@ -298,13 +409,22 @@ type UserAccountUnlocked struct {
 func NewUserAccountUnlocked(userID types.ID, tenantID string, unlockedBy string) UserAccountUnlocked {
 	return UserAccountUnlocked{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserAccountUnlocked,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserAccountUnlocked,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		UnlockedBy: unlockedBy,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserAccountUnlocked) Payload() map[string]any {
+	return map[string]any{
+		"user_id":     e.UserID.String(),
+		"tenant_id":   e.TenantID,
+		"unlocked_by": e.UnlockedBy,
 	}
 }
 
@@ -319,14 +439,24 @@ type UserAccountSuspended struct {
 func NewUserAccountSuspended(userID types.ID, tenantID string, reason, suspendedBy string) UserAccountSuspended {
 	return UserAccountSuspended{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserAccountSuspended,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserAccountSuspended,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		Reason:      reason,
 		SuspendedBy: suspendedBy,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserAccountSuspended) Payload() map[string]any {
+	return map[string]any{
+		"user_id":      e.UserID.String(),
+		"tenant_id":    e.TenantID,
+		"reason":       e.Reason,
+		"suspended_by": e.SuspendedBy,
 	}
 }
 
@@ -340,13 +470,22 @@ type UserAccountReactivated struct {
 func NewUserAccountReactivated(userID types.ID, tenantID string, reactivatedBy string) UserAccountReactivated {
 	return UserAccountReactivated{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserAccountReactivated,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserAccountReactivated,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		ReactivatedBy: reactivatedBy,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserAccountReactivated) Payload() map[string]any {
+	return map[string]any{
+		"user_id":        e.UserID.String(),
+		"tenant_id":      e.TenantID,
+		"reactivated_by": e.ReactivatedBy,
 	}
 }
 
@@ -361,14 +500,24 @@ type UserAccountDeleted struct {
 func NewUserAccountDeleted(userID types.ID, tenantID string, reason, deletedBy string) UserAccountDeleted {
 	return UserAccountDeleted{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserAccountDeleted,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserAccountDeleted,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		Reason:    reason,
 		DeletedBy: deletedBy,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserAccountDeleted) Payload() map[string]any {
+	return map[string]any{
+		"user_id":    e.UserID.String(),
+		"tenant_id":  e.TenantID,
+		"reason":     e.Reason,
+		"deleted_by": e.DeletedBy,
 	}
 }
 
@@ -389,16 +538,28 @@ type UserRoleChanged struct {
 func NewUserRoleChanged(userID types.ID, tenantID string, oldRole, newRole Role, changedBy, reason string) UserRoleChanged {
 	return UserRoleChanged{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserRoleChanged,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserRoleChanged,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		OldRole:   oldRole.String(),
 		NewRole:   newRole.String(),
 		ChangedBy: changedBy,
 		Reason:    reason,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserRoleChanged) Payload() map[string]any {
+	return map[string]any{
+		"user_id":    e.UserID.String(),
+		"tenant_id":  e.TenantID,
+		"old_role":   e.OldRole,
+		"new_role":   e.NewRole,
+		"changed_by": e.ChangedBy,
+		"reason":     e.Reason,
 	}
 }
 
@@ -416,12 +577,21 @@ type UserProfileUpdated struct {
 func NewUserProfileUpdated(userID types.ID, tenantID string, updatedFields []string) UserProfileUpdated {
 	return UserProfileUpdated{
 		EventMetadata: EventMetadata{
-			Type:     EventTypeUserProfileUpdated,
-			Time:     time.Now(),
-			UserID:   userID,
-			TenantID: tenantID,
-			Metadata: make(map[string]any),
+			EventType_: EventTypeUserProfileUpdated,
+			Time_:      time.Now(),
+			UserID:     userID,
+			TenantID:   tenantID,
+			Metadata:   make(map[string]any),
 		},
 		UpdatedFields: updatedFields,
+	}
+}
+
+// Payload returns the event payload.
+func (e UserProfileUpdated) Payload() map[string]any {
+	return map[string]any{
+		"user_id":        e.UserID.String(),
+		"tenant_id":      e.TenantID,
+		"updated_fields": e.UpdatedFields,
 	}
 }

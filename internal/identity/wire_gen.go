@@ -11,25 +11,28 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
-	"github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/database"
+	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/google/wire"
 )
 
 // Injectors from provider.go:
 
-func ProvideModule(db database.DB, log logger.Logger) (*v1.Handler, error) {
-	mockUserRepository := repository.NewMockUserRepository()
-	registerUserCommand := command.NewRegisterUserCommand(mockUserRepository)
-	loginCommand := command.NewLoginCommand(mockUserRepository)
-	verifyEmailCommand := command.NewVerifyEmailCommand(mockUserRepository)
-	getUserQuery := query.NewGetUserQuery(mockUserRepository)
-	listUsersQuery := query.NewListUsersQuery(mockUserRepository)
+// ProvideModule wires up the complete Identity module.
+func ProvideModule(db database.DB, publisher messaging.Publisher, log logger.Logger) (*v1.Handler, error) {
+	postgresUserRepository := repository.NewPostgresUserRepository(db)
+	registerUserCommand := command.NewRegisterUserCommand(postgresUserRepository, publisher, log)
+	loginCommand := command.NewLoginCommand(postgresUserRepository, publisher, log)
+	verifyEmailCommand := command.NewVerifyEmailCommand(postgresUserRepository, publisher, log)
+	getUserQuery := query.NewGetUserQuery(postgresUserRepository)
+	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
 	handler := v1.NewHandler(registerUserCommand, loginCommand, verifyEmailCommand, getUserQuery, listUsersQuery, log)
 	return handler, nil
 }
 
 // provider.go:
 
-var IdentitySet = wire.NewSet(repository.NewMockUserRepository, wire.Bind(new(user.Repository), new(*repository.MockUserRepository)), command.NewRegisterUserCommand, command.NewLoginCommand, command.NewVerifyEmailCommand, query.NewGetUserQuery, query.NewListUsersQuery, v1.NewHandler)
+// IdentitySet provides all dependencies for the Identity domain.
+var IdentitySet = wire.NewSet(repository.NewPostgresUserRepository, wire.Bind(new(user.Repository), new(*repository.PostgresUserRepository)), command.NewRegisterUserCommand, command.NewLoginCommand, command.NewVerifyEmailCommand, query.NewGetUserQuery, query.NewListUsersQuery, v1.NewHandler)

@@ -10,7 +10,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
-	"github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 )
 
@@ -23,16 +23,18 @@ func InitializeApp() (*App, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	mockUserRepository := repository.NewMockUserRepository()
-	registerUserCommand := command.NewRegisterUserCommand(mockUserRepository)
-	loginCommand := command.NewLoginCommand(mockUserRepository)
-	verifyEmailCommand := command.NewVerifyEmailCommand(mockUserRepository)
-	getUserQuery := query.NewGetUserQuery(mockUserRepository)
-	listUsersQuery := query.NewListUsersQuery(mockUserRepository)
+	publisher := provider.ProvideEventBus(logger)
+	postgresUserRepository := repository.NewPostgresUserRepository(db)
+	registerUserCommand := command.NewRegisterUserCommand(postgresUserRepository, publisher, logger)
+	loginCommand := command.NewLoginCommand(postgresUserRepository, publisher, logger)
+	verifyEmailCommand := command.NewVerifyEmailCommand(postgresUserRepository, publisher, logger)
+	getUserQuery := query.NewGetUserQuery(postgresUserRepository)
+	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
 	handler := v1.NewHandler(registerUserCommand, loginCommand, verifyEmailCommand, getUserQuery, listUsersQuery, logger)
 	app := &App{
 		Logger:          logger,
 		DB:              db,
+		EventBus:        publisher,
 		IdentityHandler: handler,
 	}
 	return app, func() {
