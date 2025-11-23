@@ -107,7 +107,7 @@ func (id ID) Equals(other ID) bool {
 //   - +1 if id > other (id created after other)
 func (id ID) Compare(other ID) int {
 	// Compare as byte arrays for proper ordering
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		if id.value[i] < other.value[i] {
 			return -1
 		}
@@ -189,8 +189,9 @@ func (id *ID) UnmarshalJSON(data []byte) error {
 // Supports native UUID database types and string/byte representations.
 //
 // PostgreSQL example:
-//   CREATE TABLE users (id UUID PRIMARY KEY);
-//   SELECT id FROM users; -- scans directly as UUID
+//
+//	CREATE TABLE users (id UUID PRIMARY KEY);
+//	SELECT id FROM users; -- scans directly as UUID
 func (id *ID) Scan(value interface{}) error {
 	if value == nil {
 		*id = ID{}
@@ -215,7 +216,7 @@ func (id *ID) Scan(value interface{}) error {
 			*id = ID{}
 			return nil
 		}
-		
+
 		// Try parsing as string first (most common)
 		if len(v) == 36 || len(v) == 32 {
 			parsed, err := ParseID(string(v))
@@ -225,7 +226,7 @@ func (id *ID) Scan(value interface{}) error {
 			*id = parsed
 			return nil
 		}
-		
+
 		// Try parsing as 16-byte binary UUID
 		if len(v) == 16 {
 			var u uuid.UUID
@@ -233,7 +234,7 @@ func (id *ID) Scan(value interface{}) error {
 			*id = ID{value: u}
 			return nil
 		}
-		
+
 		return fmt.Errorf("invalid byte length for UUID: %d", len(v))
 
 	case uuid.UUID:
@@ -302,4 +303,9 @@ func (id ID) GoString() string {
 // Useful for binary protocols or custom serialization.
 func (id ID) Bytes() []byte {
 	return id.value[:]
+}
+
+// IsEmpty returns true if the ID is empty (zero value).
+func (id ID) IsEmpty() bool {
+	return id.value == uuid.Nil
 }

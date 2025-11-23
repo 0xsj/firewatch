@@ -469,7 +469,7 @@ func (s SortField) String() string {
 func ParseSortField(s string) SortField {
 	parts := strings.Split(s, ":")
 	field := strings.TrimSpace(parts[0])
-	
+
 	order := SortAsc
 	if len(parts) > 1 {
 		order = ParseSortOrder(parts[1])

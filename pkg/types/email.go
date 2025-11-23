@@ -355,12 +355,12 @@ func (e Email) IsDomain(domain string) bool {
 func (e Email) IsSubdomain(parentDomain string) bool {
 	domain := e.Domain()
 	parentDomain = strings.ToLower(parentDomain)
-	
+
 	// Exact match
 	if domain == parentDomain {
 		return true
 	}
-	
+
 	// Subdomain match (ends with .parentDomain)
 	return strings.HasSuffix(domain, "."+parentDomain)
 }
