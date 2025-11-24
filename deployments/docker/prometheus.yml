@@ -16,8 +16,8 @@ scrape_configs:
     static_configs:
       - targets: ["otel-collector:8888", "otel-collector:8889"]
 
-  # Scrape your Go application metrics (when implemented)
+  # Scrape your Go application metrics
   - job_name: "hexagonal-go-api"
     static_configs:
-      - targets: ["host.docker.internal:8080"]
+      - targets: ["host.docker.internal:9090"]
     metrics_path: "/metrics"

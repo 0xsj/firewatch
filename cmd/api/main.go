@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	pkghttp "github.com/0xsj/hexagonal-go/pkg/http"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
+	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 )
 
 func main() {
@@ -32,13 +35,25 @@ func run() error {
 	// ========================================================================
 	// Initialize Application (Wire handles all dependency injection)
 	// ========================================================================
-	app, cleanup, err := InitializeApp(cfg)
+	app, cleanup, err := InitializeApp(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize app: %w", err)
 	}
 	defer cleanup()
 
 	app.Logger.Info("starting identity service")
+
+	// ========================================================================
+	// Start Metrics Server
+	// ========================================================================
+	if err := app.MetricsProvider.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start metrics server: %w", err)
+	}
+	defer app.MetricsProvider.Close()
+	app.Logger.Info("metrics server started",
+		logger.Int("port", cfg.Metrics.Port),
+		logger.String("path", cfg.Metrics.Path),
+	)
 
 	// ========================================================================
 	// Register Event Subscribers
@@ -59,10 +74,20 @@ func run() error {
 	app.Logger.Info("configured cors")
 
 	// ========================================================================
-	// Create Router
+	// Create Router with Observability Middleware
 	// ========================================================================
-	router := app.IdentityHandler.Routes(app.Logger, corsConfig)
-	app.Logger.Info("configured routes")
+	// Create root router with observability middleware FIRST
+	root := chi.NewRouter()
+
+	// Add observability middleware before mounting routes
+	root.Use(middleware.Tracing(app.TracingProvider.Tracer()))
+	root.Use(middleware.Metrics(app.HTTPMetrics))
+
+	// Mount identity routes
+	identityRouter := app.IdentityHandler.Routes(app.Logger, corsConfig)
+	root.Mount("/", identityRouter)
+
+	app.Logger.Info("configured routes with observability")
 
 	// ========================================================================
 	// Configure and Start Server
@@ -72,10 +97,17 @@ func run() error {
 	serverConfig.Port = cfg.Server.Port
 
 	// Print available endpoints
-	printEndpoints(serverConfig.Port)
+	printEndpoints(serverConfig.Port, cfg.Metrics.Port)
+
+	// Ensure tracing is flushed on shutdown
+	defer func() {
+		if err := app.TracingProvider.Shutdown(ctx); err != nil {
+			app.Logger.Error("failed to shutdown tracing", logger.Err(err))
+		}
+	}()
 
 	// Start server (blocks until shutdown)
-	server := pkghttp.NewServer(router, serverConfig, app.Logger)
+	server := pkghttp.NewServer(root, serverConfig, app.Logger)
 	app.Logger.Info("starting http server")
 
 	return server.Start()
@@ -95,12 +127,19 @@ func registerSubscribers(app *App) error {
 	}
 	app.Logger.Info("registered audit subscriber")
 
+	// Register notification subscriber (listens to user events)
+	if err := app.NotificationSubscriber.Register(subscriber); err != nil {
+		return fmt.Errorf("failed to register notification subscriber: %w", err)
+	}
+	app.Logger.Info("registered notification subscriber")
+
 	return nil
 }
 
 // printEndpoints prints available API endpoints on startup.
-func printEndpoints(port int) {
+func printEndpoints(port, metricsPort int) {
 	baseURL := fmt.Sprintf("http://localhost:%d", port)
+	metricsURL := fmt.Sprintf("http://localhost:%d", metricsPort)
 
 	fmt.Println()
 	fmt.Println("========================================")
@@ -121,6 +160,9 @@ func printEndpoints(port int) {
 	fmt.Println("User Queries:")
 	fmt.Printf("  GET  %s/api/v1/users/{id}\n", baseURL)
 	fmt.Printf("  GET  %s/api/v1/users\n", baseURL)
+	fmt.Println()
+	fmt.Println("Observability:")
+	fmt.Printf("  GET  %s/metrics\n", metricsURL)
 	fmt.Println()
 	fmt.Println("========================================")
 	fmt.Println()
