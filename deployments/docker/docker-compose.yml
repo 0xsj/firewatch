@@ -143,6 +143,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: hexagonal-go-mailpit
+    restart: unless-stopped
+    platform: linux/arm64
+    ports:
+      - "1027:1025" # SMTP server
+      - "8027:8025" # Web UI
+    networks:
+      - hexagonal-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

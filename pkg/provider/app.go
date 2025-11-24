@@ -10,33 +10,12 @@ import (
 )
 
 // ProvideLogger creates and configures the application logger.
-func ProvideLogger() logger.Logger {
-	return console.New(console.Options{
-		Level:         logger.DebugLevel,
-		ShowTimestamp: true,
-		ShowCaller:    true,
-		Colorize:      true,
-		ColorScheme:   console.DefaultColorScheme,
-	})
+func ProvideLogger(opts console.Options) logger.Logger {
+	return console.New(opts)
 }
 
 // ProvideDatabase provides a PostgreSQL database connection.
-func ProvideDatabase(log logger.Logger) (database.DB, func(), error) {
-	// Database configuration
-	config := postgres.Config{
-		Host:     "localhost",
-		Port:     5436, // From docker-compose
-		Database: "hexagonal_identity",
-		User:     "hexagonal",
-		Password: "hexagonal_dev_pass",
-		SSLMode:  "disable",
-
-		// Connection pool settings
-		MaxOpenConns:    25,
-		MaxIdleConns:    5,
-		ConnMaxLifetime: 5 * 60, // 5 minutes
-	}
-
+func ProvideDatabase(config postgres.Config, log logger.Logger) (database.DB, func(), error) {
 	log.Info("connecting to database",
 		logger.String("host", config.Host),
 		logger.Int("port", config.Port),
