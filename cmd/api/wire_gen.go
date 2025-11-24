@@ -26,6 +26,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
 	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
+	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 )
 
 // Injectors from wire.go:
@@ -54,6 +55,8 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	sender := provider.ProvideEmailSender(emailConfig)
 	sendNotificationCommand := command2.NewSendNotificationCommand(repositoryPostgresRepository, sender, logger)
 	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, logger)
+	jwtConfig := ProvideJWTConfig(cfg)
+	service := provider.ProvideJWTService(jwtConfig)
 	metricsConfig := ProvideMetricsConfig(cfg)
 	metricsProvider := provider.ProvideMetricsProvider(metricsConfig)
 	tracingConfig := ProvideTracingConfig(cfg)
@@ -70,6 +73,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		IdentityHandler:        handler,
 		AuditSubscriber:        eventSubscriber,
 		NotificationSubscriber: userEventSubscriber,
+		JWTService:             service,
 		MetricsProvider:        metricsProvider,
 		TracingProvider:        tracingProvider,
 		HTTPMetrics:            httpMetrics,
@@ -104,4 +108,9 @@ func ProvideMetricsConfig(cfg *config.AppConfig) metrics.Config {
 // ProvideTracingConfig extracts tracing config from AppConfig.
 func ProvideTracingConfig(cfg *config.AppConfig) tracing.Config {
 	return cfg.Tracing
+}
+
+// ProvideJWTConfig extracts JWT config from AppConfig.
+func ProvideJWTConfig(cfg *config.AppConfig) jwt.Config {
+	return cfg.JWT
 }

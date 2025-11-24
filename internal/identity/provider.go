@@ -8,6 +8,7 @@ import (
 
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
+	"github.com/0xsj/hexagonal-go/internal/identity/domain/session"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
@@ -18,11 +19,15 @@ import (
 
 // IdentitySet provides all dependencies for the Identity domain.
 var IdentitySet = wire.NewSet(
-	// Infrastructure - PostgreSQL Repository
+	// Infrastructure - User Repository
 	repository.NewPostgresUserRepository,
 	wire.Bind(new(user.Repository), new(*repository.PostgresUserRepository)),
 
-	// Application - Commands (now with publisher!)
+	// Infrastructure - Session Repository
+	repository.NewPostgresSessionRepository,
+	wire.Bind(new(session.Repository), new(*repository.PostgresSessionRepository)),
+
+	// Application - Commands
 	command.NewRegisterUserCommand,
 	command.NewLoginCommand,
 	command.NewVerifyEmailCommand,
@@ -38,7 +43,7 @@ var IdentitySet = wire.NewSet(
 // ProvideModule wires up the complete Identity module.
 func ProvideModule(
 	db database.DB,
-	publisher messaging.Publisher, // ← Added!
+	publisher messaging.Publisher,
 	log logger.Logger,
 ) (*v1.Handler, error) {
 	wire.Build(IdentitySet)
