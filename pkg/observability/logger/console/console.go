@@ -44,24 +44,27 @@ type Logger struct {
 }
 
 // Options for creating a console logger.
+// Options for creating a console logger.
 type Options struct {
 	// Writer is where logs are written (default: os.Stdout)
+	// Note: Writer is not configurable via env - set programmatically
 	Writer io.Writer
 
 	// Level is the minimum log level (default: InfoLevel)
-	Level logger.Level
+	Level logger.Level `env:"LEVEL"`
 
 	// ColorScheme defines colors (default: DefaultColorScheme)
+	// Note: ColorScheme is not configurable via env - set programmatically
 	ColorScheme ColorScheme
 
 	// ShowCaller includes file:line in output (default: true)
-	ShowCaller bool
+	ShowCaller bool `env:"SHOW_CALLER"`
 
 	// ShowTimestamp includes timestamp in output (default: true)
-	ShowTimestamp bool
+	ShowTimestamp bool `env:"SHOW_TIMESTAMP"`
 
 	// Colorize enables colors (default: true, auto-disable for non-TTY)
-	Colorize bool
+	Colorize bool `env:"COLORIZE"`
 }
 
 // DefaultOptions returns default console logger options.

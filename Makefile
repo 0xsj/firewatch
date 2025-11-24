@@ -42,10 +42,12 @@ docker-up: ## Start all Docker services
 	@echo "✓ Docker services started"
 	@echo ""
 	@echo "Services:"
-	@echo "  PostgreSQL:        localhost:5435"
-	@echo "  Redis:             localhost:6382"
-	@echo "  PgAdmin:           http://localhost:5052"
-	@echo "  Redis Commander:   http://localhost:8083"
+	@echo "  PostgreSQL:        localhost:5436"
+	@echo "  Redis:             localhost:6383"
+	@echo "  Jaeger UI:         http://localhost:16686"
+	@echo "  Prometheus:        http://localhost:9092"
+	@echo "  Grafana:           http://localhost:3002 (admin/admin)"
+	@echo "  OTEL Collector:    localhost:4317 (gRPC), localhost:4318 (HTTP)"
 
 .PHONY: docker-down
 docker-down: ## Stop all Docker services
@@ -130,13 +132,13 @@ fmt: ## Format code
 .PHONY: migrate-up
 migrate-up: ## Run database migrations
 	@echo "Running migrations..."
-	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5435/hexagonal_identity?sslmode=disable" up
+	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5436/hexagonal_identity?sslmode=disable" up
 	@echo "✓ Migrations complete"
 
 .PHONY: migrate-down
 migrate-down: ## Rollback last migration
 	@echo "Rolling back migration..."
-	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5435/hexagonal_identity?sslmode=disable" down 1
+	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5436/hexagonal_identity?sslmode=disable" down 1
 	@echo "✓ Rollback complete"
 
 .PHONY: migrate-reset
@@ -148,4 +150,4 @@ migrate-reset: ## Reset all migrations (WARNING: deletes all data)
 
 .PHONY: migrate-status
 migrate-status: ## Show migration status
-	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5435/hexagonal_identity?sslmode=disable" version
+	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5436/hexagonal_identity?sslmode=disable" version

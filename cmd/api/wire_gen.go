@@ -7,19 +7,26 @@
 package main
 
 import (
+	"github.com/0xsj/hexagonal-go/cmd/api/config"
+	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
+	repository2 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
+	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 )
 
 // Injectors from wire.go:
 
 // InitializeApp wires up the entire application.
-func InitializeApp() (*App, func(), error) {
-	logger := provider.ProvideLogger()
-	db, cleanup, err := provider.ProvideDatabase(logger)
+func InitializeApp(cfg *config.AppConfig) (*App, func(), error) {
+	options := ProvideLoggerOptions(cfg)
+	logger := provider.ProvideLogger(options)
+	postgresConfig := ProvidePostgresConfig(cfg)
+	db, cleanup, err := provider.ProvideDatabase(postgresConfig, logger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -31,13 +38,28 @@ func InitializeApp() (*App, func(), error) {
 	getUserQuery := query.NewGetUserQuery(postgresUserRepository)
 	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
 	handler := v1.NewHandler(registerUserCommand, loginCommand, verifyEmailCommand, getUserQuery, listUsersQuery, logger)
+	postgresRepository := repository2.NewPostgresRepository(db)
+	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository, logger)
 	app := &App{
 		Logger:          logger,
 		DB:              db,
 		EventBus:        publisher,
 		IdentityHandler: handler,
+		AuditSubscriber: eventSubscriber,
 	}
 	return app, func() {
 		cleanup()
 	}, nil
+}
+
+// wire.go:
+
+// ProvidePostgresConfig extracts database config from AppConfig.
+func ProvidePostgresConfig(cfg *config.AppConfig) postgres.Config {
+	return cfg.Database
+}
+
+// ProvideLoggerOptions extracts logger options from AppConfig.
+func ProvideLoggerOptions(cfg *config.AppConfig) console.Options {
+	return cfg.Logger
 }

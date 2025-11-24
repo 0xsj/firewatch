@@ -75,3 +75,8 @@ func ParseLevel(s string) Level {
 		return InfoLevel
 	}
 }
+
+func (l *Level) UnmarshalText(text []byte) error {
+	*l = ParseLevel(string(text))
+	return nil
+}
