@@ -14,7 +14,11 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	command2 "github.com/0xsj/hexagonal-go/internal/notifications/application/command"
+	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
+	repository3 "github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
+	"github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 )
@@ -40,12 +44,18 @@ func InitializeApp(cfg *config.AppConfig) (*App, func(), error) {
 	handler := v1.NewHandler(registerUserCommand, loginCommand, verifyEmailCommand, getUserQuery, listUsersQuery, logger)
 	postgresRepository := repository2.NewPostgresRepository(db)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository, logger)
+	repositoryPostgresRepository := repository3.NewPostgresRepository(db)
+	emailConfig := ProvideEmailConfig(cfg)
+	sender := provider.ProvideEmailSender(emailConfig)
+	sendNotificationCommand := command2.NewSendNotificationCommand(repositoryPostgresRepository, sender, logger)
+	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, logger)
 	app := &App{
-		Logger:          logger,
-		DB:              db,
-		EventBus:        publisher,
-		IdentityHandler: handler,
-		AuditSubscriber: eventSubscriber,
+		Logger:                 logger,
+		DB:                     db,
+		EventBus:               publisher,
+		IdentityHandler:        handler,
+		AuditSubscriber:        eventSubscriber,
+		NotificationSubscriber: userEventSubscriber,
 	}
 	return app, func() {
 		cleanup()
@@ -62,4 +72,9 @@ func ProvidePostgresConfig(cfg *config.AppConfig) postgres.Config {
 // ProvideLoggerOptions extracts logger options from AppConfig.
 func ProvideLoggerOptions(cfg *config.AppConfig) console.Options {
 	return cfg.Logger
+}
+
+// ProvideEmailConfig extracts email config from AppConfig.
+func ProvideEmailConfig(cfg *config.AppConfig) email.Config {
+	return cfg.Email
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
+	"github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
 )
 
@@ -10,11 +11,13 @@ import (
 //   - DB_*        for database settings
 //   - LOG_*       for logger settings
 //   - SERVER_*    for HTTP server settings
+//   - EMAIL_*     for email/SMTP settings
 //   - MESSAGING_* for messaging settings (future)
 type AppConfig struct {
 	Database  postgres.Config
 	Logger    console.Options
 	Server    ServerConfig
+	Email     email.Config
 	Messaging MessagingConfig
 }
 
@@ -46,6 +49,7 @@ func DefaultAppConfig() AppConfig {
 			Host: "0.0.0.0",
 			Port: 8080,
 		},
+		Email:     email.DefaultConfig(),
 		Messaging: MessagingConfig{},
 	}
 }

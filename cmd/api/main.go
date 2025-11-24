@@ -95,6 +95,12 @@ func registerSubscribers(app *App) error {
 	}
 	app.Logger.Info("registered audit subscriber")
 
+	// Register notification subscriber (listens to user events)
+	if err := app.NotificationSubscriber.Register(subscriber); err != nil {
+		return fmt.Errorf("failed to register notification subscriber: %w", err)
+	}
+	app.Logger.Info("registered notification subscriber")
+
 	return nil
 }
 
