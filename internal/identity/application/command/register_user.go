@@ -134,10 +134,13 @@ func (c *RegisterUserCommand) convertDomainEvent(ctx context.Context, domainEven
 		domainEvent.Payload(),
 	)
 
-	// Add aggregate metadata
+	// Add standard metadata for cross-cutting concerns
+	event.WithTenantID(domainEvent.AggregateTenantID())
+	event.WithUserID(domainEvent.AggregateID().String())
+
+	// Add aggregate metadata for event sourcing/replay
 	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
 	event.WithMetadata("aggregate_type", "user")
-	event.WithMetadata("aggregate_tenant_id", domainEvent.AggregateTenantID())
 
 	return event
 }

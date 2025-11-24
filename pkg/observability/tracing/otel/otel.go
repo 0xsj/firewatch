@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -51,15 +51,16 @@ func New(ctx context.Context, config tracing.Config) (*Provider, error) {
 		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
 	}
 
-	// Create resource with service information
-	res, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
+	// Create resource with service information (without merging Default to avoid schema conflict)
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
 			semconv.ServiceName(config.ServiceName),
 			semconv.ServiceVersion(config.ServiceVersion),
-			semconv.DeploymentEnvironment(config.Environment),
+			attribute.String("deployment.environment", config.Environment),
 		),
+		resource.WithHost(),
+		resource.WithOS(),
+		resource.WithProcess(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)

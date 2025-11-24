@@ -4,6 +4,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/google/wire"
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
@@ -12,23 +14,33 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/notifications"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	"github.com/0xsj/hexagonal-go/pkg/email"
+	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
+	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
+	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 )
 
 // InitializeApp wires up the entire application.
-func InitializeApp(cfg *config.AppConfig) (*App, func(), error) {
+func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), error) {
 	wire.Build(
 		// Config extractors
 		ProvidePostgresConfig,
 		ProvideLoggerOptions,
 		ProvideEmailConfig,
+		ProvideMetricsConfig,
+		ProvideTracingConfig,
 
 		// Infrastructure (from pkg/provider)
 		provider.ProvideLogger,
 		provider.ProvideDatabase,
 		provider.ProvideEventBus,
 		provider.ProvideEmailSender,
+		provider.ProvideMetricsProvider,
+		provider.ProvideTracingProvider,
+
+		// HTTP Metrics
+		middleware.NewHTTPMetrics,
 
 		// Identity domain
 		identity.IdentitySet,
@@ -58,4 +70,14 @@ func ProvideLoggerOptions(cfg *config.AppConfig) console.Options {
 // ProvideEmailConfig extracts email config from AppConfig.
 func ProvideEmailConfig(cfg *config.AppConfig) email.Config {
 	return cfg.Email
+}
+
+// ProvideMetricsConfig extracts metrics config from AppConfig.
+func ProvideMetricsConfig(cfg *config.AppConfig) metrics.Config {
+	return cfg.Metrics
+}
+
+// ProvideTracingConfig extracts tracing config from AppConfig.
+func ProvideTracingConfig(cfg *config.AppConfig) tracing.Config {
+	return cfg.Tracing
 }
