@@ -6,6 +6,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
 	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
 	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
+	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 )
 
 // AppConfig holds all application configuration.
@@ -16,6 +17,7 @@ import (
 //   - EMAIL_*     for email/SMTP settings
 //   - METRICS_*   for Prometheus metrics settings
 //   - TRACING_*   for OpenTelemetry tracing settings
+//   - JWT_*       for JWT/auth settings
 type AppConfig struct {
 	Database postgres.Config
 	Logger   console.Options
@@ -23,6 +25,7 @@ type AppConfig struct {
 	Email    email.Config
 	Metrics  metrics.Config
 	Tracing  tracing.Config
+	JWT      jwt.Config
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -43,5 +46,6 @@ func DefaultAppConfig() AppConfig {
 		Email:   email.DefaultConfig(),
 		Metrics: metrics.DefaultConfig(),
 		Tracing: tracing.DefaultConfig(),
+		JWT:     jwt.DefaultConfig(),
 	}
 }

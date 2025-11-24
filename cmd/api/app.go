@@ -10,6 +10,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
 	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
+	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 )
 
 // App holds all application dependencies.
@@ -20,6 +21,9 @@ type App struct {
 	IdentityHandler        *v1.Handler
 	AuditSubscriber        *auditsubscriber.EventSubscriber
 	NotificationSubscriber *notificationsubscriber.UserEventSubscriber
+
+	// Security
+	JWTService jwt.Service
 
 	// Observability
 	MetricsProvider metrics.Provider

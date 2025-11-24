@@ -19,6 +19,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
 	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
+	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 )
 
 // InitializeApp wires up the entire application.
@@ -30,6 +31,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		ProvideEmailConfig,
 		ProvideMetricsConfig,
 		ProvideTracingConfig,
+		ProvideJWTConfig,
 
 		// Infrastructure (from pkg/provider)
 		provider.ProvideLogger,
@@ -38,6 +40,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		provider.ProvideEmailSender,
 		provider.ProvideMetricsProvider,
 		provider.ProvideTracingProvider,
+		provider.ProvideJWTService,
 
 		// HTTP Metrics
 		middleware.NewHTTPMetrics,
@@ -80,4 +83,9 @@ func ProvideMetricsConfig(cfg *config.AppConfig) metrics.Config {
 // ProvideTracingConfig extracts tracing config from AppConfig.
 func ProvideTracingConfig(cfg *config.AppConfig) tracing.Config {
 	return cfg.Tracing
+}
+
+// ProvideJWTConfig extracts JWT config from AppConfig.
+func ProvideJWTConfig(cfg *config.AppConfig) jwt.Config {
+	return cfg.JWT
 }
