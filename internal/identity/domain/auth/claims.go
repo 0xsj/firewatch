@@ -1,31 +1,33 @@
 package auth
 
 import (
-	"time"
-
+	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/0xsj/hexagonal-go/pkg/types"
 )
 
-// Claims represents JWT claims for access tokens.
-type Claims struct {
-	// Standard claims
-	Subject   string    `json:"sub"`           // User ID
-	IssuedAt  time.Time `json:"iat"`           // Issued at
-	ExpiresAt time.Time `json:"exp"`           // Expiration time
-	NotBefore time.Time `json:"nbf,omitempty"` // Not valid before
-	Issuer    string    `json:"iss,omitempty"` // Issuer
-	Audience  []string  `json:"aud,omitempty"` // Audience
+// Claim keys for identity domain.
+const (
+	ClaimUserID    = "user_id"
+	ClaimTenantID  = "tenant_id"
+	ClaimEmail     = "email"
+	ClaimRole      = "role"
+	ClaimProvider  = "provider"
+	ClaimSessionID = "session_id"
+	ClaimScopes    = "scopes"
+)
 
-	// Custom claims
-	TenantID  string   `json:"tenant_id"`        // Tenant ID
-	Email     string   `json:"email"`            // User email
-	Role      string   `json:"role"`             // User role
-	Provider  string   `json:"provider"`         // Auth provider used
-	SessionID string   `json:"session_id"`       // Session ID
-	Scopes    []string `json:"scopes,omitempty"` // Granted scopes
+// Claims represents identity-specific JWT claims.
+type Claims struct {
+	UserID    string
+	TenantID  string
+	Email     string
+	Role      string
+	Provider  string
+	SessionID string
+	Scopes    []string
 }
 
-// NewClaims creates new JWT claims.
+// NewClaims creates new identity claims.
 func NewClaims(
 	userID types.ID,
 	tenantID string,
@@ -33,14 +35,9 @@ func NewClaims(
 	role string,
 	provider Provider,
 	sessionID types.ID,
-	ttl time.Duration,
 ) *Claims {
-	now := time.Now().UTC()
 	return &Claims{
-		Subject:   userID.String(),
-		IssuedAt:  now,
-		ExpiresAt: now.Add(ttl),
-		NotBefore: now,
+		UserID:    userID.String(),
 		TenantID:  tenantID,
 		Email:     email,
 		Role:      role,
@@ -49,52 +46,67 @@ func NewClaims(
 	}
 }
 
-// WithIssuer sets the issuer.
-func (c *Claims) WithIssuer(issuer string) *Claims {
-	c.Issuer = issuer
-	return c
-}
-
-// WithAudience sets the audience.
-func (c *Claims) WithAudience(audience ...string) *Claims {
-	c.Audience = audience
-	return c
-}
-
 // WithScopes sets the scopes.
 func (c *Claims) WithScopes(scopes ...string) *Claims {
 	c.Scopes = scopes
 	return c
 }
 
-// IsExpired returns true if the claims have expired.
-func (c *Claims) IsExpired() bool {
-	return time.Now().UTC().After(c.ExpiresAt)
+// ToJWT converts identity claims to generic JWT claims.
+func (c *Claims) ToJWT() jwt.Claims {
+	claims := jwt.Claims{
+		jwt.ClaimSubject: c.UserID,
+		ClaimUserID:      c.UserID,
+		ClaimTenantID:    c.TenantID,
+		ClaimEmail:       c.Email,
+		ClaimRole:        c.Role,
+		ClaimProvider:    c.Provider,
+		ClaimSessionID:   c.SessionID,
+	}
+
+	if len(c.Scopes) > 0 {
+		claims[ClaimScopes] = c.Scopes
+	}
+
+	return claims
 }
 
-// IsNotYetValid returns true if the claims are not yet valid.
-func (c *Claims) IsNotYetValid() bool {
-	return time.Now().UTC().Before(c.NotBefore)
+// ClaimsFromJWT converts generic JWT claims to identity claims.
+func ClaimsFromJWT(jwtClaims jwt.Claims) *Claims {
+	claims := &Claims{
+		UserID:    jwtClaims.GetString(ClaimUserID),
+		TenantID:  jwtClaims.GetString(ClaimTenantID),
+		Email:     jwtClaims.GetString(ClaimEmail),
+		Role:      jwtClaims.GetString(ClaimRole),
+		Provider:  jwtClaims.GetString(ClaimProvider),
+		SessionID: jwtClaims.GetString(ClaimSessionID),
+	}
+
+	// Handle scopes
+	if scopes, ok := jwtClaims[ClaimScopes].([]any); ok {
+		for _, s := range scopes {
+			if str, ok := s.(string); ok {
+				claims.Scopes = append(claims.Scopes, str)
+			}
+		}
+	}
+
+	// Fallback to subject if user_id not set
+	if claims.UserID == "" {
+		claims.UserID = jwtClaims.Subject()
+	}
+
+	return claims
 }
 
-// IsValid returns true if the claims are currently valid.
-func (c *Claims) IsValid() bool {
-	return !c.IsExpired() && !c.IsNotYetValid()
-}
-
-// UserID returns the user ID from the subject.
-func (c *Claims) UserID() (types.ID, error) {
-	return types.ParseID(c.Subject)
+// GetUserID returns the user ID.
+func (c *Claims) GetUserID() (types.ID, error) {
+	return types.ParseID(c.UserID)
 }
 
 // GetSessionID returns the session ID.
 func (c *Claims) GetSessionID() (types.ID, error) {
 	return types.ParseID(c.SessionID)
-}
-
-// TimeToExpiry returns the duration until expiration.
-func (c *Claims) TimeToExpiry() time.Duration {
-	return time.Until(c.ExpiresAt)
 }
 
 // HasScope returns true if the claims include the given scope.
