@@ -13,17 +13,17 @@ import (
 
 // Config holds PostgreSQL connection configuration.
 type Config struct {
-	Host     string
-	Port     int
-	Database string
-	User     string
-	Password string
-	SSLMode  string
+	Host     string `env:"HOST"`
+	Port     int    `env:"PORT"`
+	Database string `env:"DATABASE"`
+	User     string `env:"USER"`
+	Password string `env:"PASSWORD"`
+	SSLMode  string `env:"SSL_MODE"`
 
 	// Connection pool settings
-	MaxOpenConns    int
-	MaxIdleConns    int
-	ConnMaxLifetime int // seconds
+	MaxOpenConns    int `env:"MAX_OPEN_CONNS"`
+	MaxIdleConns    int `env:"MAX_IDLE_CONNS"`
+	ConnMaxLifetime int `env:"CONN_MAX_LIFETIME"` // seconds
 }
 
 // DefaultConfig returns default PostgreSQL configuration.

@@ -11,6 +11,6 @@ import (
 type App struct {
 	Logger          logger.Logger
 	DB              database.DB
-	EventBus        messaging.Publisher // ← Add this!
+	EventBus        messaging.Publisher
 	IdentityHandler *v1.Handler
 }

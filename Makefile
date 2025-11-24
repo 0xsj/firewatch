@@ -42,10 +42,12 @@ docker-up: ## Start all Docker services
 	@echo "✓ Docker services started"
 	@echo ""
 	@echo "Services:"
-	@echo "  PostgreSQL:        localhost:5435"
-	@echo "  Redis:             localhost:6382"
-	@echo "  PgAdmin:           http://localhost:5052"
-	@echo "  Redis Commander:   http://localhost:8083"
+	@echo "  PostgreSQL:        localhost:5436"
+	@echo "  Redis:             localhost:6383"
+	@echo "  Jaeger UI:         http://localhost:16686"
+	@echo "  Prometheus:        http://localhost:9092"
+	@echo "  Grafana:           http://localhost:3002 (admin/admin)"
+	@echo "  OTEL Collector:    localhost:4317 (gRPC), localhost:4318 (HTTP)"
 
 .PHONY: docker-down
 docker-down: ## Stop all Docker services

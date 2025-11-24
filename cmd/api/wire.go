@@ -6,17 +6,21 @@ package main
 import (
 	"github.com/google/wire"
 
+	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 )
 
 // InitializeApp wires up the entire application.
-func InitializeApp() (*App, func(), error) {
+func InitializeApp(cfg *config.AppConfig) (*App, func(), error) {
 	wire.Build(
+		// Extract config components for providers
+		wire.FieldsOf(new(*config.AppConfig), "Database", "Logger", "Server"),
+
 		// Infrastructure (from pkg/provider)
 		provider.ProvideLogger,
 		provider.ProvideDatabase,
-		provider.ProvideEventBus, // ← Add this!
+		provider.ProvideEventBus,
 
 		// Identity domain (from internal/identity)
 		identity.IdentitySet,

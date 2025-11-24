@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -187,6 +188,13 @@ func setEnvValues(rv reflect.Value, opts *EnvSourceOptions) error {
 }
 
 func setFieldValue(field reflect.Value, value string) error {
+	// Check if the field implements encoding.TextUnmarshaler
+	if field.CanAddr() {
+		if unmarshaler, ok := field.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			return unmarshaler.UnmarshalText([]byte(value))
+		}
+	}
+
 	switch field.Kind() {
 	case reflect.String:
 		field.SetString(value)

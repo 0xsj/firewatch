@@ -25,7 +25,7 @@ func ProvideDatabase(log logger.Logger) (database.DB, func(), error) {
 	// Database configuration
 	config := postgres.Config{
 		Host:     "localhost",
-		Port:     5435, // From docker-compose
+		Port:     5436, // From docker-compose
 		Database: "hexagonal_identity",
 		User:     "hexagonal",
 		Password: "hexagonal_dev_pass",
