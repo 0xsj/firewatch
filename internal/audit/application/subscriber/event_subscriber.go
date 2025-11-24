@@ -58,8 +58,13 @@ func (s *EventSubscriber) Handle(ctx context.Context, event messaging.Event) err
 		event.Metadata(),
 	)
 
+	// Use background context for persistence to avoid HTTP request context cancellation.
+	// The event has already been received, so we want to persist it regardless of
+	// the original request's lifecycle.
+	saveCtx := context.Background()
+
 	// Save to repository
-	if err := s.repo.Save(ctx, entry); err != nil {
+	if err := s.repo.Save(saveCtx, entry); err != nil {
 		s.logger.Error("failed to save audit entry",
 			logger.String("event_id", event.ID()),
 			logger.String("event_type", event.Type()),

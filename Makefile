@@ -132,13 +132,13 @@ fmt: ## Format code
 .PHONY: migrate-up
 migrate-up: ## Run database migrations
 	@echo "Running migrations..."
-	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5435/hexagonal_identity?sslmode=disable" up
+	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5436/hexagonal_identity?sslmode=disable" up
 	@echo "✓ Migrations complete"
 
 .PHONY: migrate-down
 migrate-down: ## Rollback last migration
 	@echo "Rolling back migration..."
-	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5435/hexagonal_identity?sslmode=disable" down 1
+	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5436/hexagonal_identity?sslmode=disable" down 1
 	@echo "✓ Rollback complete"
 
 .PHONY: migrate-reset
@@ -150,4 +150,4 @@ migrate-reset: ## Reset all migrations (WARNING: deletes all data)
 
 .PHONY: migrate-status
 migrate-status: ## Show migration status
-	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5435/hexagonal_identity?sslmode=disable" version
+	@migrate -path migrations -database "postgresql://hexagonal:hexagonal_dev_pass@localhost:5436/hexagonal_identity?sslmode=disable" version

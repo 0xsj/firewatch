@@ -8,6 +8,7 @@ import (
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	pkghttp "github.com/0xsj/hexagonal-go/pkg/http"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
+	"github.com/0xsj/hexagonal-go/pkg/messaging"
 )
 
 func main() {
@@ -38,6 +39,13 @@ func run() error {
 	defer cleanup()
 
 	app.Logger.Info("starting identity service")
+
+	// ========================================================================
+	// Register Event Subscribers
+	// ========================================================================
+	if err := registerSubscribers(app); err != nil {
+		return fmt.Errorf("failed to register subscribers: %w", err)
+	}
 
 	// ========================================================================
 	// Configure CORS
@@ -71,6 +79,23 @@ func run() error {
 	app.Logger.Info("starting http server")
 
 	return server.Start()
+}
+
+// registerSubscribers registers all event subscribers.
+func registerSubscribers(app *App) error {
+	// EventBus implements both Publisher and Subscriber
+	subscriber, ok := app.EventBus.(messaging.Subscriber)
+	if !ok {
+		return fmt.Errorf("event bus does not implement Subscriber interface")
+	}
+
+	// Register audit subscriber (listens to all events)
+	if err := app.AuditSubscriber.Register(subscriber); err != nil {
+		return fmt.Errorf("failed to register audit subscriber: %w", err)
+	}
+	app.Logger.Info("registered audit subscriber")
+
+	return nil
 }
 
 // printEndpoints prints available API endpoints on startup.

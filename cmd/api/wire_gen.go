@@ -8,6 +8,8 @@ package main
 
 import (
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
+	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
+	repository2 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
@@ -36,11 +38,14 @@ func InitializeApp(cfg *config.AppConfig) (*App, func(), error) {
 	getUserQuery := query.NewGetUserQuery(postgresUserRepository)
 	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
 	handler := v1.NewHandler(registerUserCommand, loginCommand, verifyEmailCommand, getUserQuery, listUsersQuery, logger)
+	postgresRepository := repository2.NewPostgresRepository(db)
+	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository, logger)
 	app := &App{
 		Logger:          logger,
 		DB:              db,
 		EventBus:        publisher,
 		IdentityHandler: handler,
+		AuditSubscriber: eventSubscriber,
 	}
 	return app, func() {
 		cleanup()

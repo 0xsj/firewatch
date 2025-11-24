@@ -7,6 +7,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
+	"github.com/0xsj/hexagonal-go/internal/audit"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
@@ -25,8 +26,11 @@ func InitializeApp(cfg *config.AppConfig) (*App, func(), error) {
 		provider.ProvideDatabase,
 		provider.ProvideEventBus,
 
-		// Identity domain (from internal/identity)
+		// Identity domain
 		identity.IdentitySet,
+
+		// Audit domain
+		audit.AuditSet,
 
 		// Wire the App struct
 		wire.Struct(new(App), "*"),
