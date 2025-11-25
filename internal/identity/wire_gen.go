@@ -7,8 +7,11 @@
 package identity
 
 import (
+	"os"
+
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
+	"github.com/0xsj/hexagonal-go/internal/identity/domain/oauth"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/session"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
@@ -16,6 +19,9 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
+	oauth2 "github.com/0xsj/hexagonal-go/pkg/oauth"
+	"github.com/0xsj/hexagonal-go/pkg/oauth/github"
+	"github.com/0xsj/hexagonal-go/pkg/oauth/google"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/google/wire"
@@ -45,14 +51,21 @@ func ProvideModule(db database.DB, publisher messaging.Publisher, jwtService jwt
 	getCurrentUserQuery := query.NewGetCurrentUserQuery(postgresUserRepository)
 	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
 	listSessionsQuery := query.NewListSessionsQuery(sessionRepository)
-	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, changePasswordCommand, suspendUserCommand, reactivateUserCommand, changeUserRoleCommand, deleteUserCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, log)
+	postgresOAuthRepository := repository.NewPostgresOAuthRepository(db)
+	v := ProvideOAuthProviders(log)
+	oAuthLoginCommand := command.NewOAuthLoginCommand(postgresUserRepository, postgresOAuthRepository, sessionRepository, v, jwtService, publisher, log)
+	stateManager := ProvideStateManager()
+	oAuthHandler := v1.NewOAuthHandler(oAuthLoginCommand, stateManager, v, log)
+	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, changePasswordCommand, suspendUserCommand, reactivateUserCommand, changeUserRoleCommand, deleteUserCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, oAuthHandler, log)
 	return handler, nil
 }
 
 // provider.go:
 
 // IdentitySet provides all dependencies for the Identity domain.
-var IdentitySet = wire.NewSet(repository.NewPostgresUserRepository, wire.Bind(new(user.Repository), new(*repository.PostgresUserRepository)), repository.NewPostgresSessionRepository, ProvideSessionRepository, repository.NewPostgresTokenRepository, command.NewRegisterUserCommand, command.NewLoginCommand, command.NewLogoutCommand, command.NewRefreshTokenCommand, command.NewVerifyEmailCommand, command.NewRequestPasswordResetCommand, command.NewResetPasswordCommand, command.NewChangePasswordCommand, command.NewSuspendUserCommand, command.NewReactivateUserCommand, command.NewChangeUserRoleCommand, command.NewDeleteUserCommand, query.NewGetUserQuery, query.NewGetCurrentUserQuery, query.NewListUsersQuery, query.NewListSessionsQuery, v1.NewHandler)
+var IdentitySet = wire.NewSet(repository.NewPostgresUserRepository, wire.Bind(new(user.Repository), new(*repository.PostgresUserRepository)), repository.NewPostgresSessionRepository, ProvideSessionRepository, repository.NewPostgresTokenRepository, repository.NewPostgresOAuthRepository, wire.Bind(new(oauth.Repository), new(*repository.PostgresOAuthRepository)), ProvideOAuthProviders,
+	ProvideStateManager, command.NewRegisterUserCommand, command.NewLoginCommand, command.NewLogoutCommand, command.NewRefreshTokenCommand, command.NewVerifyEmailCommand, command.NewRequestPasswordResetCommand, command.NewResetPasswordCommand, command.NewChangePasswordCommand, command.NewSuspendUserCommand, command.NewReactivateUserCommand, command.NewChangeUserRoleCommand, command.NewDeleteUserCommand, command.NewOAuthLoginCommand, query.NewGetUserQuery, query.NewGetCurrentUserQuery, query.NewListUsersQuery, query.NewListSessionsQuery, v1.NewOAuthHandler, v1.NewHandler,
+)
 
 // ProvideSessionRepository provides a session repository with optional caching.
 func ProvideSessionRepository(
@@ -63,4 +76,44 @@ func ProvideSessionRepository(
 		return postgresRepo
 	}
 	return repository.NewCachedSessionRepository(postgresRepo, cache2)
+}
+
+// ProvideOAuthProviders initializes OAuth providers based on environment configuration.
+func ProvideOAuthProviders(log logger.Logger) map[string]oauth2.Provider {
+	providers := make(map[string]oauth2.Provider)
+
+	if googleClientID := os.Getenv("GOOGLE_CLIENT_ID"); googleClientID != "" {
+		googleProvider, err := google.NewProvider(oauth2.Config{
+			ClientID:     googleClientID,
+			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+			RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		})
+		if err != nil {
+			log.Warn("failed to initialize Google OAuth provider", logger.Err(err))
+		} else {
+			providers["google"] = googleProvider
+			log.Info("Google OAuth provider initialized")
+		}
+	}
+
+	if githubClientID := os.Getenv("GITHUB_CLIENT_ID"); githubClientID != "" {
+		githubProvider, err := github.NewProvider(oauth2.Config{
+			ClientID:     githubClientID,
+			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
+			RedirectURL:  os.Getenv("GITHUB_REDIRECT_URL"),
+		})
+		if err != nil {
+			log.Warn("failed to initialize GitHub OAuth provider", logger.Err(err))
+		} else {
+			providers["github"] = githubProvider
+			log.Info("GitHub OAuth provider initialized")
+		}
+	}
+
+	return providers
+}
+
+// ProvideStateManager provides an OAuth state manager.
+func ProvideStateManager() *oauth2.StateManager {
+	return oauth2.NewStateManager()
 }

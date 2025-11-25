@@ -4,10 +4,13 @@
 package identity
 
 import (
+	"os"
+
 	"github.com/google/wire"
 
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
+	"github.com/0xsj/hexagonal-go/internal/identity/domain/oauth"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/session"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
@@ -15,6 +18,9 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
+	pkgoauth "github.com/0xsj/hexagonal-go/pkg/oauth"
+	"github.com/0xsj/hexagonal-go/pkg/oauth/github"
+	"github.com/0xsj/hexagonal-go/pkg/oauth/google"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 )
@@ -32,6 +38,14 @@ var IdentitySet = wire.NewSet(
 	// Infrastructure - Token Repository
 	repository.NewPostgresTokenRepository,
 
+	// Infrastructure - OAuth Repository
+	repository.NewPostgresOAuthRepository,
+	wire.Bind(new(oauth.Repository), new(*repository.PostgresOAuthRepository)),
+
+	// OAuth Providers
+	ProvideOAuthProviders,
+	ProvideStateManager,
+
 	// Application - Commands
 	command.NewRegisterUserCommand,
 	command.NewLoginCommand,
@@ -45,12 +59,16 @@ var IdentitySet = wire.NewSet(
 	command.NewReactivateUserCommand,
 	command.NewChangeUserRoleCommand,
 	command.NewDeleteUserCommand,
+	command.NewOAuthLoginCommand,
 
 	// Application - Queries
 	query.NewGetUserQuery,
 	query.NewGetCurrentUserQuery,
 	query.NewListUsersQuery,
 	query.NewListSessionsQuery,
+
+	// Interface - OAuth Handler
+	v1.NewOAuthHandler,
 
 	// Interface - HTTP Handler
 	v1.NewHandler,
@@ -65,6 +83,48 @@ func ProvideSessionRepository(
 		return postgresRepo
 	}
 	return repository.NewCachedSessionRepository(postgresRepo, cache)
+}
+
+// ProvideOAuthProviders initializes OAuth providers based on environment configuration.
+func ProvideOAuthProviders(log logger.Logger) map[string]pkgoauth.Provider {
+	providers := make(map[string]pkgoauth.Provider)
+
+	// Google OAuth
+	if googleClientID := os.Getenv("GOOGLE_CLIENT_ID"); googleClientID != "" {
+		googleProvider, err := google.NewProvider(pkgoauth.Config{
+			ClientID:     googleClientID,
+			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+			RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		})
+		if err != nil {
+			log.Warn("failed to initialize Google OAuth provider", logger.Err(err))
+		} else {
+			providers["google"] = googleProvider
+			log.Info("Google OAuth provider initialized")
+		}
+	}
+
+	// GitHub OAuth
+	if githubClientID := os.Getenv("GITHUB_CLIENT_ID"); githubClientID != "" {
+		githubProvider, err := github.NewProvider(pkgoauth.Config{
+			ClientID:     githubClientID,
+			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
+			RedirectURL:  os.Getenv("GITHUB_REDIRECT_URL"),
+		})
+		if err != nil {
+			log.Warn("failed to initialize GitHub OAuth provider", logger.Err(err))
+		} else {
+			providers["github"] = githubProvider
+			log.Info("GitHub OAuth provider initialized")
+		}
+	}
+
+	return providers
+}
+
+// ProvideStateManager provides an OAuth state manager.
+func ProvideStateManager() *pkgoauth.StateManager {
+	return pkgoauth.NewStateManager()
 }
 
 // ProvideModule wires up the complete Identity module.

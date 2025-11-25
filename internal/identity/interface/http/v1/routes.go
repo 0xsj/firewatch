@@ -50,6 +50,10 @@ func (h *Handler) Routes(log logger.Logger, corsConfig middleware.CORSConfig, jw
 		r.Post("/auth/login", h.Login)
 		r.Post("/auth/refresh", h.RefreshToken)
 
+		// OAuth Authentication
+		r.Get("/auth/oauth", h.oauthHandler.InitiateOAuth)          // ?provider=google&tenant_id=acme
+		r.Get("/auth/oauth/callback", h.oauthHandler.OAuthCallback) // ?provider=google&code=...&state=...
+
 		// Email Verification
 		// Supports both GET (from email link) and POST (from API)
 		r.Get("/users/verify-email", h.VerifyEmail)

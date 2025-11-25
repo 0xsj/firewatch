@@ -39,6 +39,15 @@ type Token struct {
 	revokedAt *time.Time
 }
 
+func GenerateRefreshToken() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		// This should never fail, but if it does, panic is appropriate
+		panic(fmt.Sprintf("failed to generate refresh token: %v", err))
+	}
+	return base64.URLEncoding.EncodeToString(b)
+}
+
 // NewToken creates a new token.
 func NewToken(tokenType TokenType, userID types.ID, tenantID string, ttl time.Duration) (*Token, error) {
 	value, err := generateSecureToken(32)

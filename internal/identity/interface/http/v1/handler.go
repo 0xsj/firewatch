@@ -30,6 +30,7 @@ type Handler struct {
 	getCurrentUserQuery     *query.GetCurrentUserQuery
 	listUsersQuery          *query.ListUsersQuery
 	listSessionsQuery       *query.ListSessionsQuery
+	oauthHandler            *OAuthHandler
 	logger                  logger.Logger
 }
 
@@ -51,6 +52,7 @@ func NewHandler(
 	getCurrentUserQuery *query.GetCurrentUserQuery,
 	listUsersQuery *query.ListUsersQuery,
 	listSessionsQuery *query.ListSessionsQuery,
+	oauthHandler *OAuthHandler,
 	log logger.Logger,
 ) *Handler {
 	return &Handler{
@@ -70,6 +72,7 @@ func NewHandler(
 		getCurrentUserQuery:     getCurrentUserQuery,
 		listUsersQuery:          listUsersQuery,
 		listSessionsQuery:       listSessionsQuery,
+		oauthHandler:            oauthHandler,
 		logger:                  log,
 	}
 }

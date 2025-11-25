@@ -1,5 +1,7 @@
 package auth
 
+import "fmt"
+
 // Provider represents an authentication provider.
 type Provider string
 
@@ -20,6 +22,14 @@ const (
 // String returns the string representation.
 func (p Provider) String() string {
 	return string(p)
+}
+
+// Validate validates the provider value.
+func (p Provider) Validate() error {
+	if !p.IsValid() {
+		return fmt.Errorf("invalid auth provider: %s", p)
+	}
+	return nil
 }
 
 // IsValid checks if the provider is valid.
@@ -60,4 +70,13 @@ func OAuthProviders() []Provider {
 // AllProviders returns all authentication providers.
 func AllProviders() []Provider {
 	return []Provider{ProviderPassword, ProviderGoogle, ProviderGitHub, ProviderMagicLink}
+}
+
+// ParseProvider parses a string into a Provider.
+func ParseProvider(s string) (Provider, error) {
+	p := Provider(s)
+	if err := p.Validate(); err != nil {
+		return "", err
+	}
+	return p, nil
 }
