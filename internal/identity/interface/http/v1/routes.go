@@ -3,12 +3,13 @@ package v1
 import (
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
+	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/go-chi/chi/v5"
 )
 
 // Routes creates and configures the Chi router for v1 Identity API.
 // Returns a chi.Router with all middleware and routes configured.
-func (h *Handler) Routes(log logger.Logger, corsConfig middleware.CORSConfig) chi.Router {
+func (h *Handler) Routes(log logger.Logger, corsConfig middleware.CORSConfig, jwtService jwt.Service) chi.Router {
 	r := chi.NewRouter()
 
 	// ========================================================================
@@ -47,41 +48,53 @@ func (h *Handler) Routes(log logger.Logger, corsConfig middleware.CORSConfig) ch
 
 		// Authentication
 		r.Post("/auth/login", h.Login)
+		r.Post("/auth/refresh", h.RefreshToken)
 
 		// Email Verification
 		// Supports both GET (from email link) and POST (from API)
 		r.Get("/users/verify-email", h.VerifyEmail)
 		r.Post("/users/verify-email", h.VerifyEmail)
 
+		// Password Reset
+		r.Post("/auth/password/forgot", h.RequestPasswordReset)
+		r.Post("/auth/password/reset", h.ResetPassword)
+
 		// ====================================================================
-		// Protected Routes (authentication required - TODO)
+		// Protected Routes (authentication required)
 		// ====================================================================
 
-		// r.Group(func(r chi.Router) {
-		// 	// Add authentication middleware here (when we build it)
-		// 	// r.Use(middleware.RequireAuth)
-		//
-		// 	// User queries
-		// 	r.Get("/users/{id}", h.GetUser)
-		// 	r.Get("/users", h.ListUsers)
-		// 	r.Get("/users/me", h.GetCurrentUser)  // TODO
-		//
-		// 	// User updates
-		// 	r.Patch("/users/me", h.UpdateProfile)       // TODO
-		// 	r.Post("/users/me/change-password", h.ChangePassword)  // TODO
-		//
-		// 	// Admin routes (require admin role)
-		// 	r.Group(func(r chi.Router) {
-		// 		// r.Use(middleware.RequireRole("admin"))
-		// 		r.Post("/users/{id}/suspend", h.SuspendUser)  // TODO
-		// 		r.Post("/users/{id}/activate", h.ActivateUser)  // TODO
-		// 		r.Post("/users/{id}/change-role", h.ChangeRole)  // TODO
-		// 	})
-		// })
+		r.Group(func(r chi.Router) {
+			// Add authentication middleware
+			r.Use(middleware.RequireAuth(jwtService, log))
 
-		// For now, make these public for testing
-		r.Get("/users/{id}", h.GetUser)
-		r.Get("/users", h.ListUsers)
+			// Auth
+			r.Post("/auth/logout", h.Logout)
+
+			// User queries
+			r.Get("/users/me", h.GetCurrentUser)
+			r.Get("/users/{id}", h.GetUser)
+			r.Get("/users", h.ListUsers)
+
+			// Session management
+			r.Get("/sessions", h.ListSessions)
+
+			// User updates (TODO)
+			// r.Patch("/users/me", h.UpdateProfile)
+			// r.Post("/users/me/change-password", h.ChangePassword)
+
+			// ================================================================
+			// Admin routes (require admin role)
+			// ================================================================
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireAdmin(log))
+
+				// Admin user management (TODO)
+				// r.Post("/users/{id}/suspend", h.SuspendUser)
+				// r.Post("/users/{id}/activate", h.ActivateUser)
+				// r.Post("/users/{id}/change-role", h.ChangeRole)
+			})
+		})
 	})
 
 	return r

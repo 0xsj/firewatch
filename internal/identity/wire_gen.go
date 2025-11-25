@@ -9,30 +9,54 @@ package identity
 import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
+	"github.com/0xsj/hexagonal-go/internal/identity/domain/session"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
+	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/google/wire"
 )
 
 // Injectors from provider.go:
 
 // ProvideModule wires up the complete Identity module.
-func ProvideModule(db database.DB, publisher messaging.Publisher, log logger.Logger) (*v1.Handler, error) {
+func ProvideModule(db database.DB, publisher messaging.Publisher, jwtService jwt.Service, cache2 cache.Cache, log logger.Logger) (*v1.Handler, error) {
 	postgresUserRepository := repository.NewPostgresUserRepository(db)
 	registerUserCommand := command.NewRegisterUserCommand(postgresUserRepository, publisher, log)
-	loginCommand := command.NewLoginCommand(postgresUserRepository, publisher, log)
+	postgresSessionRepository := repository.NewPostgresSessionRepository(db)
+	sessionRepository := ProvideSessionRepository(postgresSessionRepository, cache2)
+	loginCommand := command.NewLoginCommand(postgresUserRepository, sessionRepository, jwtService, publisher, log)
+	logoutCommand := command.NewLogoutCommand(sessionRepository, jwtService, publisher, log)
+	refreshTokenCommand := command.NewRefreshTokenCommand(postgresUserRepository, sessionRepository, jwtService, publisher, log)
 	verifyEmailCommand := command.NewVerifyEmailCommand(postgresUserRepository, publisher, log)
+	postgresTokenRepository := repository.NewPostgresTokenRepository(db)
+	requestPasswordResetCommand := command.NewRequestPasswordResetCommand(postgresUserRepository, postgresTokenRepository, publisher, log)
+	resetPasswordCommand := command.NewResetPasswordCommand(postgresUserRepository, postgresTokenRepository, publisher, log)
 	getUserQuery := query.NewGetUserQuery(postgresUserRepository)
+	getCurrentUserQuery := query.NewGetCurrentUserQuery(postgresUserRepository)
 	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
-	handler := v1.NewHandler(registerUserCommand, loginCommand, verifyEmailCommand, getUserQuery, listUsersQuery, log)
+	listSessionsQuery := query.NewListSessionsQuery(sessionRepository)
+	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, log)
 	return handler, nil
 }
 
 // provider.go:
 
 // IdentitySet provides all dependencies for the Identity domain.
-var IdentitySet = wire.NewSet(repository.NewPostgresUserRepository, wire.Bind(new(user.Repository), new(*repository.PostgresUserRepository)), command.NewRegisterUserCommand, command.NewLoginCommand, command.NewVerifyEmailCommand, query.NewGetUserQuery, query.NewListUsersQuery, v1.NewHandler)
+// IdentitySet provides all dependencies for the Identity domain.
+var IdentitySet = wire.NewSet(repository.NewPostgresUserRepository, wire.Bind(new(user.Repository), new(*repository.PostgresUserRepository)), repository.NewPostgresSessionRepository, ProvideSessionRepository, repository.NewPostgresTokenRepository, command.NewRegisterUserCommand, command.NewLoginCommand, command.NewLogoutCommand, command.NewRefreshTokenCommand, command.NewVerifyEmailCommand, command.NewRequestPasswordResetCommand, command.NewResetPasswordCommand, query.NewGetUserQuery, query.NewGetCurrentUserQuery, query.NewListUsersQuery, query.NewListSessionsQuery, v1.NewHandler)
+
+// ProvideSessionRepository provides a session repository with optional caching.
+func ProvideSessionRepository(
+	postgresRepo *repository.PostgresSessionRepository, cache2 cache.Cache,
+
+) session.Repository {
+	if cache2 == nil {
+		return postgresRepo
+	}
+	return repository.NewCachedSessionRepository(postgresRepo, cache2)
+}

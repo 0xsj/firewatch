@@ -83,11 +83,11 @@ func run() error {
 	root.Use(middleware.Tracing(app.TracingProvider.Tracer()))
 	root.Use(middleware.Metrics(app.HTTPMetrics))
 
-	// Mount identity routes
-	identityRouter := app.IdentityHandler.Routes(app.Logger, corsConfig)
+	// Mount identity routes (with JWT service for auth middleware)
+	identityRouter := app.IdentityHandler.Routes(app.Logger, corsConfig, app.JWTService)
 	root.Mount("/", identityRouter)
 
-	app.Logger.Info("configured routes with observability")
+	app.Logger.Info("configured routes with observability and authentication")
 
 	// ========================================================================
 	// Configure and Start Server
@@ -149,17 +149,25 @@ func printEndpoints(port, metricsPort int) {
 	fmt.Println("Health Check:")
 	fmt.Printf("  GET  %s/health\n", baseURL)
 	fmt.Println()
-	fmt.Println("User Registration & Auth:")
+	fmt.Println("Public - User Registration & Auth:")
 	fmt.Printf("  POST %s/api/v1/users/register\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/auth/login\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/auth/refresh\n", baseURL)
 	fmt.Println()
-	fmt.Println("Email Verification:")
+	fmt.Println("Public - Email Verification:")
 	fmt.Printf("  GET  %s/api/v1/users/verify-email?token=...\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/users/verify-email\n", baseURL)
 	fmt.Println()
-	fmt.Println("User Queries:")
+	fmt.Println("Protected - Auth (requires JWT):")
+	fmt.Printf("  POST %s/api/v1/auth/logout\n", baseURL)
+	fmt.Println()
+	fmt.Println("Protected - User Queries (requires JWT):")
+	fmt.Printf("  GET  %s/api/v1/users/me\n", baseURL)
 	fmt.Printf("  GET  %s/api/v1/users/{id}\n", baseURL)
 	fmt.Printf("  GET  %s/api/v1/users\n", baseURL)
+	fmt.Println()
+	fmt.Println("Protected - Sessions (requires JWT):")
+	fmt.Printf("  GET  %s/api/v1/sessions\n", baseURL)
 	fmt.Println()
 	fmt.Println("Observability:")
 	fmt.Printf("  GET  %s/metrics\n", metricsURL)

@@ -12,6 +12,7 @@ import (
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
 	repository2 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
+	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
@@ -19,6 +20,7 @@ import (
 	command2 "github.com/0xsj/hexagonal-go/internal/notifications/application/command"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
 	repository3 "github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
+	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	"github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
@@ -43,11 +45,28 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	publisher := provider.ProvideEventBus(logger)
 	postgresUserRepository := repository.NewPostgresUserRepository(db)
 	registerUserCommand := command.NewRegisterUserCommand(postgresUserRepository, publisher, logger)
-	loginCommand := command.NewLoginCommand(postgresUserRepository, publisher, logger)
+	postgresSessionRepository := repository.NewPostgresSessionRepository(db)
+	cacheConfig := ProvideCacheConfig(cfg)
+	cache, err := provider.ProvideCache(cacheConfig)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	sessionRepository := identity.ProvideSessionRepository(postgresSessionRepository, cache)
+	jwtConfig := ProvideJWTConfig(cfg)
+	service := provider.ProvideJWTService(jwtConfig)
+	loginCommand := command.NewLoginCommand(postgresUserRepository, sessionRepository, service, publisher, logger)
+	logoutCommand := command.NewLogoutCommand(sessionRepository, service, publisher, logger)
+	refreshTokenCommand := command.NewRefreshTokenCommand(postgresUserRepository, sessionRepository, service, publisher, logger)
 	verifyEmailCommand := command.NewVerifyEmailCommand(postgresUserRepository, publisher, logger)
+	postgresTokenRepository := repository.NewPostgresTokenRepository(db)
+	requestPasswordResetCommand := command.NewRequestPasswordResetCommand(postgresUserRepository, postgresTokenRepository, publisher, logger)
+	resetPasswordCommand := command.NewResetPasswordCommand(postgresUserRepository, postgresTokenRepository, publisher, logger)
 	getUserQuery := query.NewGetUserQuery(postgresUserRepository)
+	getCurrentUserQuery := query.NewGetCurrentUserQuery(postgresUserRepository)
 	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
-	handler := v1.NewHandler(registerUserCommand, loginCommand, verifyEmailCommand, getUserQuery, listUsersQuery, logger)
+	listSessionsQuery := query.NewListSessionsQuery(sessionRepository)
+	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, logger)
 	postgresRepository := repository2.NewPostgresRepository(db)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository, logger)
 	repositoryPostgresRepository := repository3.NewPostgresRepository(db)
@@ -55,8 +74,6 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	sender := provider.ProvideEmailSender(emailConfig)
 	sendNotificationCommand := command2.NewSendNotificationCommand(repositoryPostgresRepository, sender, logger)
 	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, logger)
-	jwtConfig := ProvideJWTConfig(cfg)
-	service := provider.ProvideJWTService(jwtConfig)
 	metricsConfig := ProvideMetricsConfig(cfg)
 	metricsProvider := provider.ProvideMetricsProvider(metricsConfig)
 	tracingConfig := ProvideTracingConfig(cfg)
@@ -74,6 +91,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		AuditSubscriber:        eventSubscriber,
 		NotificationSubscriber: userEventSubscriber,
 		JWTService:             service,
+		Cache:                  cache,
 		MetricsProvider:        metricsProvider,
 		TracingProvider:        tracingProvider,
 		HTTPMetrics:            httpMetrics,
@@ -113,4 +131,9 @@ func ProvideTracingConfig(cfg *config.AppConfig) tracing.Config {
 // ProvideJWTConfig extracts JWT config from AppConfig.
 func ProvideJWTConfig(cfg *config.AppConfig) jwt.Config {
 	return cfg.JWT
+}
+
+// ProvideCacheConfig extracts cache config from AppConfig.
+func ProvideCacheConfig(cfg *config.AppConfig) cache.Config {
+	return cfg.Cache
 }

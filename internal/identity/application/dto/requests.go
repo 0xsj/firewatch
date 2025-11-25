@@ -34,11 +34,19 @@ type ChangePasswordRequest struct {
 	NewPassword string `json:"new_password" validate:"required,min=8"`
 }
 
+// RequestPasswordResetRequest is the request for requesting a password reset.
+type RequestPasswordResetRequest struct {
+	Email     string `json:"email" validate:"required,email"`
+	IPAddress string `json:"-"` // Set from request context, not JSON body
+	UserAgent string `json:"-"` // Set from request headers, not JSON body
+}
+
 // ResetPasswordRequest represents a password reset request.
 // Used after user clicks reset link in email.
 type ResetPasswordRequest struct {
 	Token       string `json:"token" validate:"required"`
 	NewPassword string `json:"new_password" validate:"required,min=8"`
+	IPAddress   string `json:"-"` // Set from request context, not JSON body
 }
 
 // ChangeRoleRequest represents a role change request (admin operation).
@@ -69,4 +77,9 @@ type ListUsersRequest struct {
 	// Sorting
 	SortBy    string `json:"sort_by"`    // "created_at", "updated_at", "email", "last_login_at"
 	SortOrder string `json:"sort_order"` // "asc", "desc"
+}
+
+// RefreshTokenRequest represents a token refresh request.
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }

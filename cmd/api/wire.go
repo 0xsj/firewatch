@@ -12,6 +12,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/audit"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/notifications"
+	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	"github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
@@ -32,6 +33,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		ProvideMetricsConfig,
 		ProvideTracingConfig,
 		ProvideJWTConfig,
+		ProvideCacheConfig,
 
 		// Infrastructure (from pkg/provider)
 		provider.ProvideLogger,
@@ -41,6 +43,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		provider.ProvideMetricsProvider,
 		provider.ProvideTracingProvider,
 		provider.ProvideJWTService,
+		provider.ProvideCache,
 
 		// HTTP Metrics
 		middleware.NewHTTPMetrics,
@@ -88,4 +91,9 @@ func ProvideTracingConfig(cfg *config.AppConfig) tracing.Config {
 // ProvideJWTConfig extracts JWT config from AppConfig.
 func ProvideJWTConfig(cfg *config.AppConfig) jwt.Config {
 	return cfg.JWT
+}
+
+// ProvideCacheConfig extracts cache config from AppConfig.
+func ProvideCacheConfig(cfg *config.AppConfig) cache.Config {
+	return cfg.Cache
 }

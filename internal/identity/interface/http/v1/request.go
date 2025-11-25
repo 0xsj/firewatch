@@ -50,6 +50,24 @@ func ParseLoginRequest(r *http.Request) (dto.LoginRequest, error) {
 	return req, nil
 }
 
+// Add after ParseLoginRequest
+
+// ParseRefreshTokenRequest parses and validates a refresh token request.
+func ParseRefreshTokenRequest(r *http.Request) (dto.RefreshTokenRequest, error) {
+	var req dto.RefreshTokenRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return req, fmt.Errorf("invalid JSON body: %w", err)
+	}
+
+	// Basic validation
+	if req.RefreshToken == "" {
+		return req, fmt.Errorf("refresh_token is required")
+	}
+
+	return req, nil
+}
+
 // ParseVerifyEmailRequest parses an email verification request.
 // Token can come from query parameter or JSON body.
 func ParseVerifyEmailRequest(r *http.Request) (dto.VerifyEmailRequest, error) {
@@ -253,4 +271,49 @@ func RespondValidationError(w http.ResponseWriter, err error) {
 	response.ValidationError(w, map[string]string{
 		"error": err.Error(),
 	})
+}
+
+// ParseRequestPasswordResetRequest parses a password reset request.
+func ParseRequestPasswordResetRequest(r *http.Request) (dto.RequestPasswordResetRequest, error) {
+	var req dto.RequestPasswordResetRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return req, fmt.Errorf("invalid JSON body: %w", err)
+	}
+
+	// Extract metadata
+	req.IPAddress = extractIPAddress(r)
+	req.UserAgent = r.Header.Get("User-Agent")
+
+	// Validate
+	if req.Email == "" {
+		return req, fmt.Errorf("email is required")
+	}
+
+	return req, nil
+}
+
+// ParseResetPasswordRequest parses a reset password request.
+func ParseResetPasswordRequest(r *http.Request) (dto.ResetPasswordRequest, error) {
+	var req dto.ResetPasswordRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return req, fmt.Errorf("invalid JSON body: %w", err)
+	}
+
+	// Extract metadata (for audit trail)
+	req.IPAddress = extractIPAddress(r)
+
+	// Validate
+	if req.Token == "" {
+		return req, fmt.Errorf("token is required")
+	}
+	if req.NewPassword == "" {
+		return req, fmt.Errorf("new_password is required")
+	}
+	if len(req.NewPassword) < 8 {
+		return req, fmt.Errorf("password must be at least 8 characters")
+	}
+
+	return req, nil
 }

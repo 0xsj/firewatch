@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	"github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
@@ -18,6 +19,7 @@ import (
 //   - METRICS_*   for Prometheus metrics settings
 //   - TRACING_*   for OpenTelemetry tracing settings
 //   - JWT_*       for JWT/auth settings
+//   - CACHE_*     for Redis cache settings
 type AppConfig struct {
 	Database postgres.Config
 	Logger   console.Options
@@ -26,6 +28,7 @@ type AppConfig struct {
 	Metrics  metrics.Config
 	Tracing  tracing.Config
 	JWT      jwt.Config
+	Cache    cache.Config
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -47,5 +50,6 @@ func DefaultAppConfig() AppConfig {
 		Metrics: metrics.DefaultConfig(),
 		Tracing: tracing.DefaultConfig(),
 		JWT:     jwt.DefaultConfig(),
+		Cache:   cache.DefaultConfig(),
 	}
 }
