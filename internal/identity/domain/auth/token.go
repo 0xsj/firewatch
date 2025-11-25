@@ -13,11 +13,12 @@ import (
 type TokenType string
 
 const (
-	TokenTypeAccess    TokenType = "access"
-	TokenTypeRefresh   TokenType = "refresh"
-	TokenTypeMagicLink TokenType = "magic_link"
-	TokenTypeVerify    TokenType = "verify_email"
-	TokenTypeReset     TokenType = "password_reset"
+	TokenTypeAccess       TokenType = "access"
+	TokenTypeRefresh      TokenType = "refresh"
+	TokenTypeMagicLink    TokenType = "magic_link"
+	TokenTypeVerify       TokenType = "verify_email"
+	TokenTypeReset        TokenType = "password_reset"
+	TokenTypeVerification TokenType = "verification"
 )
 
 // String returns the string representation.
@@ -211,9 +212,10 @@ func generateSecureToken(length int) (string, error) {
 
 // Default TTLs for different token types.
 const (
-	AccessTokenTTL   = 15 * time.Minute
-	RefreshTokenTTL  = 7 * 24 * time.Hour // 7 days
-	MagicLinkTTL     = 15 * time.Minute
-	VerifyEmailTTL   = 24 * time.Hour // 24 hours
-	PasswordResetTTL = 1 * time.Hour
+	AccessTokenTTL       = 15 * time.Minute
+	RefreshTokenTTL      = 7 * 24 * time.Hour // 7 days
+	MagicLinkTTL         = 15 * time.Minute
+	VerifyEmailTTL       = 24 * time.Hour // 24 hours
+	PasswordResetTTL     = 1 * time.Hour
+	EmailVerificationTTL = 24 * time.Hour
 )

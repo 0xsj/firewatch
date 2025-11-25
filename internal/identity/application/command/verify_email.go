@@ -5,15 +5,16 @@ import (
 	"fmt"
 
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
+	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	pkgerrors "github.com/0xsj/hexagonal-go/pkg/errors"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
-	"github.com/0xsj/hexagonal-go/pkg/types"
 )
 
 // VerifyEmailCommand handles email verification.
 type VerifyEmailCommand struct {
 	repo      user.Repository
+	tokenRepo *repository.PostgresTokenRepository
 	publisher messaging.Publisher
 	logger    logger.Logger
 }
@@ -21,11 +22,13 @@ type VerifyEmailCommand struct {
 // NewVerifyEmailCommand creates a new VerifyEmailCommand.
 func NewVerifyEmailCommand(
 	repo user.Repository,
+	tokenRepo *repository.PostgresTokenRepository,
 	publisher messaging.Publisher,
 	logger logger.Logger,
 ) *VerifyEmailCommand {
 	return &VerifyEmailCommand{
 		repo:      repo,
+		tokenRepo: tokenRepo,
 		publisher: publisher,
 		logger:    logger,
 	}
@@ -33,36 +36,45 @@ func NewVerifyEmailCommand(
 
 // VerifyEmailRequest is the input for email verification.
 type VerifyEmailRequest struct {
-	Token string // User ID used as token for now
+	Token string
 }
 
 // Handle executes the verify email command.
 func (c *VerifyEmailCommand) Handle(ctx context.Context, req VerifyEmailRequest) error {
 	const op = "VerifyEmailCommand.Handle"
 
-	// Parse token as user ID (simplified - in production use JWT or unique tokens)
-	userID, err := types.ParseID(req.Token)
+	// Validate and find verification token
+	verificationToken, err := c.tokenRepo.FindEmailVerificationToken(ctx, req.Token)
 	if err != nil {
-		return pkgerrors.Validation(op, "invalid verification token")
+		if pkgerrors.IsNotFound(err) {
+			return pkgerrors.Validation(op, "invalid or expired verification token")
+		}
+		return fmt.Errorf("%s: failed to find verification token: %w", op, err)
 	}
 
 	// Find user
-	u, err := c.repo.FindByID(ctx, userID)
+	u, err := c.repo.FindByID(ctx, verificationToken.UserID())
 	if err != nil {
-		if pkgerrors.IsNotFound(err) {
-			return pkgerrors.NotFound(op, "user not found")
-		}
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: failed to find user: %w", op, err)
 	}
 
-	// Verify email
+	// Verify email (domain logic)
 	if err := u.VerifyEmail(); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Save
+	// Save user
 	if err := c.repo.Save(ctx, u); err != nil {
 		return fmt.Errorf("%s: failed to save user: %w", op, err)
+	}
+
+	// Mark token as used
+	if err := c.tokenRepo.MarkEmailVerificationTokenUsed(ctx, req.Token); err != nil {
+		c.logger.Error("failed to mark token as used",
+			logger.String("user_id", u.ID().String()),
+			logger.Err(err),
+		)
+		// Don't fail - email is already verified
 	}
 
 	c.logger.Info("email verified",
@@ -89,13 +101,19 @@ func (c *VerifyEmailCommand) publishEvents(ctx context.Context, u *user.User) er
 	for _, domainEvent := range events {
 		event := messaging.NewEventFromContext(
 			ctx,
-			domainEvent.Type(),
+			"identity."+domainEvent.Type(),
 			"identity",
 			domainEvent.Payload(),
-		).
-			WithMetadata("aggregate_id", domainEvent.AggregateID()).
-			WithMetadata("aggregate_type", "user").
-			WithMetadata("event_version", domainEvent.Version())
+		)
+
+		// Add standard metadata
+		event.WithTenantID(domainEvent.AggregateTenantID())
+		event.WithUserID(domainEvent.AggregateID().String())
+
+		// Add aggregate metadata
+		event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
+		event.WithMetadata("aggregate_type", "user")
+		event.WithMetadata("event_version", domainEvent.Version())
 
 		if err := c.publisher.Publish(ctx, event); err != nil {
 			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)

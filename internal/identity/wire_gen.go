@@ -26,14 +26,14 @@ import (
 // ProvideModule wires up the complete Identity module.
 func ProvideModule(db database.DB, publisher messaging.Publisher, jwtService jwt.Service, cache2 cache.Cache, log logger.Logger) (*v1.Handler, error) {
 	postgresUserRepository := repository.NewPostgresUserRepository(db)
-	registerUserCommand := command.NewRegisterUserCommand(postgresUserRepository, publisher, log)
+	postgresTokenRepository := repository.NewPostgresTokenRepository(db)
+	registerUserCommand := command.NewRegisterUserCommand(postgresUserRepository, postgresTokenRepository, publisher, log)
 	postgresSessionRepository := repository.NewPostgresSessionRepository(db)
 	sessionRepository := ProvideSessionRepository(postgresSessionRepository, cache2)
 	loginCommand := command.NewLoginCommand(postgresUserRepository, sessionRepository, jwtService, publisher, log)
 	logoutCommand := command.NewLogoutCommand(sessionRepository, jwtService, publisher, log)
 	refreshTokenCommand := command.NewRefreshTokenCommand(postgresUserRepository, sessionRepository, jwtService, publisher, log)
-	verifyEmailCommand := command.NewVerifyEmailCommand(postgresUserRepository, publisher, log)
-	postgresTokenRepository := repository.NewPostgresTokenRepository(db)
+	verifyEmailCommand := command.NewVerifyEmailCommand(postgresUserRepository, postgresTokenRepository, publisher, log)
 	requestPasswordResetCommand := command.NewRequestPasswordResetCommand(postgresUserRepository, postgresTokenRepository, publisher, log)
 	resetPasswordCommand := command.NewResetPasswordCommand(postgresUserRepository, postgresTokenRepository, publisher, log)
 	changePasswordCommand := command.NewChangePasswordCommand(postgresUserRepository, publisher, log)
