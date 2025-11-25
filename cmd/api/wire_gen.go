@@ -11,18 +11,23 @@ import (
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
-	repository2 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
+	repository3 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
+	"github.com/0xsj/hexagonal-go/internal/email"
+	command2 "github.com/0xsj/hexagonal-go/internal/email/application/command"
+	query2 "github.com/0xsj/hexagonal-go/internal/email/application/query"
+	repository2 "github.com/0xsj/hexagonal-go/internal/email/infrastructure/repository"
+	v1_2 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
-	command2 "github.com/0xsj/hexagonal-go/internal/notifications/application/command"
+	command3 "github.com/0xsj/hexagonal-go/internal/notifications/application/command"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
-	repository3 "github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
+	repository4 "github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
-	"github.com/0xsj/hexagonal-go/pkg/email"
+	email2 "github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
 	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
@@ -78,11 +83,22 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	oAuthHandler := v1.NewOAuthHandler(oAuthLoginCommand, stateManager, v, logger)
 	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, changePasswordCommand, suspendUserCommand, reactivateUserCommand, changeUserRoleCommand, deleteUserCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, oAuthHandler, logger)
 	postgresRepository := repository2.NewPostgresRepository(db)
-	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository, logger)
+	createTemplateCommand := command2.NewCreateTemplateCommand(postgresRepository, publisher, logger)
+	updateTemplateCommand := command2.NewUpdateTemplateCommand(postgresRepository, publisher, logger)
+	activateTemplateCommand := command2.NewActivateTemplateCommand(postgresRepository, publisher, logger)
+	archiveTemplateCommand := command2.NewArchiveTemplateCommand(postgresRepository, publisher, logger)
+	deleteTemplateCommand := command2.NewDeleteTemplateCommand(postgresRepository, publisher, logger)
+	getTemplateQuery := query2.NewGetTemplateQuery(postgresRepository)
+	listTemplatesQuery := query2.NewListTemplatesQuery(postgresRepository)
+	renderer := email.ProvideRenderer()
+	previewTemplateQuery := query2.NewPreviewTemplateQuery(postgresRepository, renderer)
+	v1Handler := v1_2.NewHandler(createTemplateCommand, updateTemplateCommand, activateTemplateCommand, archiveTemplateCommand, deleteTemplateCommand, getTemplateQuery, listTemplatesQuery, previewTemplateQuery, logger)
 	repositoryPostgresRepository := repository3.NewPostgresRepository(db)
+	eventSubscriber := subscriber.NewEventSubscriber(repositoryPostgresRepository, logger)
+	postgresRepository2 := repository4.NewPostgresRepository(db)
 	emailConfig := ProvideEmailConfig(cfg)
 	sender := provider.ProvideEmailSender(emailConfig)
-	sendNotificationCommand := command2.NewSendNotificationCommand(repositoryPostgresRepository, sender, logger)
+	sendNotificationCommand := command3.NewSendNotificationCommand(postgresRepository2, sender, logger)
 	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, logger)
 	metricsConfig := ProvideMetricsConfig(cfg)
 	metricsProvider := provider.ProvideMetricsProvider(metricsConfig)
@@ -98,6 +114,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		DB:                     db,
 		EventBus:               publisher,
 		IdentityHandler:        handler,
+		EmailHandler:           v1Handler,
 		AuditSubscriber:        eventSubscriber,
 		NotificationSubscriber: userEventSubscriber,
 		JWTService:             service,
@@ -124,7 +141,7 @@ func ProvideLoggerOptions(cfg *config.AppConfig) console.Options {
 }
 
 // ProvideEmailConfig extracts email config from AppConfig.
-func ProvideEmailConfig(cfg *config.AppConfig) email.Config {
+func ProvideEmailConfig(cfg *config.AppConfig) email2.Config {
 	return cfg.Email
 }
 

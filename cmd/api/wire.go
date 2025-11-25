@@ -10,11 +10,12 @@ import (
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit"
+	"github.com/0xsj/hexagonal-go/internal/email"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/notifications"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
-	"github.com/0xsj/hexagonal-go/pkg/email"
+	pkgemail "github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
 	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
@@ -57,6 +58,9 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		// Notifications domain
 		notifications.NotificationsSet,
 
+		// Email domain
+		email.EmailSet,
+
 		// Wire the App struct
 		wire.Struct(new(App), "*"),
 	)
@@ -74,7 +78,7 @@ func ProvideLoggerOptions(cfg *config.AppConfig) console.Options {
 }
 
 // ProvideEmailConfig extracts email config from AppConfig.
-func ProvideEmailConfig(cfg *config.AppConfig) email.Config {
+func ProvideEmailConfig(cfg *config.AppConfig) pkgemail.Config {
 	return cfg.Email
 }
 
