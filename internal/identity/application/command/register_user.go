@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/0xsj/hexagonal-go/internal/identity/application/dto"
+	"github.com/0xsj/hexagonal-go/internal/identity/domain/auth"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
+	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	pkgerrors "github.com/0xsj/hexagonal-go/pkg/errors"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
@@ -15,6 +17,7 @@ import (
 // RegisterUserCommand handles user registration.
 type RegisterUserCommand struct {
 	repo      user.Repository
+	tokenRepo *repository.PostgresTokenRepository
 	publisher messaging.Publisher
 	logger    logger.Logger
 }
@@ -22,11 +25,13 @@ type RegisterUserCommand struct {
 // NewRegisterUserCommand creates a new RegisterUserCommand.
 func NewRegisterUserCommand(
 	repo user.Repository,
+	tokenRepo *repository.PostgresTokenRepository,
 	publisher messaging.Publisher,
 	logger logger.Logger,
 ) *RegisterUserCommand {
 	return &RegisterUserCommand{
 		repo:      repo,
+		tokenRepo: tokenRepo,
 		publisher: publisher,
 		logger:    logger,
 	}
@@ -54,7 +59,6 @@ func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to check email: %w", op, err)
 	}
-
 	if exists {
 		return nil, pkgerrors.Conflict(op, "email address is already registered")
 	}
@@ -83,14 +87,42 @@ func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (
 		return nil, fmt.Errorf("%s: failed to save user: %w", op, err)
 	}
 
+	// Create email verification token
+	verificationToken, err := auth.NewToken(
+		auth.TokenTypeVerification,
+		u.ID(),
+		u.TenantID(),
+		auth.EmailVerificationTTL,
+	)
+	if err != nil {
+		c.logger.Error("failed to create verification token",
+			logger.String("user_id", u.ID().String()),
+			logger.Err(err),
+		)
+		// Don't fail registration - user can request new token
+	} else {
+		// Save verification token
+		if err := c.tokenRepo.SaveEmailVerificationToken(ctx, verificationToken, "", ""); err != nil {
+			c.logger.Error("failed to save verification token",
+				logger.String("user_id", u.ID().String()),
+				logger.Err(err),
+			)
+			// Don't fail registration
+		} else {
+			c.logger.Debug("verification token created",
+				logger.String("user_id", u.ID().String()),
+			)
+		}
+	}
+
 	c.logger.Info("user registered",
 		logger.String("user_id", u.ID().String()),
 		logger.String("email", u.Email().String()),
 		logger.String("tenant_id", u.TenantID()),
 	)
 
-	// Publish domain events
-	if err := c.publishEvents(ctx, u); err != nil {
+	// Publish domain events (includes verification token)
+	if err := c.publishEvents(ctx, u, verificationToken); err != nil {
 		// Log but don't fail - event publishing is best-effort
 		c.logger.Error("failed to publish events",
 			logger.String("user_id", u.ID().String()),
@@ -102,13 +134,18 @@ func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (
 }
 
 // publishEvents publishes all domain events from the aggregate.
-func (c *RegisterUserCommand) publishEvents(ctx context.Context, u *user.User) error {
+func (c *RegisterUserCommand) publishEvents(ctx context.Context, u *user.User, verificationToken *auth.Token) error {
 	events := u.Events()
 	defer u.ClearEvents() // Clear after publishing
 
 	for _, domainEvent := range events {
 		// Convert domain event to messaging event
 		event := c.convertDomainEvent(ctx, domainEvent)
+
+		// Add verification token to user.registered event
+		if domainEvent.Type() == "user.registered" && verificationToken != nil {
+			event.WithMetadata("verification_token", verificationToken.Value())
+		}
 
 		// Publish to event bus
 		if err := c.publisher.Publish(ctx, event); err != nil {

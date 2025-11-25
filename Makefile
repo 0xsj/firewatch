@@ -53,12 +53,6 @@ install-tools: ## Install development tools (air, wire, migrate)
 	@go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	@echo "✓ Tools installed"
 
-.PHONY: wire
-wire: ## Generate Wire dependency injection code
-	@echo "Generating Wire code..."
-	@cd cmd/api && wire
-	@echo "✓ Wire generation complete"
-
 .PHONY: dev
 dev: ## Run with hot reload (requires air)
 	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_DATABASE=$(DB_NAME) air
@@ -195,3 +189,29 @@ migrate-create: ## Create a new migration (usage: make migrate-create NAME=creat
 	@if [ -z "$(NAME)" ]; then echo "Error: NAME is required. Usage: make migrate-create NAME=create_foo_table"; exit 1; fi
 	@migrate create -ext sql -dir migrations -seq $(NAME)
 	@echo "✓ Created migration: $(NAME)"
+
+# Wire - Generate dependency injection code for all modules
+.PHONY: wire
+wire:
+	@echo "Generating wire code..."
+	@find . \( -name "wire.go" -o -name "provider.go" \) -not -path "./vendor/*" -not -path "./tmp/*" | while read -r file; do \
+		if grep -q "wireinject" "$$file" 2>/dev/null; then \
+			dir=$$(dirname "$$file"); \
+			echo "  → $$dir"; \
+			(cd "$$dir" && wire) || exit 1; \
+		fi \
+	done
+	@echo "✓ Wire generation complete!"
+
+# Wire check - Verify wire configuration without generating
+.PHONY: wire-check
+wire-check:
+	@echo "Checking wire configuration..."
+	@find . \( -name "wire.go" -o -name "provider.go" \) -not -path "./vendor/*" -not -path "./tmp/*" | while read -r file; do \
+		if grep -q "wireinject" "$$file" 2>/dev/null; then \
+			dir=$$(dirname "$$file"); \
+			echo "  → $$dir"; \
+			(cd "$$dir" && wire check) || exit 1; \
+		fi \
+	done
+	@echo "✓ Wire check complete!"
