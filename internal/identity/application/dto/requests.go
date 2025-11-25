@@ -32,6 +32,7 @@ type VerifyEmailRequest struct {
 type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password" validate:"required"`
 	NewPassword string `json:"new_password" validate:"required,min=8"`
+	IPAddress   string `json:"-"` // Set from request context, not JSON body
 }
 
 // RequestPasswordResetRequest is the request for requesting a password reset.
@@ -39,6 +40,12 @@ type RequestPasswordResetRequest struct {
 	Email     string `json:"email" validate:"required,email"`
 	IPAddress string `json:"-"` // Set from request context, not JSON body
 	UserAgent string `json:"-"` // Set from request headers, not JSON body
+}
+
+// ReactivateUserRequest represents a user reactivation request (admin operation).
+type ReactivateUserRequest struct {
+	// No fields needed - UserID comes from URL path parameter
+	// Admin identity comes from JWT claims
 }
 
 // ResetPasswordRequest represents a password reset request.
@@ -49,16 +56,19 @@ type ResetPasswordRequest struct {
 	IPAddress   string `json:"-"` // Set from request context, not JSON body
 }
 
+// DeleteUserRequest represents a user deletion request (admin operation).
+type DeleteUserRequest struct {
+	Reason string `json:"reason" validate:"required"`
+}
+
 // ChangeRoleRequest represents a role change request (admin operation).
 type ChangeRoleRequest struct {
-	UserID string `json:"user_id" validate:"required"`
 	Role   string `json:"role" validate:"required,oneof=guest user moderator admin super_admin"`
 	Reason string `json:"reason"` // Optional reason for audit trail
 }
 
 // SuspendUserRequest represents a user suspension request (admin operation).
 type SuspendUserRequest struct {
-	UserID string `json:"user_id" validate:"required"`
 	Reason string `json:"reason" validate:"required"`
 }
 

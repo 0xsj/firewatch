@@ -21,6 +21,11 @@ type Handler struct {
 	verifyEmailCmd          *command.VerifyEmailCommand
 	requestPasswordResetCmd *command.RequestPasswordResetCommand
 	resetPasswordCmd        *command.ResetPasswordCommand
+	changePasswordCmd       *command.ChangePasswordCommand
+	suspendUserCmd          *command.SuspendUserCommand
+	reactivateUserCmd       *command.ReactivateUserCommand
+	changeUserRoleCmd       *command.ChangeUserRoleCommand
+	deleteUserCmd           *command.DeleteUserCommand
 	getUserQuery            *query.GetUserQuery
 	getCurrentUserQuery     *query.GetCurrentUserQuery
 	listUsersQuery          *query.ListUsersQuery
@@ -37,6 +42,11 @@ func NewHandler(
 	verifyEmailCmd *command.VerifyEmailCommand,
 	requestPasswordResetCmd *command.RequestPasswordResetCommand,
 	resetPasswordCmd *command.ResetPasswordCommand,
+	changePasswordCmd *command.ChangePasswordCommand,
+	suspendUserCmd *command.SuspendUserCommand,
+	reactivateUserCmd *command.ReactivateUserCommand,
+	changeUserRoleCmd *command.ChangeUserRoleCommand,
+	deleteUserCmd *command.DeleteUserCommand,
 	getUserQuery *query.GetUserQuery,
 	getCurrentUserQuery *query.GetCurrentUserQuery,
 	listUsersQuery *query.ListUsersQuery,
@@ -51,6 +61,11 @@ func NewHandler(
 		verifyEmailCmd:          verifyEmailCmd,
 		requestPasswordResetCmd: requestPasswordResetCmd,
 		resetPasswordCmd:        resetPasswordCmd,
+		changePasswordCmd:       changePasswordCmd,
+		suspendUserCmd:          suspendUserCmd,
+		reactivateUserCmd:       reactivateUserCmd,
+		changeUserRoleCmd:       changeUserRoleCmd,
+		deleteUserCmd:           deleteUserCmd,
 		getUserQuery:            getUserQuery,
 		getCurrentUserQuery:     getCurrentUserQuery,
 		listUsersQuery:          listUsersQuery,
@@ -381,4 +396,243 @@ func extractBearerToken(r *http.Request) string {
 		return authHeader[7:]
 	}
 	return ""
+}
+
+// ChangePassword handles authenticated password changes.
+// POST /api/v1/users/me/password
+func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	// Extract user_id from JWT claims (set by auth middleware)
+	userIDStr := middleware.GetUserID(r.Context())
+	if userIDStr == "" {
+		h.logger.Error("missing user_id in context")
+		response.InternalServerError(w, "invalid user")
+		return
+	}
+
+	userID, err := types.ParseID(userIDStr)
+	if err != nil {
+		h.logger.Error("invalid user_id", logger.String("user_id", userIDStr), logger.Err(err))
+		response.BadRequest(w, "invalid user")
+		return
+	}
+
+	dtoReq, err := ParseChangePasswordRequest(r)
+	if err != nil {
+		h.logger.Warn("invalid change password request", logger.String("error", err.Error()))
+		RespondValidationError(w, err)
+		return
+	}
+
+	cmdReq := command.ChangePasswordRequest{
+		UserID:      userID,
+		OldPassword: dtoReq.OldPassword,
+		NewPassword: dtoReq.NewPassword,
+		IPAddress:   dtoReq.IPAddress,
+	}
+
+	err = h.changePasswordCmd.Handle(r.Context(), cmdReq)
+	if err != nil {
+		h.logger.Error("password change failed", logger.String("user_id", userIDStr), logger.Err(err))
+		HandleError(w, err)
+		return
+	}
+
+	h.logger.Info("password changed successfully", logger.String("user_id", userIDStr))
+	RespondWithMessage(w, "Password changed successfully")
+}
+
+// SuspendUser handles user suspension by admins.
+// POST /api/v1/users/{id}/suspend
+func (h *Handler) SuspendUser(w http.ResponseWriter, r *http.Request) {
+	// Extract admin ID from JWT claims
+	adminIDStr := middleware.GetUserID(r.Context())
+	if adminIDStr == "" {
+		h.logger.Error("missing admin user_id in context")
+		response.InternalServerError(w, "invalid admin")
+		return
+	}
+
+	adminID, err := types.ParseID(adminIDStr)
+	if err != nil {
+		h.logger.Error("invalid admin user_id", logger.String("admin_id", adminIDStr), logger.Err(err))
+		response.BadRequest(w, "invalid admin")
+		return
+	}
+
+	// Extract target user ID from URL
+	userID, err := ParseUserID(r)
+	if err != nil {
+		h.logger.Warn("invalid user ID", logger.String("error", err.Error()))
+		RespondValidationError(w, err)
+		return
+	}
+
+	// Parse request body
+	dtoReq, err := ParseSuspendUserRequest(r)
+	if err != nil {
+		h.logger.Warn("invalid suspend user request", logger.String("error", err.Error()))
+		RespondValidationError(w, err)
+		return
+	}
+
+	cmdReq := command.SuspendUserRequest{
+		UserID:      userID,
+		Reason:      dtoReq.Reason,
+		SuspendedBy: adminID,
+	}
+
+	err = h.suspendUserCmd.Handle(r.Context(), cmdReq)
+	if err != nil {
+		h.logger.Error("user suspension failed", logger.String("user_id", userID.String()), logger.Err(err))
+		HandleError(w, err)
+		return
+	}
+
+	h.logger.Info("user suspended", logger.String("user_id", userID.String()), logger.String("admin_id", adminIDStr))
+	RespondWithMessage(w, "User suspended successfully")
+}
+
+// ReactivateUser handles user reactivation by admins.
+// POST /api/v1/users/{id}/reactivate
+func (h *Handler) ReactivateUser(w http.ResponseWriter, r *http.Request) {
+	// Extract admin ID from JWT claims
+	adminIDStr := middleware.GetUserID(r.Context())
+	if adminIDStr == "" {
+		h.logger.Error("missing admin user_id in context")
+		response.InternalServerError(w, "invalid admin")
+		return
+	}
+
+	adminID, err := types.ParseID(adminIDStr)
+	if err != nil {
+		h.logger.Error("invalid admin user_id", logger.String("admin_id", adminIDStr), logger.Err(err))
+		response.BadRequest(w, "invalid admin")
+		return
+	}
+
+	// Extract target user ID from URL
+	userID, err := ParseUserID(r)
+	if err != nil {
+		h.logger.Warn("invalid user ID", logger.String("error", err.Error()))
+		RespondValidationError(w, err)
+		return
+	}
+
+	cmdReq := command.ReactivateUserRequest{
+		UserID:        userID,
+		ReactivatedBy: adminID,
+	}
+
+	err = h.reactivateUserCmd.Handle(r.Context(), cmdReq)
+	if err != nil {
+		h.logger.Error("user reactivation failed", logger.String("user_id", userID.String()), logger.Err(err))
+		HandleError(w, err)
+		return
+	}
+
+	h.logger.Info("user reactivated", logger.String("user_id", userID.String()), logger.String("admin_id", adminIDStr))
+	RespondWithMessage(w, "User reactivated successfully")
+}
+
+// ChangeUserRole handles role changes by admins.
+// POST /api/v1/users/{id}/role
+func (h *Handler) ChangeUserRole(w http.ResponseWriter, r *http.Request) {
+	// Extract admin ID from JWT claims
+	adminIDStr := middleware.GetUserID(r.Context())
+	if adminIDStr == "" {
+		h.logger.Error("missing admin user_id in context")
+		response.InternalServerError(w, "invalid admin")
+		return
+	}
+
+	adminID, err := types.ParseID(adminIDStr)
+	if err != nil {
+		h.logger.Error("invalid admin user_id", logger.String("admin_id", adminIDStr), logger.Err(err))
+		response.BadRequest(w, "invalid admin")
+		return
+	}
+
+	// Extract target user ID from URL
+	userID, err := ParseUserID(r)
+	if err != nil {
+		h.logger.Warn("invalid user ID", logger.String("error", err.Error()))
+		RespondValidationError(w, err)
+		return
+	}
+
+	// Parse request body
+	dtoReq, err := ParseChangeRoleRequest(r)
+	if err != nil {
+		h.logger.Warn("invalid change role request", logger.String("error", err.Error()))
+		RespondValidationError(w, err)
+		return
+	}
+
+	cmdReq := command.ChangeUserRoleRequest{
+		UserID:    userID,
+		NewRole:   user.Role(dtoReq.Role),
+		Reason:    dtoReq.Reason,
+		ChangedBy: adminID,
+	}
+
+	err = h.changeUserRoleCmd.Handle(r.Context(), cmdReq)
+	if err != nil {
+		h.logger.Error("role change failed", logger.String("user_id", userID.String()), logger.Err(err))
+		HandleError(w, err)
+		return
+	}
+
+	h.logger.Info("user role changed", logger.String("user_id", userID.String()), logger.String("admin_id", adminIDStr), logger.String("new_role", dtoReq.Role))
+	RespondWithMessage(w, "User role changed successfully")
+}
+
+// DeleteUser handles user deletion by admins.
+// DELETE /api/v1/users/{id}
+func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	// Extract admin ID from JWT claims
+	adminIDStr := middleware.GetUserID(r.Context())
+	if adminIDStr == "" {
+		h.logger.Error("missing admin user_id in context")
+		response.InternalServerError(w, "invalid admin")
+		return
+	}
+
+	adminID, err := types.ParseID(adminIDStr)
+	if err != nil {
+		h.logger.Error("invalid admin user_id", logger.String("admin_id", adminIDStr), logger.Err(err))
+		response.BadRequest(w, "invalid admin")
+		return
+	}
+
+	// Extract target user ID from URL
+	userID, err := ParseUserID(r)
+	if err != nil {
+		h.logger.Warn("invalid user ID", logger.String("error", err.Error()))
+		RespondValidationError(w, err)
+		return
+	}
+
+	// Parse request body
+	dtoReq, err := ParseDeleteUserRequest(r)
+	if err != nil {
+		h.logger.Warn("invalid delete user request", logger.String("error", err.Error()))
+		RespondValidationError(w, err)
+		return
+	}
+
+	cmdReq := command.DeleteUserRequest{
+		UserID:    userID,
+		Reason:    dtoReq.Reason,
+		DeletedBy: adminID,
+	}
+
+	err = h.deleteUserCmd.Handle(r.Context(), cmdReq)
+	if err != nil {
+		h.logger.Error("user deletion failed", logger.String("user_id", userID.String()), logger.Err(err))
+		HandleError(w, err)
+		return
+	}
+
+	h.logger.Info("user deleted", logger.String("user_id", userID.String()), logger.String("admin_id", adminIDStr))
+	RespondNoContent(w)
 }

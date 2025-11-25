@@ -20,7 +20,6 @@ import (
 )
 
 // IdentitySet provides all dependencies for the Identity domain.
-// IdentitySet provides all dependencies for the Identity domain.
 var IdentitySet = wire.NewSet(
 	// Infrastructure - User Repository
 	repository.NewPostgresUserRepository,
@@ -41,6 +40,11 @@ var IdentitySet = wire.NewSet(
 	command.NewVerifyEmailCommand,
 	command.NewRequestPasswordResetCommand,
 	command.NewResetPasswordCommand,
+	command.NewChangePasswordCommand,
+	command.NewSuspendUserCommand,
+	command.NewReactivateUserCommand,
+	command.NewChangeUserRoleCommand,
+	command.NewDeleteUserCommand,
 
 	// Application - Queries
 	query.NewGetUserQuery,

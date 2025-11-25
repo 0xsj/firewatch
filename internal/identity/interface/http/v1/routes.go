@@ -75,6 +75,9 @@ func (h *Handler) Routes(log logger.Logger, corsConfig middleware.CORSConfig, jw
 			r.Get("/users/{id}", h.GetUser)
 			r.Get("/users", h.ListUsers)
 
+			// User management
+			r.Post("/users/me/password", h.ChangePassword)
+
 			// Session management
 			r.Get("/sessions", h.ListSessions)
 
@@ -89,10 +92,10 @@ func (h *Handler) Routes(log logger.Logger, corsConfig middleware.CORSConfig, jw
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAdmin(log))
 
-				// Admin user management (TODO)
-				// r.Post("/users/{id}/suspend", h.SuspendUser)
-				// r.Post("/users/{id}/activate", h.ActivateUser)
-				// r.Post("/users/{id}/change-role", h.ChangeRole)
+				r.Post("/users/{id}/suspend", h.SuspendUser)
+				r.Post("/users/{id}/reactivate", h.ReactivateUser)
+				r.Post("/users/{id}/role", h.ChangeUserRole)
+				r.Delete("/users/{id}", h.DeleteUser)
 			})
 		})
 	})

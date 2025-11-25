@@ -317,3 +317,94 @@ func ParseResetPasswordRequest(r *http.Request) (dto.ResetPasswordRequest, error
 
 	return req, nil
 }
+
+// ParseChangePasswordRequest parses a change password request.
+func ParseChangePasswordRequest(r *http.Request) (dto.ChangePasswordRequest, error) {
+	var req dto.ChangePasswordRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return req, fmt.Errorf("invalid JSON body: %w", err)
+	}
+
+	// Extract metadata (for audit trail)
+	req.IPAddress = extractIPAddress(r)
+
+	// Validate
+	if req.OldPassword == "" {
+		return req, fmt.Errorf("old_password is required")
+	}
+	if req.NewPassword == "" {
+		return req, fmt.Errorf("new_password is required")
+	}
+	if len(req.NewPassword) < 8 {
+		return req, fmt.Errorf("new password must be at least 8 characters")
+	}
+
+	return req, nil
+}
+
+// ParseSuspendUserRequest parses a suspend user request.
+func ParseSuspendUserRequest(r *http.Request) (dto.SuspendUserRequest, error) {
+	var req dto.SuspendUserRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return req, fmt.Errorf("invalid JSON body: %w", err)
+	}
+
+	// Validate
+	if req.Reason == "" {
+		return req, fmt.Errorf("reason is required")
+	}
+
+	return req, nil
+}
+
+// ParseReactivateUserRequest parses a reactivate user request.
+func ParseReactivateUserRequest(r *http.Request) (dto.ReactivateUserRequest, error) {
+	// No body needed, just return empty struct
+	return dto.ReactivateUserRequest{}, nil
+}
+
+// ParseChangeRoleRequest parses a change role request.
+func ParseChangeRoleRequest(r *http.Request) (dto.ChangeRoleRequest, error) {
+	var req dto.ChangeRoleRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return req, fmt.Errorf("invalid JSON body: %w", err)
+	}
+
+	// Validate
+	if req.Role == "" {
+		return req, fmt.Errorf("role is required")
+	}
+
+	// Validate role is one of the allowed values
+	validRoles := map[string]bool{
+		"guest":       true,
+		"user":        true,
+		"moderator":   true,
+		"admin":       true,
+		"super_admin": true,
+	}
+	if !validRoles[req.Role] {
+		return req, fmt.Errorf("invalid role: must be one of guest, user, moderator, admin, super_admin")
+	}
+
+	return req, nil
+}
+
+// ParseDeleteUserRequest parses a delete user request.
+func ParseDeleteUserRequest(r *http.Request) (dto.DeleteUserRequest, error) {
+	var req dto.DeleteUserRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return req, fmt.Errorf("invalid JSON body: %w", err)
+	}
+
+	// Validate
+	if req.Reason == "" {
+		return req, fmt.Errorf("reason is required")
+	}
+
+	return req, nil
+}

@@ -36,19 +36,23 @@ func ProvideModule(db database.DB, publisher messaging.Publisher, jwtService jwt
 	postgresTokenRepository := repository.NewPostgresTokenRepository(db)
 	requestPasswordResetCommand := command.NewRequestPasswordResetCommand(postgresUserRepository, postgresTokenRepository, publisher, log)
 	resetPasswordCommand := command.NewResetPasswordCommand(postgresUserRepository, postgresTokenRepository, publisher, log)
+	changePasswordCommand := command.NewChangePasswordCommand(postgresUserRepository, publisher, log)
+	suspendUserCommand := command.NewSuspendUserCommand(postgresUserRepository, publisher, log)
+	reactivateUserCommand := command.NewReactivateUserCommand(postgresUserRepository, publisher, log)
+	changeUserRoleCommand := command.NewChangeUserRoleCommand(postgresUserRepository, publisher, log)
+	deleteUserCommand := command.NewDeleteUserCommand(postgresUserRepository, publisher, log)
 	getUserQuery := query.NewGetUserQuery(postgresUserRepository)
 	getCurrentUserQuery := query.NewGetCurrentUserQuery(postgresUserRepository)
 	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
 	listSessionsQuery := query.NewListSessionsQuery(sessionRepository)
-	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, log)
+	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, changePasswordCommand, suspendUserCommand, reactivateUserCommand, changeUserRoleCommand, deleteUserCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, log)
 	return handler, nil
 }
 
 // provider.go:
 
 // IdentitySet provides all dependencies for the Identity domain.
-// IdentitySet provides all dependencies for the Identity domain.
-var IdentitySet = wire.NewSet(repository.NewPostgresUserRepository, wire.Bind(new(user.Repository), new(*repository.PostgresUserRepository)), repository.NewPostgresSessionRepository, ProvideSessionRepository, repository.NewPostgresTokenRepository, command.NewRegisterUserCommand, command.NewLoginCommand, command.NewLogoutCommand, command.NewRefreshTokenCommand, command.NewVerifyEmailCommand, command.NewRequestPasswordResetCommand, command.NewResetPasswordCommand, query.NewGetUserQuery, query.NewGetCurrentUserQuery, query.NewListUsersQuery, query.NewListSessionsQuery, v1.NewHandler)
+var IdentitySet = wire.NewSet(repository.NewPostgresUserRepository, wire.Bind(new(user.Repository), new(*repository.PostgresUserRepository)), repository.NewPostgresSessionRepository, ProvideSessionRepository, repository.NewPostgresTokenRepository, command.NewRegisterUserCommand, command.NewLoginCommand, command.NewLogoutCommand, command.NewRefreshTokenCommand, command.NewVerifyEmailCommand, command.NewRequestPasswordResetCommand, command.NewResetPasswordCommand, command.NewChangePasswordCommand, command.NewSuspendUserCommand, command.NewReactivateUserCommand, command.NewChangeUserRoleCommand, command.NewDeleteUserCommand, query.NewGetUserQuery, query.NewGetCurrentUserQuery, query.NewListUsersQuery, query.NewListSessionsQuery, v1.NewHandler)
 
 // ProvideSessionRepository provides a session repository with optional caching.
 func ProvideSessionRepository(
