@@ -34,3 +34,18 @@ type Config struct {
 	// NOTE: For tenant isolation, add TenantBucketStrategy field later
 	// Options: "prefix" (tenant-id/path), "bucket-per-tenant" (tenant-id-bucket)
 }
+
+// DefaultConfig returns sensible defaults for local development with MinIO
+func DefaultConfig() Config {
+	return Config{
+		Provider:             "s3",
+		Bucket:               "uploads",
+		Region:               "us-east-1",
+		Endpoint:             "http://localhost:9000",
+		AccessKeyID:          "minioadmin",
+		SecretAccessKey:      "minioadmin",
+		UsePathStyle:         true,
+		DefaultPresignExpiry: 15 * time.Minute,
+		MaxFileSize:          104857600, // 100MB
+	}
+}

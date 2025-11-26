@@ -22,6 +22,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
+	"github.com/0xsj/hexagonal-go/pkg/storage"
 )
 
 // InitializeApp wires up the entire application.
@@ -35,6 +36,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		ProvideTracingConfig,
 		ProvideJWTConfig,
 		ProvideCacheConfig,
+		ProvideStorageConfig,
 
 		// Infrastructure (from pkg/provider)
 		provider.ProvideLogger,
@@ -45,6 +47,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		provider.ProvideTracingProvider,
 		provider.ProvideJWTService,
 		provider.ProvideCache,
+		provider.ProvideStorage,
 
 		// HTTP Metrics
 		middleware.NewHTTPMetrics,
@@ -100,4 +103,8 @@ func ProvideJWTConfig(cfg *config.AppConfig) jwt.Config {
 // ProvideCacheConfig extracts cache config from AppConfig.
 func ProvideCacheConfig(cfg *config.AppConfig) cache.Config {
 	return cfg.Cache
+}
+
+func ProvideStorageConfig(cfg *config.AppConfig) storage.Config {
+	return cfg.Storage
 }

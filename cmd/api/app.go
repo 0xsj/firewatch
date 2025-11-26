@@ -13,6 +13,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
 	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
+	"github.com/0xsj/hexagonal-go/pkg/storage"
 )
 
 // App holds all application dependencies.
@@ -28,6 +29,9 @@ type App struct {
 	// Security
 	JWTService jwt.Service
 	Cache      cache.Cache
+
+	// Storage
+	Storage storage.Storage
 
 	// Observability
 	MetricsProvider metrics.Provider

@@ -8,18 +8,9 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/metrics"
 	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
+	"github.com/0xsj/hexagonal-go/pkg/storage"
 )
 
-// AppConfig holds all application configuration.
-// Configuration is loaded from environment variables with prefixes:
-//   - DB_*        for database settings
-//   - LOG_*       for logger settings
-//   - SERVER_*    for HTTP server settings
-//   - EMAIL_*     for email/SMTP settings
-//   - METRICS_*   for Prometheus metrics settings
-//   - TRACING_*   for OpenTelemetry tracing settings
-//   - JWT_*       for JWT/auth settings
-//   - CACHE_*     for Redis cache settings
 type AppConfig struct {
 	Database postgres.Config
 	Logger   console.Options
@@ -29,15 +20,14 @@ type AppConfig struct {
 	Tracing  tracing.Config
 	JWT      jwt.Config
 	Cache    cache.Config
+	Storage  storage.Config
 }
 
-// ServerConfig holds HTTP server configuration.
 type ServerConfig struct {
 	Host string `env:"HOST"`
 	Port int    `env:"PORT"`
 }
 
-// DefaultAppConfig returns the default application configuration.
 func DefaultAppConfig() AppConfig {
 	return AppConfig{
 		Database: postgres.DefaultConfig(),
@@ -51,5 +41,6 @@ func DefaultAppConfig() AppConfig {
 		Tracing: tracing.DefaultConfig(),
 		JWT:     jwt.DefaultConfig(),
 		Cache:   cache.DefaultConfig(),
+		Storage: storage.DefaultConfig(),
 	}
 }

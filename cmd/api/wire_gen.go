@@ -34,6 +34,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/tracing"
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
+	"github.com/0xsj/hexagonal-go/pkg/storage"
 )
 
 // Injectors from wire.go:
@@ -100,6 +101,12 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	sender := provider.ProvideEmailSender(emailConfig)
 	sendNotificationCommand := command3.NewSendNotificationCommand(postgresRepository2, sender, logger)
 	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, logger)
+	storageConfig := ProvideStorageConfig(cfg)
+	storage, err := provider.ProvideStorage(ctx, storageConfig)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
 	metricsConfig := ProvideMetricsConfig(cfg)
 	metricsProvider := provider.ProvideMetricsProvider(metricsConfig)
 	tracingConfig := ProvideTracingConfig(cfg)
@@ -119,6 +126,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		NotificationSubscriber: userEventSubscriber,
 		JWTService:             service,
 		Cache:                  cache,
+		Storage:                storage,
 		MetricsProvider:        metricsProvider,
 		TracingProvider:        tracingProvider,
 		HTTPMetrics:            httpMetrics,
@@ -163,4 +171,8 @@ func ProvideJWTConfig(cfg *config.AppConfig) jwt.Config {
 // ProvideCacheConfig extracts cache config from AppConfig.
 func ProvideCacheConfig(cfg *config.AppConfig) cache.Config {
 	return cfg.Cache
+}
+
+func ProvideStorageConfig(cfg *config.AppConfig) storage.Config {
+	return cfg.Storage
 }
