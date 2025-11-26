@@ -18,13 +18,13 @@ const (
 	ErrCodeSlugReserved     = errors.Code("TENANT_SLUG_RESERVED")
 
 	// Status-related errors
-	ErrCodeTenantSuspended      = errors.Code("TENANT_SUSPENDED")
-	ErrCodeTenantDeleted        = errors.Code("TENANT_DELETED")
-	ErrCodeInvalidStatusChange  = errors.Code("TENANT_INVALID_STATUS_CHANGE")
+	ErrCodeTenantSuspended     = errors.Code("TENANT_SUSPENDED")
+	ErrCodeTenantDeleted       = errors.Code("TENANT_DELETED")
+	ErrCodeInvalidStatusChange = errors.Code("TENANT_INVALID_STATUS_CHANGE")
 
 	// Plan-related errors
-	ErrCodePlanInvalid       = errors.Code("TENANT_PLAN_INVALID")
-	ErrCodePlanDowngrade     = errors.Code("TENANT_PLAN_DOWNGRADE_RESTRICTED")
+	ErrCodePlanInvalid   = errors.Code("TENANT_PLAN_INVALID")
+	ErrCodePlanDowngrade = errors.Code("TENANT_PLAN_DOWNGRADE_RESTRICTED")
 
 	// Settings-related errors
 	ErrCodeSettingsInvalid = errors.Code("TENANT_SETTINGS_INVALID")
