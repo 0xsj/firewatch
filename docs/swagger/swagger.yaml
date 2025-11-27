@@ -103,7 +103,408 @@ definitions:
       name:
         type: string
     type: object
-  v1.ErrorResponse:
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.ActivateTemplateResponse:
+    properties:
+      template:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.ArchiveTemplateResponse:
+    properties:
+      template:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.CreateTemplateRequest:
+    properties:
+      body_html:
+        type: string
+      body_text:
+        type: string
+      description:
+        type: string
+      locale:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      subject:
+        type: string
+      tenant_id:
+        type: string
+      variables:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableRequest'
+        type: array
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.CreateTemplateResponse:
+    properties:
+      template:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.DeleteTemplateResponse:
+    properties:
+      id:
+        type: string
+      success:
+        type: boolean
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.GetTemplateResponse:
+    properties:
+      template:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.ListTemplatesResponse:
+    properties:
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      templates:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateBySlugRequest:
+    properties:
+      data:
+        additionalProperties: true
+        type: object
+      locale:
+        type: string
+      slug:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateResponse:
+    properties:
+      body_html:
+        type: string
+      body_text:
+        type: string
+      subject:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO:
+    properties:
+      body_html:
+        type: string
+      body_text:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      locale:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      subject:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+      updated_by:
+        type: string
+      variables:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableDTO'
+        type: array
+      version:
+        type: integer
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.UpdateTemplateRequest:
+    properties:
+      body_html:
+        type: string
+      body_text:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      subject:
+        type: string
+      variables:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableRequest'
+        type: array
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.UpdateTemplateResponse:
+    properties:
+      template:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableDTO:
+    properties:
+      default:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      required:
+        type: boolean
+      type:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableRequest:
+    properties:
+      default:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      required:
+        type: boolean
+      type:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangePasswordRequest:
+    properties:
+      new_password:
+        minLength: 8
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangeRoleRequest:
+    properties:
+      reason:
+        description: Optional reason for audit trail
+        type: string
+      role:
+        enum:
+        - guest
+        - user
+        - moderator
+        - admin
+        - super_admin
+        type: string
+    required:
+    - role
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.DeleteUserRequest:
+    properties:
+      reason:
+        type: string
+    required:
+    - reason
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.ListUsersResponse:
+    properties:
+      has_more:
+        description: True if more results available
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total_count:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserSummaryDTO'
+        type: array
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        description: Token expiration in seconds
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        description: '"Bearer"'
+        type: string
+      user:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.RegisterUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      tenant_id:
+        type: string
+    required:
+    - email
+    - password
+    - tenant_id
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.RequestPasswordResetRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.ResetPasswordRequest:
+    properties:
+      new_password:
+        minLength: 8
+        type: string
+      token:
+        type: string
+    required:
+    - new_password
+    - token
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.SessionDTO:
+    properties:
+      created_at:
+        type: string
+      device_id:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      ip_address:
+        type: string
+      last_active_at:
+        type: string
+      provider:
+        type: string
+      revoked_at:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      user_agent:
+        type: string
+      user_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.SuspendUserRequest:
+    properties:
+      reason:
+        type: string
+    required:
+    - reason
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      email_verified_at:
+        type: string
+      id:
+        type: string
+      last_login_at:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserSummaryDTO:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_identity_application_dto.VerifyEmailRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  internal_email_interface_http_v1.ErrorResponse:
+    description: Error response returned by the API
+    properties:
+      code:
+        example: TEMPLATE_NOT_FOUND
+        type: string
+      message:
+        example: template not found
+        type: string
+      meta:
+        additionalProperties: {}
+        type: object
+    type: object
+  internal_identity_interface_http_v1.ErrorResponse:
+    description: Error response returned by the API
+    properties:
+      code:
+        example: USER_NOT_FOUND
+        type: string
+      message:
+        example: user not found
+        type: string
+      meta:
+        additionalProperties: {}
+        type: object
+    type: object
+  internal_identity_interface_http_v1.SessionsResponse:
+    description: List of user sessions
+    properties:
+      sessions:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.SessionDTO'
+        type: array
+    type: object
+  internal_tenant_interface_http_v1.ErrorResponse:
     description: Error response returned by the API
     properties:
       code:
@@ -129,6 +530,675 @@ info:
   title: Hexagonal Go API
   version: "1.0"
 paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user with email and password, returns JWT tokens
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful with tokens
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "403":
+          description: Account suspended or email not verified
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "429":
+          description: Too many login attempts
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: User login
+      tags:
+      - identity
+  /api/v1/auth/logout:
+    post:
+      description: Invalidates the current session and access token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logged out successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: User logout
+      tags:
+      - identity
+  /api/v1/auth/oauth:
+    get:
+      description: Redirects to the OAuth provider's authorization page. After authorization,
+        the provider will redirect back to the callback endpoint.
+      parameters:
+      - description: OAuth provider name
+        enum:
+        - google
+        - github
+        in: query
+        name: provider
+        required: true
+        type: string
+      - description: Tenant ID for new user registration
+        format: uuid
+        in: query
+        name: tenant_id
+        type: string
+      responses:
+        "307":
+          description: Redirect to OAuth provider
+        "400":
+          description: Provider is required or unsupported
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "500":
+          description: Failed to initiate OAuth
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: Initiate OAuth flow
+      tags:
+      - identity
+  /api/v1/auth/oauth/callback:
+    get:
+      description: Handles the callback from the OAuth provider after user authorization.
+        Exchanges the authorization code for tokens and logs the user in.
+      parameters:
+      - description: OAuth provider name
+        enum:
+        - google
+        - github
+        in: query
+        name: provider
+        required: true
+        type: string
+      - description: Authorization code from OAuth provider
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State token for CSRF validation
+        in: query
+        name: state
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful with tokens
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginResponse'
+        "400":
+          description: Invalid state, missing code, or unsupported provider
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: OAuth authentication failed
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: OAuth callback
+      tags:
+      - identity
+  /api/v1/auth/password/forgot:
+    post:
+      consumes:
+      - application/json
+      description: Sends a password reset email to the specified address if it exists
+      parameters:
+      - description: Password reset request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.RequestPasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reset email sent (if account exists)
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: Request password reset
+      tags:
+      - identity
+  /api/v1/auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: Resets the user's password using a valid reset token
+      parameters:
+      - description: New password with reset token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "400":
+          description: Invalid request body or weak password
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: Token not found or expired
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: Reset password
+      tags:
+      - identity
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a valid refresh token for a new access token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New tokens issued
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: Refresh access token
+      tags:
+      - identity
+  /api/v1/email/templates:
+    get:
+      description: Retrieves a paginated list of email templates with optional filters
+      parameters:
+      - description: Filter by tenant ID
+        format: uuid
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter by status
+        enum:
+        - draft
+        - active
+        - archived
+        - deleted
+        in: query
+        name: status
+        type: string
+      - description: Filter by locale
+        example: en
+        in: query
+        name: locale
+        type: string
+      - description: Filter by slug containing text
+        in: query
+        name: slug_contains
+        type: string
+      - description: Filter by name containing text
+        in: query
+        name: name_contains
+        type: string
+      - default: true
+        description: Include system templates
+        in: query
+        name: include_system
+        type: boolean
+      - default: 0
+        description: Pagination offset
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - default: 20
+        description: Pagination limit
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Sort field
+        enum:
+        - created_at
+        - updated_at
+        - name
+        - slug
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of templates
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.ListTemplatesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List email templates
+      tags:
+      - email
+    post:
+      consumes:
+      - application/json
+      description: Creates a new email template with subject, body, and variable definitions
+      parameters:
+      - description: Create template request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.CreateTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Template created successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.CreateTemplateResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "409":
+          description: Template with slug already exists
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create email template
+      tags:
+      - email
+  /api/v1/email/templates/{id}:
+    delete:
+      description: Soft-deletes an email template
+      parameters:
+      - description: Template ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.DeleteTemplateResponse'
+        "400":
+          description: Invalid template ID
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete email template
+      tags:
+      - email
+    get:
+      description: Retrieves an email template by its unique identifier
+      parameters:
+      - description: Template ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template found
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.GetTemplateResponse'
+        "400":
+          description: Invalid template ID
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get email template by ID
+      tags:
+      - email
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing email template
+      parameters:
+      - description: Template ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update template request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.UpdateTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template updated successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.UpdateTemplateResponse'
+        "400":
+          description: Invalid request body or template ID
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update email template
+      tags:
+      - email
+  /api/v1/email/templates/{id}/activate:
+    post:
+      description: Activates a draft or archived template, making it available for
+        use
+      parameters:
+      - description: Template ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template activated successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.ActivateTemplateResponse'
+        "400":
+          description: Invalid template ID
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "422":
+          description: Invalid status transition
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate email template
+      tags:
+      - email
+  /api/v1/email/templates/{id}/archive:
+    post:
+      description: Archives an active template, removing it from active use
+      parameters:
+      - description: Template ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template archived successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.ArchiveTemplateResponse'
+        "400":
+          description: Invalid template ID
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "422":
+          description: Invalid status transition
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Archive email template
+      tags:
+      - email
+  /api/v1/email/templates/{id}/preview:
+    post:
+      consumes:
+      - application/json
+      description: Renders an email template with provided data for preview
+      parameters:
+      - description: Template ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Template variables data
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Rendered template preview
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateResponse'
+        "400":
+          description: Invalid request body or template ID
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Preview email template
+      tags:
+      - email
+  /api/v1/email/templates/by-slug:
+    get:
+      description: Retrieves an email template by its slug and locale
+      parameters:
+      - description: Template slug
+        example: welcome-email
+        in: query
+        name: slug
+        required: true
+        type: string
+      - default: en
+        description: Locale code
+        example: en
+        in: query
+        name: locale
+        type: string
+      - description: Tenant ID
+        format: uuid
+        in: query
+        name: tenant_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template found
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.GetTemplateResponse'
+        "400":
+          description: Slug is required
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get email template by slug
+      tags:
+      - email
+  /api/v1/email/templates/preview-by-slug:
+    post:
+      consumes:
+      - application/json
+      description: Renders an email template by slug with provided data for preview
+      parameters:
+      - description: Preview request with slug and data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateBySlugRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Rendered template preview
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateResponse'
+        "400":
+          description: Invalid request body or missing slug
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/internal_email_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Preview email template by slug
+      tags:
+      - email
+  /api/v1/sessions:
+    get:
+      description: Retrieves active sessions for the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of active sessions
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.SessionsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List user sessions
+      tags:
+      - identity
   /api/v1/tenants:
     get:
       description: Retrieves a paginated list of tenants with optional filters
@@ -184,11 +1254,11 @@ paths:
         "400":
           description: Invalid query parameters
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List tenants
@@ -216,19 +1286,19 @@ paths:
         "400":
           description: Invalid request body or validation error
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "403":
           description: Forbidden - admin access required
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "409":
           description: Slug already taken
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new tenant
@@ -259,23 +1329,23 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "403":
           description: Forbidden - admin access required
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "404":
           description: Tenant not found
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "422":
           description: Invalid status transition
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete tenant
@@ -300,15 +1370,15 @@ paths:
         "400":
           description: Invalid tenant ID format
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "404":
           description: Tenant not found
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get tenant by ID
@@ -341,19 +1411,19 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "403":
           description: Forbidden - admin access required
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "404":
           description: Tenant not found
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update tenant
@@ -387,23 +1457,23 @@ paths:
         "400":
           description: Invalid plan
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "403":
           description: Forbidden - admin access required
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "404":
           description: Tenant not found
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "422":
           description: Plan change not allowed
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Change tenant plan
@@ -429,23 +1499,23 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "403":
           description: Forbidden - admin access required
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "404":
           description: Tenant not found
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "422":
           description: Invalid status transition
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Reactivate tenant
@@ -480,19 +1550,19 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "403":
           description: Forbidden - admin access required
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "404":
           description: Tenant not found
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update tenant settings
@@ -527,23 +1597,23 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "403":
           description: Forbidden - admin access required
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "404":
           description: Tenant not found
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "422":
           description: Invalid status transition
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Suspend tenant
@@ -569,20 +1639,462 @@ paths:
         "400":
           description: Invalid slug format
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
         "404":
           description: Tenant not found
           schema:
-            $ref: '#/definitions/v1.ErrorResponse'
+            $ref: '#/definitions/internal_tenant_interface_http_v1.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get tenant by slug
       tags:
       - tenants
+  /api/v1/users:
+    get:
+      description: Retrieves a paginated list of users with optional filters
+      parameters:
+      - description: Filter by status
+        enum:
+        - pending
+        - active
+        - suspended
+        - deleted
+        in: query
+        name: status
+        type: string
+      - description: Filter by role
+        enum:
+        - guest
+        - user
+        - moderator
+        - admin
+        - super_admin
+        in: query
+        name: role
+        type: string
+      - description: Filter by email verification status
+        in: query
+        name: email_verified
+        type: boolean
+      - description: Filter by email containing text
+        in: query
+        name: email_contains
+        type: string
+      - default: 0
+        description: Pagination offset
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - default: 50
+        description: Pagination limit
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Sort field
+        enum:
+        - created_at
+        - updated_at
+        - email
+        - last_login_at
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of users
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.ListUsersResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - identity
+  /api/v1/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft-deletes a user account. Requires admin privileges.
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Deletion reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.DeleteUserRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User deleted successfully
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete user
+      tags:
+      - identity
+    get:
+      description: Retrieves a user by their unique identifier
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User found
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO'
+        "400":
+          description: Invalid user ID format
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - identity
+  /api/v1/users/{id}/reactivate:
+    post:
+      description: Reactivates a suspended user account. Requires admin privileges.
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User reactivated successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "400":
+          description: Invalid user ID
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "422":
+          description: Invalid status transition
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reactivate user
+      tags:
+      - identity
+  /api/v1/users/{id}/role:
+    post:
+      consumes:
+      - application/json
+      description: Changes a user's role. Requires admin privileges.
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New role
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangeRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User role changed successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "400":
+          description: Invalid request or role
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change user role
+      tags:
+      - identity
+  /api/v1/users/{id}/suspend:
+    post:
+      consumes:
+      - application/json
+      description: Suspends a user account, preventing login. Requires admin privileges.
+      parameters:
+      - description: User ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Suspension reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.SuspendUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User suspended successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Suspend user
+      tags:
+      - identity
+  /api/v1/users/me:
+    get:
+      description: Retrieves the currently authenticated user's profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current user profile
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - identity
+  /api/v1/users/me/password:
+    post:
+      consumes:
+      - application/json
+      description: Changes the authenticated user's password
+      parameters:
+      - description: Old and new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password changed successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "400":
+          description: Invalid request body or weak password
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized or incorrect old password
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - identity
+  /api/v1/users/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account with email and password
+      parameters:
+      - description: Registration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.RegisterUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO'
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "409":
+          description: Email already taken
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - identity
+  /api/v1/users/verify-email:
+    get:
+      consumes:
+      - application/json
+      description: Verifies a user's email address using the token sent via email
+      parameters:
+      - description: Verification token (for GET requests)
+        in: query
+        name: token
+        type: string
+      - description: Verification token (for POST requests)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email verified successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "400":
+          description: Invalid or missing token
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: Token not found or expired
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: Verify email address
+      tags:
+      - identity
+    post:
+      consumes:
+      - application/json
+      description: Verifies a user's email address using the token sent via email
+      parameters:
+      - description: Verification token (for GET requests)
+        in: query
+        name: token
+        type: string
+      - description: Verification token (for POST requests)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email verified successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse'
+        "400":
+          description: Invalid or missing token
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+        "404":
+          description: Token not found or expired
+          schema:
+            $ref: '#/definitions/internal_identity_interface_http_v1.ErrorResponse'
+      summary: Verify email address
+      tags:
+      - identity
   /health:
     get:
       description: Returns OK if the service is healthy

@@ -206,7 +206,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        request body dto.RefreshTokenRequest true "Refresh token"
-// @Success      200 {object} dto.RefreshTokenResponse "New tokens issued"
+// @Success      200 {object} dto.LoginResponse "New tokens issued"
 // @Failure      400 {object} ErrorResponse "Invalid request body"
 // @Failure      401 {object} ErrorResponse "Invalid or expired refresh token"
 // @Router       /api/v1/auth/refresh [post]

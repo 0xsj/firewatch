@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
+	"github.com/0xsj/hexagonal-go/internal/identity/application/dto"
 	"github.com/0xsj/hexagonal-go/pkg/http/response"
 	"github.com/0xsj/hexagonal-go/pkg/oauth"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
@@ -169,3 +170,6 @@ func (h *OAuthHandler) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	// In production, you might redirect to a frontend URL with tokens
 	RespondWithLogin(w, loginResp)
 }
+
+// Ensure dto is used (for swag to find types)
+var _ dto.LoginResponse

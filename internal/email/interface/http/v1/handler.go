@@ -61,7 +61,7 @@ func NewHandler(
 // @Accept       json
 // @Produce      json
 // @Param        request body dto.CreateTemplateRequest true "Create template request"
-// @Success      201 {object} dto.TemplateResponse "Template created successfully"
+// @Success      201 {object} dto.CreateTemplateResponse "Template created successfully"
 // @Failure      400 {object} ErrorResponse "Invalid request body"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      409 {object} ErrorResponse "Template with slug already exists"
@@ -94,7 +94,7 @@ func (h *Handler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        id path string true "Template ID" format(uuid)
 // @Param        request body dto.UpdateTemplateRequest true "Update template request"
-// @Success      200 {object} dto.TemplateResponse "Template updated successfully"
+// @Success      200 {object} dto.UpdateTemplateResponse "Template updated successfully"
 // @Failure      400 {object} ErrorResponse "Invalid request body or template ID"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      404 {object} ErrorResponse "Template not found"
@@ -131,7 +131,7 @@ func (h *Handler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
 // @Tags         email
 // @Produce      json
 // @Param        id path string true "Template ID" format(uuid)
-// @Success      200 {object} dto.TemplateResponse "Template activated successfully"
+// @Success      200 {object} dto.ActivateTemplateResponse "Template activated successfully"
 // @Failure      400 {object} ErrorResponse "Invalid template ID"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      404 {object} ErrorResponse "Template not found"
@@ -163,7 +163,7 @@ func (h *Handler) ActivateTemplate(w http.ResponseWriter, r *http.Request) {
 // @Tags         email
 // @Produce      json
 // @Param        id path string true "Template ID" format(uuid)
-// @Success      200 {object} dto.TemplateResponse "Template archived successfully"
+// @Success      200 {object} dto.ArchiveTemplateResponse "Template archived successfully"
 // @Failure      400 {object} ErrorResponse "Invalid template ID"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      404 {object} ErrorResponse "Template not found"
@@ -195,7 +195,7 @@ func (h *Handler) ArchiveTemplate(w http.ResponseWriter, r *http.Request) {
 // @Tags         email
 // @Produce      json
 // @Param        id path string true "Template ID" format(uuid)
-// @Success      200 {object} dto.TemplateResponse "Template deleted successfully"
+// @Success      200 {object} dto.DeleteTemplateResponse "Template deleted successfully"
 // @Failure      400 {object} ErrorResponse "Invalid template ID"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      404 {object} ErrorResponse "Template not found"
@@ -226,7 +226,7 @@ func (h *Handler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
 // @Tags         email
 // @Produce      json
 // @Param        id path string true "Template ID" format(uuid)
-// @Success      200 {object} dto.TemplateResponse "Template found"
+// @Success      200 {object} dto.GetTemplateResponse "Template found"
 // @Failure      400 {object} ErrorResponse "Invalid template ID"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      404 {object} ErrorResponse "Template not found"
@@ -257,7 +257,7 @@ func (h *Handler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 // @Param        slug query string true "Template slug" example(welcome-email)
 // @Param        locale query string false "Locale code" default(en) example(en)
 // @Param        tenant_id query string false "Tenant ID" format(uuid)
-// @Success      200 {object} dto.TemplateResponse "Template found"
+// @Success      200 {object} dto.GetTemplateResponse "Template found"
 // @Failure      400 {object} ErrorResponse "Slug is required"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      404 {object} ErrorResponse "Template not found"
@@ -331,7 +331,7 @@ func (h *Handler) ListTemplates(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        id path string true "Template ID" format(uuid)
 // @Param        request body map[string]interface{} true "Template variables data"
-// @Success      200 {object} dto.PreviewResponse "Rendered template preview"
+// @Success      200 {object} dto.PreviewTemplateResponse "Rendered template preview"
 // @Failure      400 {object} ErrorResponse "Invalid request body or template ID"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      404 {object} ErrorResponse "Template not found"
@@ -372,7 +372,7 @@ func (h *Handler) PreviewTemplate(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        request body dto.PreviewTemplateBySlugRequest true "Preview request with slug and data"
-// @Success      200 {object} dto.PreviewResponse "Rendered template preview"
+// @Success      200 {object} dto.PreviewTemplateResponse "Rendered template preview"
 // @Failure      400 {object} ErrorResponse "Invalid request body or missing slug"
 // @Failure      401 {object} ErrorResponse "Unauthorized"
 // @Failure      404 {object} ErrorResponse "Template not found"

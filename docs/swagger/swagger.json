@@ -16,6 +16,1024 @@
     "host": "localhost:8080",
     "basePath": "/",
     "paths": {
+        "/api/v1/auth/login": {
+            "post": {
+                "description": "Authenticates a user with email and password, returns JWT tokens",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "User login",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Login successful with tokens",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Account suspended or email not verified",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too many login attempts",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Invalidates the current session and access token",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "User logout",
+                "responses": {
+                    "200": {
+                        "description": "Logged out successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/oauth": {
+            "get": {
+                "description": "Redirects to the OAuth provider's authorization page. After authorization, the provider will redirect back to the callback endpoint.",
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Initiate OAuth flow",
+                "parameters": [
+                    {
+                        "enum": [
+                            "google",
+                            "github"
+                        ],
+                        "type": "string",
+                        "description": "OAuth provider name",
+                        "name": "provider",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Tenant ID for new user registration",
+                        "name": "tenant_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "307": {
+                        "description": "Redirect to OAuth provider"
+                    },
+                    "400": {
+                        "description": "Provider is required or unsupported",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to initiate OAuth",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/oauth/callback": {
+            "get": {
+                "description": "Handles the callback from the OAuth provider after user authorization. Exchanges the authorization code for tokens and logs the user in.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "OAuth callback",
+                "parameters": [
+                    {
+                        "enum": [
+                            "google",
+                            "github"
+                        ],
+                        "type": "string",
+                        "description": "OAuth provider name",
+                        "name": "provider",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authorization code from OAuth provider",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "State token for CSRF validation",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Login successful with tokens",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid state, missing code, or unsupported provider",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "OAuth authentication failed",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/password/forgot": {
+            "post": {
+                "description": "Sends a password reset email to the specified address if it exists",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "Password reset request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.RequestPasswordResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reset email sent (if account exists)",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/password/reset": {
+            "post": {
+                "description": "Resets the user's password using a valid reset token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Reset password",
+                "parameters": [
+                    {
+                        "description": "New password with reset token",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or weak password",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Token not found or expired",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "description": "Exchanges a valid refresh token for a new access token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Refresh access token",
+                "parameters": [
+                    {
+                        "description": "Refresh token",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "New tokens issued",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a paginated list of email templates with optional filters",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "List email templates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Filter by tenant ID",
+                        "name": "tenant_id",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "draft",
+                            "active",
+                            "archived",
+                            "deleted"
+                        ],
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "en",
+                        "description": "Filter by locale",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by slug containing text",
+                        "name": "slug_contains",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by name containing text",
+                        "name": "name_contains",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Include system templates",
+                        "name": "include_system",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "created_at",
+                            "updated_at",
+                            "name",
+                            "slug"
+                        ],
+                        "type": "string",
+                        "description": "Sort field",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort order",
+                        "name": "sort_order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of templates",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.ListTemplatesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new email template with subject, body, and variable definitions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Create email template",
+                "parameters": [
+                    {
+                        "description": "Create template request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.CreateTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Template created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.CreateTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Template with slug already exists",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/templates/by-slug": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves an email template by its slug and locale",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get email template by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "welcome-email",
+                        "description": "Template slug",
+                        "name": "slug",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "en",
+                        "example": "en",
+                        "description": "Locale code",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.GetTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Slug is required",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/templates/preview-by-slug": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Renders an email template by slug with provided data for preview",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Preview email template by slug",
+                "parameters": [
+                    {
+                        "description": "Preview request with slug and data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateBySlugRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rendered template preview",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or missing slug",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/templates/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves an email template by its unique identifier",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get email template by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.GetTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid template ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing email template",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Update email template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update template request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.UpdateTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.UpdateTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or template ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft-deletes an email template",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Delete email template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.DeleteTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid template ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/templates/{id}/activate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Activates a draft or archived template, making it available for use",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Activate email template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template activated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.ActivateTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid template ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid status transition",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/templates/{id}/archive": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Archives an active template, removing it from active use",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Archive email template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template archived successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.ArchiveTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid template ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid status transition",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/templates/{id}/preview": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Renders an email template with provided data for preview",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Preview email template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Template variables data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rendered template preview",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or template ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_email_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves active sessions for the currently authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "List user sessions",
+                "responses": {
+                    "200": {
+                        "description": "List of active sessions",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.SessionsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/tenants": {
             "get": {
                 "security": [
@@ -98,13 +1116,13 @@
                     "400": {
                         "description": "Invalid query parameters",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -147,25 +1165,25 @@
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - admin access required",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Slug already taken",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -206,19 +1224,19 @@
                     "400": {
                         "description": "Invalid slug format",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Tenant not found",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -259,19 +1277,19 @@
                     "400": {
                         "description": "Invalid tenant ID format",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Tenant not found",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -318,31 +1336,31 @@
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - admin access required",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Tenant not found",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Invalid status transition",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -393,25 +1411,25 @@
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - admin access required",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Tenant not found",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -464,31 +1482,31 @@
                     "400": {
                         "description": "Invalid plan",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - admin access required",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Tenant not found",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Plan change not allowed",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -529,31 +1547,31 @@
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - admin access required",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Tenant not found",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Invalid status transition",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -606,25 +1624,25 @@
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - admin access required",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Tenant not found",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -677,31 +1695,707 @@
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - admin access required",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Tenant not found",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Invalid status transition",
                         "schema": {
-                            "$ref": "#/definitions/v1.ErrorResponse"
+                            "$ref": "#/definitions/internal_tenant_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a paginated list of users with optional filters",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "List users",
+                "parameters": [
+                    {
+                        "enum": [
+                            "pending",
+                            "active",
+                            "suspended",
+                            "deleted"
+                        ],
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "guest",
+                            "user",
+                            "moderator",
+                            "admin",
+                            "super_admin"
+                        ],
+                        "type": "string",
+                        "description": "Filter by role",
+                        "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by email verification status",
+                        "name": "email_verified",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by email containing text",
+                        "name": "email_contains",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "created_at",
+                            "updated_at",
+                            "email",
+                            "last_login_at"
+                        ],
+                        "type": "string",
+                        "description": "Sort field",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort order",
+                        "name": "sort_order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of users",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.ListUsersResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves the currently authenticated user's profile",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Get current user",
+                "responses": {
+                    "200": {
+                        "description": "Current user profile",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/me/password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Changes the authenticated user's password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Change password",
+                "parameters": [
+                    {
+                        "description": "Old and new password",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password changed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or weak password",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized or incorrect old password",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/register": {
+            "post": {
+                "description": "Creates a new user account with email and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "Registration request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.RegisterUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Email already taken",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/verify-email": {
+            "get": {
+                "description": "Verifies a user's email address using the token sent via email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Verify email address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Verification token (for GET requests)",
+                        "name": "token",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Verification token (for POST requests)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.VerifyEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email verified successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Token not found or expired",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Verifies a user's email address using the token sent via email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Verify email address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Verification token (for GET requests)",
+                        "name": "token",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Verification token (for POST requests)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.VerifyEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email verified successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Token not found or expired",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a user by their unique identifier",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Get user by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID format",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft-deletes a user account. Requires admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Delete user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Deletion reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.DeleteUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "User deleted successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - admin access required",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/{id}/reactivate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reactivates a suspended user account. Requires admin privileges.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Reactivate user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User reactivated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - admin access required",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid status transition",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/{id}/role": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Changes a user's role. Requires admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Change user role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New role",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangeRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User role changed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or role",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - admin access required",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/{id}/suspend": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Suspends a user account, preventing login. Requires admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identity"
+                ],
+                "summary": "Suspend user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Suspension reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.SuspendUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User suspended successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - admin access required",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_identity_interface_http_v1.ErrorResponse"
                         }
                     }
                 }
@@ -890,7 +2584,612 @@
                 }
             }
         },
-        "v1.ErrorResponse": {
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.ActivateTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "template": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.ArchiveTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "template": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.CreateTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "body_text": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "variables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableRequest"
+                    }
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.CreateTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "template": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.DeleteTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.GetTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "template": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.ListTemplatesResponse": {
+            "type": "object",
+            "properties": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "templates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateBySlugRequest": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.PreviewTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "body_text": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO": {
+            "type": "object",
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "body_text": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "updated_by": {
+                    "type": "string"
+                },
+                "variables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableDTO"
+                    }
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.UpdateTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "body_text": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "variables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableRequest"
+                    }
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.UpdateTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "template": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_email_application_dto.TemplateDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableDTO": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_email_application_dto.VariableRequest": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangeRoleRequest": {
+            "type": "object",
+            "required": [
+                "role"
+            ],
+            "properties": {
+                "reason": {
+                    "description": "Optional reason for audit trail",
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "guest",
+                        "user",
+                        "moderator",
+                        "admin",
+                        "super_admin"
+                    ]
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.DeleteUserRequest": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.ListUsersResponse": {
+            "type": "object",
+            "properties": {
+                "has_more": {
+                    "description": "True if more results available",
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserSummaryDTO"
+                    }
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_in": {
+                    "description": "Token expiration in seconds",
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "description": "\"Bearer\"",
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.RegisterUserRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "tenant_id"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.RequestPasswordResetRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.SessionDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "device_id": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "last_active_at": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "revoked_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "user_agent": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.SuspendUserRequest": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "email_verified": {
+                    "type": "boolean"
+                },
+                "email_verified_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_login_at": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.UserSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_identity_application_dto.VerifyEmailRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_email_interface_http_v1.ErrorResponse": {
+            "description": "Error response returned by the API",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "TEMPLATE_NOT_FOUND"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "template not found"
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "internal_identity_interface_http_v1.ErrorResponse": {
+            "description": "Error response returned by the API",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "USER_NOT_FOUND"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "user not found"
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "internal_identity_interface_http_v1.SessionsResponse": {
+            "description": "List of user sessions",
+            "type": "object",
+            "properties": {
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.SessionDTO"
+                    }
+                }
+            }
+        },
+        "internal_tenant_interface_http_v1.ErrorResponse": {
             "description": "Error response returned by the API",
             "type": "object",
             "properties": {
