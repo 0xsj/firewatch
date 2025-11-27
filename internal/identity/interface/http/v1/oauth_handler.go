@@ -32,8 +32,16 @@ func NewOAuthHandler(
 	}
 }
 
-// InitiateOAuth initiates OAuth flow by redirecting to provider.
-// GET /api/v1/auth/oauth/{provider}
+// InitiateOAuth godoc
+// @Summary      Initiate OAuth flow
+// @Description  Redirects to the OAuth provider's authorization page. After authorization, the provider will redirect back to the callback endpoint.
+// @Tags         identity
+// @Param        provider query string true "OAuth provider name" Enums(google, github)
+// @Param        tenant_id query string false "Tenant ID for new user registration" format(uuid)
+// @Success      307 "Redirect to OAuth provider"
+// @Failure      400 {object} ErrorResponse "Provider is required or unsupported"
+// @Failure      500 {object} ErrorResponse "Failed to initiate OAuth"
+// @Router       /api/v1/auth/oauth [get]
 func (h *OAuthHandler) InitiateOAuth(w http.ResponseWriter, r *http.Request) {
 	providerName := r.URL.Query().Get("provider")
 	if providerName == "" {
@@ -83,8 +91,19 @@ func (h *OAuthHandler) InitiateOAuth(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 }
 
-// OAuthCallback handles OAuth callback from provider.
-// GET /api/v1/auth/oauth/{provider}/callback
+// OAuthCallback godoc
+// @Summary      OAuth callback
+// @Description  Handles the callback from the OAuth provider after user authorization. Exchanges the authorization code for tokens and logs the user in.
+// @Tags         identity
+// @Produce      json
+// @Param        provider query string true "OAuth provider name" Enums(google, github)
+// @Param        code query string true "Authorization code from OAuth provider"
+// @Param        state query string true "State token for CSRF validation"
+// @Success      200 {object} dto.LoginResponse "Login successful with tokens"
+// @Failure      400 {object} ErrorResponse "Invalid state, missing code, or unsupported provider"
+// @Failure      401 {object} ErrorResponse "OAuth authentication failed"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Router       /api/v1/auth/oauth/callback [get]
 func (h *OAuthHandler) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	providerName := r.URL.Query().Get("provider")
 	if providerName == "" {

@@ -54,7 +54,19 @@ func NewHandler(
 	}
 }
 
-// CreateTemplate handles POST /api/v1/email/templates
+// CreateTemplate godoc
+// @Summary      Create email template
+// @Description  Creates a new email template with subject, body, and variable definitions
+// @Tags         email
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.CreateTemplateRequest true "Create template request"
+// @Success      201 {object} dto.TemplateResponse "Template created successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request body"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      409 {object} ErrorResponse "Template with slug already exists"
+// @Router       /api/v1/email/templates [post]
+// @Security     BearerAuth
 func (h *Handler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateTemplateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -74,7 +86,20 @@ func (h *Handler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusCreated, resp)
 }
 
-// UpdateTemplate handles PUT /api/v1/email/templates/{id}
+// UpdateTemplate godoc
+// @Summary      Update email template
+// @Description  Updates an existing email template
+// @Tags         email
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Template ID" format(uuid)
+// @Param        request body dto.UpdateTemplateRequest true "Update template request"
+// @Success      200 {object} dto.TemplateResponse "Template updated successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request body or template ID"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Template not found"
+// @Router       /api/v1/email/templates/{id} [put]
+// @Security     BearerAuth
 func (h *Handler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID, err := parseTemplateID(r)
 	if err != nil {
@@ -100,7 +125,19 @@ func (h *Handler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, resp)
 }
 
-// ActivateTemplate handles POST /api/v1/email/templates/{id}/activate
+// ActivateTemplate godoc
+// @Summary      Activate email template
+// @Description  Activates a draft or archived template, making it available for use
+// @Tags         email
+// @Produce      json
+// @Param        id path string true "Template ID" format(uuid)
+// @Success      200 {object} dto.TemplateResponse "Template activated successfully"
+// @Failure      400 {object} ErrorResponse "Invalid template ID"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Template not found"
+// @Failure      422 {object} ErrorResponse "Invalid status transition"
+// @Router       /api/v1/email/templates/{id}/activate [post]
+// @Security     BearerAuth
 func (h *Handler) ActivateTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID, err := parseTemplateID(r)
 	if err != nil {
@@ -120,7 +157,19 @@ func (h *Handler) ActivateTemplate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, resp)
 }
 
-// ArchiveTemplate handles POST /api/v1/email/templates/{id}/archive
+// ArchiveTemplate godoc
+// @Summary      Archive email template
+// @Description  Archives an active template, removing it from active use
+// @Tags         email
+// @Produce      json
+// @Param        id path string true "Template ID" format(uuid)
+// @Success      200 {object} dto.TemplateResponse "Template archived successfully"
+// @Failure      400 {object} ErrorResponse "Invalid template ID"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Template not found"
+// @Failure      422 {object} ErrorResponse "Invalid status transition"
+// @Router       /api/v1/email/templates/{id}/archive [post]
+// @Security     BearerAuth
 func (h *Handler) ArchiveTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID, err := parseTemplateID(r)
 	if err != nil {
@@ -140,7 +189,18 @@ func (h *Handler) ArchiveTemplate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, resp)
 }
 
-// DeleteTemplate handles DELETE /api/v1/email/templates/{id}
+// DeleteTemplate godoc
+// @Summary      Delete email template
+// @Description  Soft-deletes an email template
+// @Tags         email
+// @Produce      json
+// @Param        id path string true "Template ID" format(uuid)
+// @Success      200 {object} dto.TemplateResponse "Template deleted successfully"
+// @Failure      400 {object} ErrorResponse "Invalid template ID"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Template not found"
+// @Router       /api/v1/email/templates/{id} [delete]
+// @Security     BearerAuth
 func (h *Handler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID, err := parseTemplateID(r)
 	if err != nil {
@@ -160,7 +220,18 @@ func (h *Handler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, resp)
 }
 
-// GetTemplate handles GET /api/v1/email/templates/{id}
+// GetTemplate godoc
+// @Summary      Get email template by ID
+// @Description  Retrieves an email template by its unique identifier
+// @Tags         email
+// @Produce      json
+// @Param        id path string true "Template ID" format(uuid)
+// @Success      200 {object} dto.TemplateResponse "Template found"
+// @Failure      400 {object} ErrorResponse "Invalid template ID"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Template not found"
+// @Router       /api/v1/email/templates/{id} [get]
+// @Security     BearerAuth
 func (h *Handler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID, err := parseTemplateID(r)
 	if err != nil {
@@ -178,7 +249,20 @@ func (h *Handler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, resp)
 }
 
-// GetTemplateBySlug handles GET /api/v1/email/templates/by-slug
+// GetTemplateBySlug godoc
+// @Summary      Get email template by slug
+// @Description  Retrieves an email template by its slug and locale
+// @Tags         email
+// @Produce      json
+// @Param        slug query string true "Template slug" example(welcome-email)
+// @Param        locale query string false "Locale code" default(en) example(en)
+// @Param        tenant_id query string false "Tenant ID" format(uuid)
+// @Success      200 {object} dto.TemplateResponse "Template found"
+// @Failure      400 {object} ErrorResponse "Slug is required"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Template not found"
+// @Router       /api/v1/email/templates/by-slug [get]
+// @Security     BearerAuth
 func (h *Handler) GetTemplateBySlug(w http.ResponseWriter, r *http.Request) {
 	req := dto.GetTemplateBySlugRequest{
 		Slug:   r.URL.Query().Get("slug"),
@@ -207,7 +291,25 @@ func (h *Handler) GetTemplateBySlug(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, resp)
 }
 
-// ListTemplates handles GET /api/v1/email/templates
+// ListTemplates godoc
+// @Summary      List email templates
+// @Description  Retrieves a paginated list of email templates with optional filters
+// @Tags         email
+// @Produce      json
+// @Param        tenant_id query string false "Filter by tenant ID" format(uuid)
+// @Param        status query string false "Filter by status" Enums(draft, active, archived, deleted)
+// @Param        locale query string false "Filter by locale" example(en)
+// @Param        slug_contains query string false "Filter by slug containing text"
+// @Param        name_contains query string false "Filter by name containing text"
+// @Param        include_system query bool false "Include system templates" default(true)
+// @Param        offset query int false "Pagination offset" default(0) minimum(0)
+// @Param        limit query int false "Pagination limit" default(20) minimum(1) maximum(100)
+// @Param        sort_by query string false "Sort field" Enums(created_at, updated_at, name, slug)
+// @Param        sort_order query string false "Sort order" Enums(asc, desc) default(desc)
+// @Success      200 {object} dto.ListTemplatesResponse "List of templates"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Router       /api/v1/email/templates [get]
+// @Security     BearerAuth
 func (h *Handler) ListTemplates(w http.ResponseWriter, r *http.Request) {
 	req := parseListTemplatesRequest(r)
 
@@ -221,7 +323,20 @@ func (h *Handler) ListTemplates(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, resp)
 }
 
-// PreviewTemplate handles POST /api/v1/email/templates/{id}/preview
+// PreviewTemplate godoc
+// @Summary      Preview email template
+// @Description  Renders an email template with provided data for preview
+// @Tags         email
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Template ID" format(uuid)
+// @Param        request body map[string]interface{} true "Template variables data"
+// @Success      200 {object} dto.PreviewResponse "Rendered template preview"
+// @Failure      400 {object} ErrorResponse "Invalid request body or template ID"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Template not found"
+// @Router       /api/v1/email/templates/{id}/preview [post]
+// @Security     BearerAuth
 func (h *Handler) PreviewTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID, err := parseTemplateID(r)
 	if err != nil {
@@ -250,7 +365,19 @@ func (h *Handler) PreviewTemplate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, resp)
 }
 
-// PreviewTemplateBySlug handles POST /api/v1/email/templates/preview-by-slug
+// PreviewTemplateBySlug godoc
+// @Summary      Preview email template by slug
+// @Description  Renders an email template by slug with provided data for preview
+// @Tags         email
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.PreviewTemplateBySlugRequest true "Preview request with slug and data"
+// @Success      200 {object} dto.PreviewResponse "Rendered template preview"
+// @Failure      400 {object} ErrorResponse "Invalid request body or missing slug"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Template not found"
+// @Router       /api/v1/email/templates/preview-by-slug [post]
+// @Security     BearerAuth
 func (h *Handler) PreviewTemplateBySlug(w http.ResponseWriter, r *http.Request) {
 	var req dto.PreviewTemplateBySlugRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -358,4 +485,16 @@ func parseInt(s string) (int, error) {
 	var i int
 	_, err := fmt.Sscanf(s, "%d", &i)
 	return i, err
+}
+
+// ============================================================================
+// Swagger Models
+// ============================================================================
+
+// ErrorResponse represents an error response body.
+// @Description Error response returned by the API
+type ErrorResponse struct {
+	Code    string         `json:"code" example:"TEMPLATE_NOT_FOUND"`
+	Message string         `json:"message" example:"template not found"`
+	Meta    map[string]any `json:"meta,omitempty"`
 }

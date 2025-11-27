@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
+	"github.com/0xsj/hexagonal-go/internal/identity/application/dto"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
@@ -77,8 +78,17 @@ func NewHandler(
 	}
 }
 
-// Register handles user registration with password.
-// POST /api/v1/users/register
+// Register godoc
+// @Summary      Register a new user
+// @Description  Creates a new user account with email and password
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.RegisterUserRequest true "Registration request"
+// @Success      201 {object} dto.UserDTO "User created successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request body or validation error"
+// @Failure      409 {object} ErrorResponse "Email already taken"
+// @Router       /api/v1/users/register [post]
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	dtoReq, err := ParseRegisterRequest(r)
 	if err != nil {
@@ -105,8 +115,19 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	RespondCreated(w, userDTO)
 }
 
-// Login handles user login with email and password.
-// POST /api/v1/auth/login
+// Login godoc
+// @Summary      User login
+// @Description  Authenticates a user with email and password, returns JWT tokens
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.LoginRequest true "Login credentials"
+// @Success      200 {object} dto.LoginResponse "Login successful with tokens"
+// @Failure      400 {object} ErrorResponse "Invalid request body"
+// @Failure      401 {object} ErrorResponse "Invalid credentials"
+// @Failure      403 {object} ErrorResponse "Account suspended or email not verified"
+// @Failure      429 {object} ErrorResponse "Too many login attempts"
+// @Router       /api/v1/auth/login [post]
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	dtoReq, err := ParseLoginRequest(r)
 	if err != nil {
@@ -133,8 +154,16 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	RespondWithLogin(w, loginResp)
 }
 
-// Logout handles user logout.
-// POST /api/v1/auth/logout
+// Logout godoc
+// @Summary      User logout
+// @Description  Invalidates the current session and access token
+// @Tags         identity
+// @Produce      json
+// @Success      200 {object} dto.MessageResponse "Logged out successfully"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Router       /api/v1/auth/logout [post]
+// @Security     BearerAuth
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	// Extract claims from context (set by auth middleware)
 	sessionIDStr := middleware.GetSessionID(r.Context())
@@ -170,8 +199,17 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "Logged out successfully")
 }
 
-// RefreshToken handles token refresh.
-// POST /api/v1/auth/refresh
+// RefreshToken godoc
+// @Summary      Refresh access token
+// @Description  Exchanges a valid refresh token for a new access token
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.RefreshTokenRequest true "Refresh token"
+// @Success      200 {object} dto.RefreshTokenResponse "New tokens issued"
+// @Failure      400 {object} ErrorResponse "Invalid request body"
+// @Failure      401 {object} ErrorResponse "Invalid or expired refresh token"
+// @Router       /api/v1/auth/refresh [post]
 func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	dtoReq, err := ParseRefreshTokenRequest(r)
 	if err != nil {
@@ -195,9 +233,19 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, refreshResp)
 }
 
-// VerifyEmail handles email verification.
-// POST /api/v1/users/verify-email
-// GET /api/v1/users/verify-email?token=...
+// VerifyEmail godoc
+// @Summary      Verify email address
+// @Description  Verifies a user's email address using the token sent via email
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        token query string false "Verification token (for GET requests)"
+// @Param        request body dto.VerifyEmailRequest false "Verification token (for POST requests)"
+// @Success      200 {object} dto.MessageResponse "Email verified successfully"
+// @Failure      400 {object} ErrorResponse "Invalid or missing token"
+// @Failure      404 {object} ErrorResponse "Token not found or expired"
+// @Router       /api/v1/users/verify-email [get]
+// @Router       /api/v1/users/verify-email [post]
 func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	dtoReq, err := ParseVerifyEmailRequest(r)
 	if err != nil {
@@ -221,8 +269,18 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "Email verified successfully. Your account is now active.")
 }
 
-// GetUser retrieves a user by ID.
-// GET /api/v1/users/{id}
+// GetUser godoc
+// @Summary      Get user by ID
+// @Description  Retrieves a user by their unique identifier
+// @Tags         identity
+// @Produce      json
+// @Param        id path string true "User ID" format(uuid)
+// @Success      200 {object} dto.UserDTO "User found"
+// @Failure      400 {object} ErrorResponse "Invalid user ID format"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "User not found"
+// @Router       /api/v1/users/{id} [get]
+// @Security     BearerAuth
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := ParseUserID(r)
 	if err != nil {
@@ -242,8 +300,16 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithUser(w, http.StatusOK, userDTO)
 }
 
-// GetCurrentUser retrieves the currently authenticated user.
-// GET /api/v1/users/me
+// GetCurrentUser godoc
+// @Summary      Get current user
+// @Description  Retrieves the currently authenticated user's profile
+// @Tags         identity
+// @Produce      json
+// @Success      200 {object} dto.UserDTO "Current user profile"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "User not found"
+// @Router       /api/v1/users/me [get]
+// @Security     BearerAuth
 func (h *Handler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Extract user_id from JWT claims (set by auth middleware)
 	userIDStr := middleware.GetUserID(r.Context())
@@ -275,8 +341,24 @@ func (h *Handler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithUser(w, http.StatusOK, userDTO)
 }
 
-// ListUsers retrieves a paginated list of users.
-// GET /api/v1/users
+// ListUsers godoc
+// @Summary      List users
+// @Description  Retrieves a paginated list of users with optional filters
+// @Tags         identity
+// @Produce      json
+// @Param        status query string false "Filter by status" Enums(pending, active, suspended, deleted)
+// @Param        role query string false "Filter by role" Enums(guest, user, moderator, admin, super_admin)
+// @Param        email_verified query bool false "Filter by email verification status"
+// @Param        email_contains query string false "Filter by email containing text"
+// @Param        offset query int false "Pagination offset" default(0) minimum(0)
+// @Param        limit query int false "Pagination limit" default(50) minimum(1) maximum(100)
+// @Param        sort_by query string false "Sort field" Enums(created_at, updated_at, email, last_login_at)
+// @Param        sort_order query string false "Sort order" Enums(asc, desc) default(desc)
+// @Success      200 {object} dto.ListUsersResponse "List of users"
+// @Failure      400 {object} ErrorResponse "Invalid query parameters"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Router       /api/v1/users [get]
+// @Security     BearerAuth
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	req, err := ParseListUsersRequest(r)
 	if err != nil {
@@ -296,8 +378,15 @@ func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	RespondWithUserList(w, listResp)
 }
 
-// ListSessions retrieves active sessions for the current user.
-// GET /api/v1/sessions
+// ListSessions godoc
+// @Summary      List user sessions
+// @Description  Retrieves active sessions for the currently authenticated user
+// @Tags         identity
+// @Produce      json
+// @Success      200 {object} SessionsResponse "List of active sessions"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Router       /api/v1/sessions [get]
+// @Security     BearerAuth
 func (h *Handler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	// Extract user_id and tenant_id from JWT claims (set by auth middleware)
 	userIDStr := middleware.GetUserID(r.Context())
@@ -334,6 +423,16 @@ func (h *Handler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// RequestPasswordReset godoc
+// @Summary      Request password reset
+// @Description  Sends a password reset email to the specified address if it exists
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.RequestPasswordResetRequest true "Password reset request"
+// @Success      200 {object} dto.MessageResponse "Reset email sent (if account exists)"
+// @Failure      400 {object} ErrorResponse "Invalid request body"
+// @Router       /api/v1/auth/password/forgot [post]
 func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	dtoReq, err := ParseRequestPasswordResetRequest(r)
 	if err != nil {
@@ -359,8 +458,17 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "If the email exists, a password reset link has been sent")
 }
 
-// ResetPassword handles password reset with token.
-// POST /api/v1/auth/password/reset
+// ResetPassword godoc
+// @Summary      Reset password
+// @Description  Resets the user's password using a valid reset token
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.ResetPasswordRequest true "New password with reset token"
+// @Success      200 {object} dto.MessageResponse "Password reset successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request body or weak password"
+// @Failure      404 {object} ErrorResponse "Token not found or expired"
+// @Router       /api/v1/auth/password/reset [post]
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	dtoReq, err := ParseResetPasswordRequest(r)
 	if err != nil {
@@ -386,8 +494,13 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "Password reset successfully. You can now log in with your new password")
 }
 
-// Health handles health check requests.
-// GET /health
+// Health godoc
+// @Summary      Health check
+// @Description  Returns OK if the service is healthy
+// @Tags         system
+// @Produce      json
+// @Success      200 {object} dto.MessageResponse "Service is healthy"
+// @Router       /health [get]
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "OK")
 }
@@ -401,8 +514,18 @@ func extractBearerToken(r *http.Request) string {
 	return ""
 }
 
-// ChangePassword handles authenticated password changes.
-// POST /api/v1/users/me/password
+// ChangePassword godoc
+// @Summary      Change password
+// @Description  Changes the authenticated user's password
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.ChangePasswordRequest true "Old and new password"
+// @Success      200 {object} dto.MessageResponse "Password changed successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request body or weak password"
+// @Failure      401 {object} ErrorResponse "Unauthorized or incorrect old password"
+// @Router       /api/v1/users/me/password [post]
+// @Security     BearerAuth
 func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	// Extract user_id from JWT claims (set by auth middleware)
 	userIDStr := middleware.GetUserID(r.Context())
@@ -444,8 +567,21 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "Password changed successfully")
 }
 
-// SuspendUser handles user suspension by admins.
-// POST /api/v1/users/{id}/suspend
+// SuspendUser godoc
+// @Summary      Suspend user
+// @Description  Suspends a user account, preventing login. Requires admin privileges.
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "User ID" format(uuid)
+// @Param        request body dto.SuspendUserRequest true "Suspension reason"
+// @Success      200 {object} dto.MessageResponse "User suspended successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "User not found"
+// @Router       /api/v1/users/{id}/suspend [post]
+// @Security     BearerAuth
 func (h *Handler) SuspendUser(w http.ResponseWriter, r *http.Request) {
 	// Extract admin ID from JWT claims
 	adminIDStr := middleware.GetUserID(r.Context())
@@ -495,8 +631,20 @@ func (h *Handler) SuspendUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "User suspended successfully")
 }
 
-// ReactivateUser handles user reactivation by admins.
-// POST /api/v1/users/{id}/reactivate
+// ReactivateUser godoc
+// @Summary      Reactivate user
+// @Description  Reactivates a suspended user account. Requires admin privileges.
+// @Tags         identity
+// @Produce      json
+// @Param        id path string true "User ID" format(uuid)
+// @Success      200 {object} dto.MessageResponse "User reactivated successfully"
+// @Failure      400 {object} ErrorResponse "Invalid user ID"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "User not found"
+// @Failure      422 {object} ErrorResponse "Invalid status transition"
+// @Router       /api/v1/users/{id}/reactivate [post]
+// @Security     BearerAuth
 func (h *Handler) ReactivateUser(w http.ResponseWriter, r *http.Request) {
 	// Extract admin ID from JWT claims
 	adminIDStr := middleware.GetUserID(r.Context())
@@ -537,8 +685,21 @@ func (h *Handler) ReactivateUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "User reactivated successfully")
 }
 
-// ChangeUserRole handles role changes by admins.
-// POST /api/v1/users/{id}/role
+// ChangeUserRole godoc
+// @Summary      Change user role
+// @Description  Changes a user's role. Requires admin privileges.
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "User ID" format(uuid)
+// @Param        request body dto.ChangeRoleRequest true "New role"
+// @Success      200 {object} dto.MessageResponse "User role changed successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request or role"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "User not found"
+// @Router       /api/v1/users/{id}/role [post]
+// @Security     BearerAuth
 func (h *Handler) ChangeUserRole(w http.ResponseWriter, r *http.Request) {
 	// Extract admin ID from JWT claims
 	adminIDStr := middleware.GetUserID(r.Context())
@@ -589,8 +750,21 @@ func (h *Handler) ChangeUserRole(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "User role changed successfully")
 }
 
-// DeleteUser handles user deletion by admins.
-// DELETE /api/v1/users/{id}
+// DeleteUser godoc
+// @Summary      Delete user
+// @Description  Soft-deletes a user account. Requires admin privileges.
+// @Tags         identity
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "User ID" format(uuid)
+// @Param        request body dto.DeleteUserRequest true "Deletion reason"
+// @Success      204 "User deleted successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "User not found"
+// @Router       /api/v1/users/{id} [delete]
+// @Security     BearerAuth
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// Extract admin ID from JWT claims
 	adminIDStr := middleware.GetUserID(r.Context())
@@ -638,4 +812,22 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Info("user deleted", logger.String("user_id", userID.String()), logger.String("admin_id", adminIDStr))
 	RespondNoContent(w)
+}
+
+// ============================================================================
+// Swagger Models
+// ============================================================================
+
+// ErrorResponse represents an error response body.
+// @Description Error response returned by the API
+type ErrorResponse struct {
+	Code    string         `json:"code" example:"USER_NOT_FOUND"`
+	Message string         `json:"message" example:"user not found"`
+	Meta    map[string]any `json:"meta,omitempty"`
+}
+
+// SessionsResponse represents the list sessions response.
+// @Description List of user sessions
+type SessionsResponse struct {
+	Sessions []dto.SessionDTO `json:"sessions"`
 }
