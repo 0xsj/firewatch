@@ -53,8 +53,20 @@ func NewHandler(
 	}
 }
 
-// CreateTenant handles tenant creation.
-// POST /api/v1/tenants
+// CreateTenant godoc
+// @Summary      Create a new tenant
+// @Description  Creates a new tenant with the specified details. Requires admin privileges.
+// @Tags         tenants
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.CreateTenantRequest true "Create tenant request"
+// @Success      201 {object} dto.TenantDTO "Tenant created successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request body or validation error"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      409 {object} ErrorResponse "Slug already taken"
+// @Router       /api/v1/tenants [post]
+// @Security     BearerAuth
 func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 	dtoReq, err := ParseCreateTenantRequest(r)
 	if err != nil {
@@ -84,8 +96,18 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 	RespondCreated(w, tenantDTO)
 }
 
-// GetTenant retrieves a tenant by ID.
-// GET /api/v1/tenants/{id}
+// GetTenant godoc
+// @Summary      Get tenant by ID
+// @Description  Retrieves a tenant by its unique identifier
+// @Tags         tenants
+// @Produce      json
+// @Param        id path string true "Tenant ID" format(uuid)
+// @Success      200 {object} dto.TenantDTO "Tenant found"
+// @Failure      400 {object} ErrorResponse "Invalid tenant ID format"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Tenant not found"
+// @Router       /api/v1/tenants/{id} [get]
+// @Security     BearerAuth
 func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
 	tenantID, err := ParseTenantID(r)
 	if err != nil {
@@ -107,8 +129,18 @@ func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
 	RespondWithTenant(w, http.StatusOK, tenantDTO)
 }
 
-// GetTenantBySlug retrieves a tenant by slug.
-// GET /api/v1/tenants/slug/{slug}
+// GetTenantBySlug godoc
+// @Summary      Get tenant by slug
+// @Description  Retrieves a tenant by its URL-friendly slug identifier
+// @Tags         tenants
+// @Produce      json
+// @Param        slug path string true "Tenant slug" example(acme-corp)
+// @Success      200 {object} dto.TenantDTO "Tenant found"
+// @Failure      400 {object} ErrorResponse "Invalid slug format"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      404 {object} ErrorResponse "Tenant not found"
+// @Router       /api/v1/tenants/slug/{slug} [get]
+// @Security     BearerAuth
 func (h *Handler) GetTenantBySlug(w http.ResponseWriter, r *http.Request) {
 	slug, err := ParseTenantSlug(r)
 	if err != nil {
@@ -130,8 +162,22 @@ func (h *Handler) GetTenantBySlug(w http.ResponseWriter, r *http.Request) {
 	RespondWithTenant(w, http.StatusOK, tenantDTO)
 }
 
-// ListTenants retrieves a paginated list of tenants.
-// GET /api/v1/tenants
+// ListTenants godoc
+// @Summary      List tenants
+// @Description  Retrieves a paginated list of tenants with optional filters
+// @Tags         tenants
+// @Produce      json
+// @Param        status query string false "Filter by status" Enums(trialing, active, suspended, cancelled, deleted)
+// @Param        plan query string false "Filter by plan" Enums(free, starter, pro, enterprise)
+// @Param        owner_id query string false "Filter by owner user ID" format(uuid)
+// @Param        search query string false "Search by name or slug"
+// @Param        offset query int false "Pagination offset" default(0) minimum(0)
+// @Param        limit query int false "Pagination limit" default(20) minimum(1) maximum(100)
+// @Success      200 {object} dto.TenantListDTO "List of tenants"
+// @Failure      400 {object} ErrorResponse "Invalid query parameters"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Router       /api/v1/tenants [get]
+// @Security     BearerAuth
 func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 	dtoReq, err := ParseListTenantsRequest(r)
 	if err != nil {
@@ -158,8 +204,21 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 	RespondWithTenantList(w, listResp)
 }
 
-// UpdateTenant updates tenant details.
-// PATCH /api/v1/tenants/{id}
+// UpdateTenant godoc
+// @Summary      Update tenant
+// @Description  Updates tenant details. Requires admin privileges.
+// @Tags         tenants
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Tenant ID" format(uuid)
+// @Param        request body dto.UpdateTenantRequest true "Update tenant request"
+// @Success      200 {object} dto.TenantDTO "Tenant updated successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "Tenant not found"
+// @Router       /api/v1/tenants/{id} [patch]
+// @Security     BearerAuth
 func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	tenantID, err := ParseTenantID(r)
 	if err != nil {
@@ -194,8 +253,21 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	RespondWithTenant(w, http.StatusOK, tenantDTO)
 }
 
-// UpdateSettings updates tenant settings.
-// PUT /api/v1/tenants/{id}/settings
+// UpdateSettings godoc
+// @Summary      Update tenant settings
+// @Description  Updates tenant-specific configuration settings. Requires admin privileges.
+// @Tags         tenants
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Tenant ID" format(uuid)
+// @Param        request body dto.UpdateSettingsRequest true "Update settings request"
+// @Success      200 {object} dto.TenantSettingsDTO "Settings updated successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "Tenant not found"
+// @Router       /api/v1/tenants/{id}/settings [put]
+// @Security     BearerAuth
 func (h *Handler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	tenantID, err := ParseTenantID(r)
 	if err != nil {
@@ -230,8 +302,22 @@ func (h *Handler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	RespondWithSettings(w, settingsDTO)
 }
 
-// ChangePlan changes the tenant's subscription plan.
-// POST /api/v1/tenants/{id}/plan
+// ChangePlan godoc
+// @Summary      Change tenant plan
+// @Description  Changes the tenant's subscription plan. Requires admin privileges.
+// @Tags         tenants
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Tenant ID" format(uuid)
+// @Param        request body dto.ChangePlanRequest true "Change plan request"
+// @Success      200 {object} dto.TenantDTO "Plan changed successfully"
+// @Failure      400 {object} ErrorResponse "Invalid plan"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "Tenant not found"
+// @Failure      422 {object} ErrorResponse "Plan change not allowed"
+// @Router       /api/v1/tenants/{id}/plan [post]
+// @Security     BearerAuth
 func (h *Handler) ChangePlan(w http.ResponseWriter, r *http.Request) {
 	tenantID, err := ParseTenantID(r)
 	if err != nil {
@@ -267,8 +353,22 @@ func (h *Handler) ChangePlan(w http.ResponseWriter, r *http.Request) {
 	RespondWithTenant(w, http.StatusOK, tenantDTO)
 }
 
-// SuspendTenant suspends a tenant.
-// POST /api/v1/tenants/{id}/suspend
+// SuspendTenant godoc
+// @Summary      Suspend tenant
+// @Description  Suspends a tenant, preventing access to their resources. Requires admin privileges.
+// @Tags         tenants
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Tenant ID" format(uuid)
+// @Param        request body dto.SuspendTenantRequest true "Suspend tenant request"
+// @Success      200 {object} dto.TenantDTO "Tenant suspended successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "Tenant not found"
+// @Failure      422 {object} ErrorResponse "Invalid status transition"
+// @Router       /api/v1/tenants/{id}/suspend [post]
+// @Security     BearerAuth
 func (h *Handler) SuspendTenant(w http.ResponseWriter, r *http.Request) {
 	tenantID, err := ParseTenantID(r)
 	if err != nil {
@@ -303,8 +403,20 @@ func (h *Handler) SuspendTenant(w http.ResponseWriter, r *http.Request) {
 	RespondWithTenant(w, http.StatusOK, tenantDTO)
 }
 
-// ReactivateTenant reactivates a suspended tenant.
-// POST /api/v1/tenants/{id}/reactivate
+// ReactivateTenant godoc
+// @Summary      Reactivate tenant
+// @Description  Reactivates a suspended tenant. Requires admin privileges.
+// @Tags         tenants
+// @Produce      json
+// @Param        id path string true "Tenant ID" format(uuid)
+// @Success      200 {object} dto.TenantDTO "Tenant reactivated successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "Tenant not found"
+// @Failure      422 {object} ErrorResponse "Invalid status transition"
+// @Router       /api/v1/tenants/{id}/reactivate [post]
+// @Security     BearerAuth
 func (h *Handler) ReactivateTenant(w http.ResponseWriter, r *http.Request) {
 	tenantID, err := ParseTenantID(r)
 	if err != nil {
@@ -331,8 +443,22 @@ func (h *Handler) ReactivateTenant(w http.ResponseWriter, r *http.Request) {
 	RespondWithTenant(w, http.StatusOK, tenantDTO)
 }
 
-// DeleteTenant soft-deletes a tenant.
-// DELETE /api/v1/tenants/{id}
+// DeleteTenant godoc
+// @Summary      Delete tenant
+// @Description  Soft-deletes a tenant. Requires admin privileges.
+// @Tags         tenants
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Tenant ID" format(uuid)
+// @Param        request body dto.DeleteTenantRequest false "Delete tenant request"
+// @Success      204 "Tenant deleted successfully"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      401 {object} ErrorResponse "Unauthorized"
+// @Failure      403 {object} ErrorResponse "Forbidden - admin access required"
+// @Failure      404 {object} ErrorResponse "Tenant not found"
+// @Failure      422 {object} ErrorResponse "Invalid status transition"
+// @Router       /api/v1/tenants/{id} [delete]
+// @Security     BearerAuth
 func (h *Handler) DeleteTenant(w http.ResponseWriter, r *http.Request) {
 	tenantID, err := ParseTenantID(r)
 	if err != nil {
@@ -367,8 +493,13 @@ func (h *Handler) DeleteTenant(w http.ResponseWriter, r *http.Request) {
 	RespondNoContent(w)
 }
 
-// Health handles health check requests.
-// GET /health
+// Health godoc
+// @Summary      Health check
+// @Description  Returns OK if the service is healthy
+// @Tags         system
+// @Produce      json
+// @Success      200 {object} map[string]string "Service is healthy"
+// @Router       /health [get]
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	RespondWithMessage(w, "OK")
 }
@@ -384,4 +515,16 @@ func getActorFromContext(r *http.Request) string {
 		return userID
 	}
 	return "system"
+}
+
+// ============================================================================
+// Swagger Models
+// ============================================================================
+
+// ErrorResponse represents an error response body.
+// @Description Error response returned by the API
+type ErrorResponse struct {
+	Code    string         `json:"code" example:"TENANT_NOT_FOUND"`
+	Message string         `json:"message" example:"tenant not found"`
+	Meta    map[string]any `json:"meta,omitempty"`
 }
