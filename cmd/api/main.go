@@ -1,3 +1,33 @@
+// @title           Hexagonal Go API
+// @version         1.0
+// @description     Multi-tenant API built with hexagonal architecture. Provides identity management, tenant management, email templates, and more.
+
+// @contact.name   API Support
+// @contact.email  support@example.com
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      localhost:8080
+// @BasePath  /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Enter your bearer token in the format: Bearer <token>
+
+// @tag.name identity
+// @tag.description User registration, authentication, and session management
+
+// @tag.name tenants
+// @tag.description Tenant lifecycle management
+
+// @tag.name email
+// @tag.description Email template management
+
+// @tag.name system
+// @tag.description System endpoints (health checks, etc.)
+
 package main
 
 import (
@@ -13,6 +43,9 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
+	"github.com/0xsj/hexagonal-go/pkg/openapi"
+
+	_ "github.com/0xsj/hexagonal-go/docs/swagger" // swagger docs
 )
 
 func main() {
@@ -82,6 +115,18 @@ func run() error {
 	root.Use(middleware.Tracing(app.TracingProvider.Tracer()))
 	root.Use(middleware.Metrics(app.HTTPMetrics))
 
+	// ========================================================================
+	// Mount Swagger UI
+	// ========================================================================
+	swaggerConfig := openapi.DefaultSwaggerConfig()
+	swaggerConfig.Title = "Hexagonal Go API"
+	openapi.RegisterSwaggerRoutes(root, swaggerConfig)
+	app.Logger.Info("swagger ui available at /swagger/index.html")
+
+	// ========================================================================
+	// Mount Module Routes
+	// ========================================================================
+
 	// Mount email routes FIRST (more specific path)
 	emailRouter := emailv1.NewRouter(app.EmailHandler, app.JWTService, app.Logger, corsConfig)
 	root.Mount("/api/v1/email", emailRouter)
@@ -143,6 +188,9 @@ func printEndpoints(port, metricsPort int) {
 	fmt.Println("  Identity Service - Available Endpoints")
 	fmt.Println("========================================")
 	fmt.Println()
+	fmt.Println("Documentation:")
+	fmt.Printf("  GET  %s/swagger/index.html\n", baseURL)
+	fmt.Println()
 	fmt.Println("Health Check:")
 	fmt.Printf("  GET  %s/health\n", baseURL)
 	fmt.Println()
@@ -165,6 +213,18 @@ func printEndpoints(port, metricsPort int) {
 	fmt.Println()
 	fmt.Println("Protected - Sessions (requires JWT):")
 	fmt.Printf("  GET  %s/api/v1/sessions\n", baseURL)
+	fmt.Println()
+	fmt.Println("Protected - Tenants (requires JWT + Admin):")
+	fmt.Printf("  GET  %s/api/v1/tenants\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/tenants\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/tenants/{id}\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/tenants/slug/{slug}\n", baseURL)
+	fmt.Printf("  PATCH %s/api/v1/tenants/{id}\n", baseURL)
+	fmt.Printf("  DELETE %s/api/v1/tenants/{id}\n", baseURL)
+	fmt.Printf("  PUT  %s/api/v1/tenants/{id}/settings\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/tenants/{id}/plan\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/tenants/{id}/suspend\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/tenants/{id}/reactivate\n", baseURL)
 	fmt.Println()
 	fmt.Println("Protected - Email Templates (requires JWT):")
 	fmt.Printf("  GET  %s/api/v1/email/templates\n", baseURL)

@@ -1,0 +1,616 @@
+basePath: /
+definitions:
+  dto.ChangePlanRequest:
+    properties:
+      plan:
+        type: string
+      reason:
+        type: string
+    type: object
+  dto.CreateTenantRequest:
+    properties:
+      name:
+        type: string
+      owner_id:
+        type: string
+      plan:
+        type: string
+      slug:
+        type: string
+    type: object
+  dto.DeleteTenantRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  dto.SuspendTenantRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  dto.TenantDTO:
+    properties:
+      billing_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      owner_id:
+        type: string
+      plan:
+        type: string
+      settings:
+        additionalProperties: {}
+        type: object
+      slug:
+        type: string
+      status:
+        type: string
+      trial_ends_at:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.TenantListDTO:
+    properties:
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      tenants:
+        items:
+          $ref: '#/definitions/dto.TenantSummaryDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.TenantSettingsDTO:
+    properties:
+      settings:
+        additionalProperties: {}
+        type: object
+      tenant_id:
+        type: string
+    type: object
+  dto.TenantSummaryDTO:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      plan:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.UpdateSettingsRequest:
+    properties:
+      settings:
+        additionalProperties: {}
+        type: object
+    type: object
+  dto.UpdateTenantRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  v1.ErrorResponse:
+    description: Error response returned by the API
+    properties:
+      code:
+        example: TENANT_NOT_FOUND
+        type: string
+      message:
+        example: tenant not found
+        type: string
+      meta:
+        additionalProperties: {}
+        type: object
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: Multi-tenant API built with hexagonal architecture. Provides identity
+    management, tenant management, email templates, and more.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Hexagonal Go API
+  version: "1.0"
+paths:
+  /api/v1/tenants:
+    get:
+      description: Retrieves a paginated list of tenants with optional filters
+      parameters:
+      - description: Filter by status
+        enum:
+        - trialing
+        - active
+        - suspended
+        - cancelled
+        - deleted
+        in: query
+        name: status
+        type: string
+      - description: Filter by plan
+        enum:
+        - free
+        - starter
+        - pro
+        - enterprise
+        in: query
+        name: plan
+        type: string
+      - description: Filter by owner user ID
+        format: uuid
+        in: query
+        name: owner_id
+        type: string
+      - description: Search by name or slug
+        in: query
+        name: search
+        type: string
+      - default: 0
+        description: Pagination offset
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - default: 20
+        description: Pagination limit
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tenants
+          schema:
+            $ref: '#/definitions/dto.TenantListDTO'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List tenants
+      tags:
+      - tenants
+    post:
+      consumes:
+      - application/json
+      description: Creates a new tenant with the specified details. Requires admin
+        privileges.
+      parameters:
+      - description: Create tenant request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Tenant created successfully
+          schema:
+            $ref: '#/definitions/dto.TenantDTO'
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "409":
+          description: Slug already taken
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new tenant
+      tags:
+      - tenants
+  /api/v1/tenants/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft-deletes a tenant. Requires admin privileges.
+      parameters:
+      - description: Tenant ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Delete tenant request
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.DeleteTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Tenant deleted successfully
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "404":
+          description: Tenant not found
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "422":
+          description: Invalid status transition
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete tenant
+      tags:
+      - tenants
+    get:
+      description: Retrieves a tenant by its unique identifier
+      parameters:
+      - description: Tenant ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tenant found
+          schema:
+            $ref: '#/definitions/dto.TenantDTO'
+        "400":
+          description: Invalid tenant ID format
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "404":
+          description: Tenant not found
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get tenant by ID
+      tags:
+      - tenants
+    patch:
+      consumes:
+      - application/json
+      description: Updates tenant details. Requires admin privileges.
+      parameters:
+      - description: Tenant ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update tenant request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tenant updated successfully
+          schema:
+            $ref: '#/definitions/dto.TenantDTO'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "404":
+          description: Tenant not found
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update tenant
+      tags:
+      - tenants
+  /api/v1/tenants/{id}/plan:
+    post:
+      consumes:
+      - application/json
+      description: Changes the tenant's subscription plan. Requires admin privileges.
+      parameters:
+      - description: Tenant ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Change plan request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Plan changed successfully
+          schema:
+            $ref: '#/definitions/dto.TenantDTO'
+        "400":
+          description: Invalid plan
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "404":
+          description: Tenant not found
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "422":
+          description: Plan change not allowed
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change tenant plan
+      tags:
+      - tenants
+  /api/v1/tenants/{id}/reactivate:
+    post:
+      description: Reactivates a suspended tenant. Requires admin privileges.
+      parameters:
+      - description: Tenant ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tenant reactivated successfully
+          schema:
+            $ref: '#/definitions/dto.TenantDTO'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "404":
+          description: Tenant not found
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "422":
+          description: Invalid status transition
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reactivate tenant
+      tags:
+      - tenants
+  /api/v1/tenants/{id}/settings:
+    put:
+      consumes:
+      - application/json
+      description: Updates tenant-specific configuration settings. Requires admin
+        privileges.
+      parameters:
+      - description: Tenant ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update settings request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateSettingsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Settings updated successfully
+          schema:
+            $ref: '#/definitions/dto.TenantSettingsDTO'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "404":
+          description: Tenant not found
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update tenant settings
+      tags:
+      - tenants
+  /api/v1/tenants/{id}/suspend:
+    post:
+      consumes:
+      - application/json
+      description: Suspends a tenant, preventing access to their resources. Requires
+        admin privileges.
+      parameters:
+      - description: Tenant ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Suspend tenant request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SuspendTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tenant suspended successfully
+          schema:
+            $ref: '#/definitions/dto.TenantDTO'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "404":
+          description: Tenant not found
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "422":
+          description: Invalid status transition
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Suspend tenant
+      tags:
+      - tenants
+  /api/v1/tenants/slug/{slug}:
+    get:
+      description: Retrieves a tenant by its URL-friendly slug identifier
+      parameters:
+      - description: Tenant slug
+        example: acme-corp
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tenant found
+          schema:
+            $ref: '#/definitions/dto.TenantDTO'
+        "400":
+          description: Invalid slug format
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+        "404":
+          description: Tenant not found
+          schema:
+            $ref: '#/definitions/v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get tenant by slug
+      tags:
+      - tenants
+  /health:
+    get:
+      description: Returns OK if the service is healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - system
+securityDefinitions:
+  BearerAuth:
+    description: 'Enter your bearer token in the format: Bearer <token>'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: User registration, authentication, and session management
+  name: identity
+- description: Tenant lifecycle management
+  name: tenants
+- description: Email template management
+  name: email
+- description: System endpoints (health checks, etc.)
+  name: system

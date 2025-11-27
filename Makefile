@@ -215,3 +215,39 @@ wire-check:
 		fi \
 	done
 	@echo "✓ Wire check complete!"
+
+# ============================================================================
+# Swagger / OpenAPI
+# ============================================================================
+
+.PHONY: swagger swagger-install swagger-fmt
+
+# Install swag CLI tool
+swagger-install:
+	@echo "Installing swag..."
+	go install github.com/swaggo/swag/cmd/swag@latest
+
+# Generate Swagger documentation
+swagger:
+	@echo "Generating Swagger documentation..."
+	swag init \
+		--generalInfo cmd/api/main.go \
+		--output docs/swagger \
+		--parseDependency \
+		--parseInternal \
+		--parseDepth 1
+	@echo "Swagger docs generated at docs/swagger/"
+
+# Format swagger comments
+swagger-fmt:
+	@echo "Formatting Swagger comments..."
+	swag fmt
+
+# Validate swagger spec
+swagger-validate: swagger
+	@echo "Validating Swagger spec..."
+	@if command -v swagger-cli >/dev/null 2>&1; then \
+		swagger-cli validate docs/swagger/swagger.json; \
+	else \
+		echo "swagger-cli not installed, skipping validation"; \
+	fi
