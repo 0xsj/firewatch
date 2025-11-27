@@ -41,9 +41,11 @@ var TenantSet = wire.NewSet(
 )
 
 // ProvideModule wires up the complete Tenant module.
+// This is a standalone injector for testing or modular usage.
 func ProvideModule(
 	db database.DB,
 	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	log logger.Logger,
 ) (*v1.Handler, error) {
 	wire.Build(TenantSet)

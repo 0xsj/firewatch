@@ -5,6 +5,7 @@ import (
 	emailv1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
 	identityv1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	notificationsubscriber "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
+	tenantv1 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
@@ -18,11 +19,16 @@ import (
 
 // App holds all application dependencies.
 type App struct {
-	Logger                 logger.Logger
-	DB                     database.DB
-	EventBus               messaging.Publisher
-	IdentityHandler        *identityv1.Handler
-	EmailHandler           *emailv1.Handler
+	Logger   logger.Logger
+	DB       database.DB
+	EventBus messaging.Publisher
+
+	// Domain Handlers
+	IdentityHandler *identityv1.Handler
+	TenantHandler   *tenantv1.Handler // NEW
+	EmailHandler    *emailv1.Handler
+
+	// Subscribers
 	AuditSubscriber        *auditsubscriber.EventSubscriber
 	NotificationSubscriber *notificationsubscriber.UserEventSubscriber
 

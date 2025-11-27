@@ -21,12 +21,13 @@ import (
 // Injectors from provider.go:
 
 // ProvideModule wires up the complete Tenant module.
-func ProvideModule(db database.DB, publisher messaging.Publisher, log logger.Logger) (*v1.Handler, error) {
+// This is a standalone injector for testing or modular usage.
+func ProvideModule(db database.DB, publisher messaging.Publisher, eventPublisher *messaging.DomainEventPublisher, log logger.Logger) (*v1.Handler, error) {
 	postgresRepository := repository.NewPostgresRepository(db)
 	createTenantCommand := command.NewCreateTenantCommand(postgresRepository, publisher, log)
 	updateTenantCommand := command.NewUpdateTenantCommand(postgresRepository, publisher, log)
 	updateSettingsCommand := command.NewUpdateSettingsCommand(postgresRepository, publisher, log)
-	suspendTenantCommand := command.NewSuspendTenantCommand(postgresRepository, publisher, log)
+	suspendTenantCommand := command.NewSuspendTenantCommand(postgresRepository, eventPublisher, log)
 	reactivateTenantCommand := command.NewReactivateTenantCommand(postgresRepository, publisher, log)
 	changePlanCommand := command.NewChangePlanCommand(postgresRepository, publisher, log)
 	deleteTenantCommand := command.NewDeleteTenantCommand(postgresRepository, publisher, log)

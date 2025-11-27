@@ -11,20 +11,24 @@ import (
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
-	repository3 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
+	repository4 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
 	"github.com/0xsj/hexagonal-go/internal/email"
-	command2 "github.com/0xsj/hexagonal-go/internal/email/application/command"
-	query2 "github.com/0xsj/hexagonal-go/internal/email/application/query"
-	repository2 "github.com/0xsj/hexagonal-go/internal/email/infrastructure/repository"
-	v1_2 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
+	command3 "github.com/0xsj/hexagonal-go/internal/email/application/command"
+	query3 "github.com/0xsj/hexagonal-go/internal/email/application/query"
+	repository3 "github.com/0xsj/hexagonal-go/internal/email/infrastructure/repository"
+	v1_3 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
-	command3 "github.com/0xsj/hexagonal-go/internal/notifications/application/command"
+	command4 "github.com/0xsj/hexagonal-go/internal/notifications/application/command"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
-	repository4 "github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
+	repository5 "github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
+	command2 "github.com/0xsj/hexagonal-go/internal/tenant/application/command"
+	query2 "github.com/0xsj/hexagonal-go/internal/tenant/application/query"
+	repository2 "github.com/0xsj/hexagonal-go/internal/tenant/infrastructure/repository"
+	v1_2 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	email2 "github.com/0xsj/hexagonal-go/pkg/email"
@@ -35,6 +39,8 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/0xsj/hexagonal-go/pkg/storage"
+
+	_ "github.com/0xsj/hexagonal-go/docs/swagger"
 )
 
 // Injectors from wire.go:
@@ -84,22 +90,35 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	oAuthHandler := v1.NewOAuthHandler(oAuthLoginCommand, stateManager, v, logger)
 	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, changePasswordCommand, suspendUserCommand, reactivateUserCommand, changeUserRoleCommand, deleteUserCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, oAuthHandler, logger)
 	postgresRepository := repository2.NewPostgresRepository(db)
-	createTemplateCommand := command2.NewCreateTemplateCommand(postgresRepository, publisher, logger)
-	updateTemplateCommand := command2.NewUpdateTemplateCommand(postgresRepository, publisher, logger)
-	activateTemplateCommand := command2.NewActivateTemplateCommand(postgresRepository, publisher, logger)
-	archiveTemplateCommand := command2.NewArchiveTemplateCommand(postgresRepository, publisher, logger)
-	deleteTemplateCommand := command2.NewDeleteTemplateCommand(postgresRepository, publisher, logger)
-	getTemplateQuery := query2.NewGetTemplateQuery(postgresRepository)
-	listTemplatesQuery := query2.NewListTemplatesQuery(postgresRepository)
-	renderer := email.ProvideRenderer()
-	previewTemplateQuery := query2.NewPreviewTemplateQuery(postgresRepository, renderer)
-	v1Handler := v1_2.NewHandler(createTemplateCommand, updateTemplateCommand, activateTemplateCommand, archiveTemplateCommand, deleteTemplateCommand, getTemplateQuery, listTemplatesQuery, previewTemplateQuery, logger)
+	createTenantCommand := command2.NewCreateTenantCommand(postgresRepository, publisher, logger)
+	updateTenantCommand := command2.NewUpdateTenantCommand(postgresRepository, publisher, logger)
+	updateSettingsCommand := command2.NewUpdateSettingsCommand(postgresRepository, publisher, logger)
+	domainEventPublisher := provider.ProvideDomainEventPublisher(publisher, logger)
+	suspendTenantCommand := command2.NewSuspendTenantCommand(postgresRepository, domainEventPublisher, logger)
+	reactivateTenantCommand := command2.NewReactivateTenantCommand(postgresRepository, publisher, logger)
+	changePlanCommand := command2.NewChangePlanCommand(postgresRepository, publisher, logger)
+	deleteTenantCommand := command2.NewDeleteTenantCommand(postgresRepository, publisher, logger)
+	getTenantQuery := query2.NewGetTenantQuery(postgresRepository)
+	getTenantBySlugQuery := query2.NewGetTenantBySlugQuery(postgresRepository)
+	listTenantsQuery := query2.NewListTenantsQuery(postgresRepository)
+	v1Handler := v1_2.NewHandler(createTenantCommand, updateTenantCommand, updateSettingsCommand, suspendTenantCommand, reactivateTenantCommand, changePlanCommand, deleteTenantCommand, getTenantQuery, getTenantBySlugQuery, listTenantsQuery, logger)
 	repositoryPostgresRepository := repository3.NewPostgresRepository(db)
-	eventSubscriber := subscriber.NewEventSubscriber(repositoryPostgresRepository, logger)
+	createTemplateCommand := command3.NewCreateTemplateCommand(repositoryPostgresRepository, publisher, logger)
+	updateTemplateCommand := command3.NewUpdateTemplateCommand(repositoryPostgresRepository, publisher, logger)
+	activateTemplateCommand := command3.NewActivateTemplateCommand(repositoryPostgresRepository, publisher, logger)
+	archiveTemplateCommand := command3.NewArchiveTemplateCommand(repositoryPostgresRepository, publisher, logger)
+	deleteTemplateCommand := command3.NewDeleteTemplateCommand(repositoryPostgresRepository, publisher, logger)
+	getTemplateQuery := query3.NewGetTemplateQuery(repositoryPostgresRepository)
+	listTemplatesQuery := query3.NewListTemplatesQuery(repositoryPostgresRepository)
+	renderer := email.ProvideRenderer()
+	previewTemplateQuery := query3.NewPreviewTemplateQuery(repositoryPostgresRepository, renderer)
+	handler2 := v1_3.NewHandler(createTemplateCommand, updateTemplateCommand, activateTemplateCommand, archiveTemplateCommand, deleteTemplateCommand, getTemplateQuery, listTemplatesQuery, previewTemplateQuery, logger)
 	postgresRepository2 := repository4.NewPostgresRepository(db)
+	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository2, logger)
+	postgresRepository3 := repository5.NewPostgresRepository(db)
 	emailConfig := ProvideEmailConfig(cfg)
 	sender := provider.ProvideEmailSender(emailConfig)
-	sendNotificationCommand := command3.NewSendNotificationCommand(postgresRepository2, sender, logger)
+	sendNotificationCommand := command4.NewSendNotificationCommand(postgresRepository3, sender, logger)
 	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, logger)
 	storageConfig := ProvideStorageConfig(cfg)
 	storage, err := provider.ProvideStorage(ctx, storageConfig)
@@ -121,7 +140,8 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		DB:                     db,
 		EventBus:               publisher,
 		IdentityHandler:        handler,
-		EmailHandler:           v1Handler,
+		TenantHandler:          v1Handler,
+		EmailHandler:           handler2,
 		AuditSubscriber:        eventSubscriber,
 		NotificationSubscriber: userEventSubscriber,
 		JWTService:             service,
@@ -173,6 +193,7 @@ func ProvideCacheConfig(cfg *config.AppConfig) cache.Config {
 	return cfg.Cache
 }
 
+// ProvideStorageConfig extracts storage config from AppConfig.
 func ProvideStorageConfig(cfg *config.AppConfig) storage.Config {
 	return cfg.Storage
 }

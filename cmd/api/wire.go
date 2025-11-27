@@ -13,6 +13,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/email"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/notifications"
+	"github.com/0xsj/hexagonal-go/internal/tenant"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	pkgemail "github.com/0xsj/hexagonal-go/pkg/email"
@@ -42,6 +43,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		provider.ProvideLogger,
 		provider.ProvideDatabase,
 		provider.ProvideEventBus,
+		provider.ProvideDomainEventPublisher, // NEW: shared domain event publisher
 		provider.ProvideEmailSender,
 		provider.ProvideMetricsProvider,
 		provider.ProvideTracingProvider,
@@ -54,6 +56,9 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 
 		// Identity domain
 		identity.IdentitySet,
+
+		// Tenant domain
+		tenant.TenantSet, // NEW: tenant domain
 
 		// Audit domain
 		audit.AuditSet,
@@ -105,6 +110,7 @@ func ProvideCacheConfig(cfg *config.AppConfig) cache.Config {
 	return cfg.Cache
 }
 
+// ProvideStorageConfig extracts storage config from AppConfig.
 func ProvideStorageConfig(cfg *config.AppConfig) storage.Config {
 	return cfg.Storage
 }
