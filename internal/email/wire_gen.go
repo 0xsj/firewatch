@@ -37,10 +37,19 @@ func ProvideModule(db database.DB, eventPublisher *messaging.DomainEventPublishe
 	return handler, nil
 }
 
+// ProvideTemplateService wires up the TemplateService for use by other modules.
+func ProvideTemplateService(db database.DB) (*email.TemplateService, error) {
+	postgresRepository := repository.NewPostgresRepository(db)
+	templateRepositoryAdapter := repository.NewTemplateRepositoryAdapter(postgresRepository)
+	renderer := ProvideRenderer()
+	templateService := email.NewTemplateService(templateRepositoryAdapter, renderer)
+	return templateService, nil
+}
+
 // provider.go:
 
 // EmailSet provides all dependencies for the Email domain.
-var EmailSet = wire.NewSet(repository.NewPostgresRepository, wire.Bind(new(domain.Repository), new(*repository.PostgresRepository)), ProvideRenderer, command.NewCreateTemplateCommand, command.NewUpdateTemplateCommand, command.NewActivateTemplateCommand, command.NewArchiveTemplateCommand, command.NewDeleteTemplateCommand, query.NewGetTemplateQuery, query.NewListTemplatesQuery, query.NewPreviewTemplateQuery, v1.NewHandler)
+var EmailSet = wire.NewSet(repository.NewPostgresRepository, wire.Bind(new(domain.Repository), new(*repository.PostgresRepository)), repository.NewTemplateRepositoryAdapter, wire.Bind(new(email.TemplateRepository), new(*repository.TemplateRepositoryAdapter)), ProvideRenderer, email.NewTemplateService, command.NewCreateTemplateCommand, command.NewUpdateTemplateCommand, command.NewActivateTemplateCommand, command.NewArchiveTemplateCommand, command.NewDeleteTemplateCommand, query.NewGetTemplateQuery, query.NewListTemplatesQuery, query.NewPreviewTemplateQuery, v1.NewHandler)
 
 // ProvideRenderer provides an email template renderer.
 func ProvideRenderer() *email.Renderer {

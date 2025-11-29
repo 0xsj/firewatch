@@ -23,8 +23,15 @@ var EmailSet = wire.NewSet(
 	repository.NewPostgresRepository,
 	wire.Bind(new(domain.Repository), new(*repository.PostgresRepository)),
 
+	// Infrastructure - Template Adapter (for pkg/email.TemplateRepository)
+	repository.NewTemplateRepositoryAdapter,
+	wire.Bind(new(email.TemplateRepository), new(*repository.TemplateRepositoryAdapter)),
+
 	// Renderer
 	ProvideRenderer,
+
+	// Template Service
+	email.NewTemplateService,
 
 	// Application - Commands
 	command.NewCreateTemplateCommand,
@@ -55,4 +62,18 @@ func ProvideModule(
 ) (*v1.Handler, error) {
 	wire.Build(EmailSet)
 	return &v1.Handler{}, nil
+}
+
+// ProvideTemplateService wires up the TemplateService for use by other modules.
+func ProvideTemplateService(
+	db database.DB,
+) (*email.TemplateService, error) {
+	wire.Build(
+		repository.NewPostgresRepository,
+		repository.NewTemplateRepositoryAdapter,
+		wire.Bind(new(email.TemplateRepository), new(*repository.TemplateRepositoryAdapter)),
+		ProvideRenderer,
+		email.NewTemplateService,
+	)
+	return &email.TemplateService{}, nil
 }
