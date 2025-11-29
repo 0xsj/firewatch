@@ -23,6 +23,36 @@ func NewDomainEventPublisher(publisher Publisher, logger logger.Logger) *DomainE
 	}
 }
 
+// PublishOptions configures event publishing behavior.
+type PublishOptions struct {
+	// ExtraMetadata is added to all events in this batch.
+	ExtraMetadata map[string]any
+
+	// EventMetadata is added to specific event types.
+	// Key is the event type (e.g., "user.registered"), value is metadata to add.
+	EventMetadata map[string]map[string]any
+}
+
+// PublishOption is a functional option for PublishAll.
+type PublishOption func(*PublishOptions)
+
+// WithExtraMetadata adds metadata to all events.
+func WithExtraMetadata(metadata map[string]any) PublishOption {
+	return func(opts *PublishOptions) {
+		opts.ExtraMetadata = metadata
+	}
+}
+
+// WithEventMetadata adds metadata to a specific event type.
+func WithEventMetadata(eventType string, metadata map[string]any) PublishOption {
+	return func(opts *PublishOptions) {
+		if opts.EventMetadata == nil {
+			opts.EventMetadata = make(map[string]map[string]any)
+		}
+		opts.EventMetadata[eventType] = metadata
+	}
+}
+
 // PublishAll publishes all domain events with proper metadata.
 //
 // Parameters:
@@ -30,6 +60,7 @@ func NewDomainEventPublisher(publisher Publisher, logger logger.Logger) *DomainE
 //   - domainName: The domain prefix for event types (e.g., "identity", "tenant", "email")
 //   - aggregateType: The type of aggregate (e.g., "user", "tenant", "template")
 //   - events: The domain events to publish
+//   - opts: Optional publishing options for extra metadata
 //
 // Usage:
 //
@@ -38,14 +69,31 @@ func NewDomainEventPublisher(publisher Publisher, logger logger.Logger) *DomainE
 //	if err := publisher.PublishAll(ctx, "identity", "user", events); err != nil {
 //	    log.Error("failed to publish events", logger.Err(err))
 //	}
+//
+// With extra metadata:
+//
+//	if err := publisher.PublishAll(ctx, "identity", "user", events,
+//	    messaging.WithEventMetadata("user.registered", map[string]any{
+//	        "verification_token": token.Value(),
+//	    }),
+//	); err != nil {
+//	    log.Error("failed to publish events", logger.Err(err))
+//	}
 func (p *DomainEventPublisher) PublishAll(
 	ctx context.Context,
 	domainName string,
 	aggregateType string,
 	events []DomainEvent,
+	opts ...PublishOption,
 ) error {
+	// Apply options
+	options := &PublishOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	for _, domainEvent := range events {
-		if err := p.publishOne(ctx, domainName, aggregateType, domainEvent); err != nil {
+		if err := p.publishOne(ctx, domainName, aggregateType, domainEvent, options); err != nil {
 			return err
 		}
 	}
@@ -58,16 +106,27 @@ func (p *DomainEventPublisher) publishOne(
 	domainName string,
 	aggregateType string,
 	domainEvent DomainEvent,
+	options *PublishOptions,
 ) error {
 	// Build event type with domain prefix: "identity.user.registered"
 	eventType := domainName + "." + domainEvent.Type()
+
+	// Start with domain event payload
+	payload := domainEvent.Payload()
+
+	// Merge event-specific data into payload (e.g., verification_token)
+	if eventData, ok := options.EventMetadata[domainEvent.Type()]; ok {
+		for key, value := range eventData {
+			payload[key] = value
+		}
+	}
 
 	// Create messaging event with context metadata (correlation ID, tracing, etc.)
 	event := NewEventFromContext(
 		ctx,
 		eventType,
 		domainName,
-		domainEvent.Payload(),
+		payload,
 	)
 
 	// Add tenant context if the event is tenant-scoped
@@ -87,6 +146,11 @@ func (p *DomainEventPublisher) publishOne(
 	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
 	event.WithMetadata("aggregate_type", aggregateType)
 	event.WithMetadata("event_version", domainEvent.Version())
+
+	// Add extra metadata (applies to all events)
+	for key, value := range options.ExtraMetadata {
+		event.WithMetadata(key, value)
+	}
 
 	// Publish
 	if err := p.publisher.Publish(ctx, event); err != nil {

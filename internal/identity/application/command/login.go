@@ -16,11 +16,11 @@ import (
 
 // LoginCommand handles user login/authentication.
 type LoginCommand struct {
-	userRepo    user.Repository
-	sessionRepo session.Repository
-	jwtService  jwt.Service
-	publisher   messaging.Publisher
-	logger      logger.Logger
+	userRepo       user.Repository
+	sessionRepo    session.Repository
+	jwtService     jwt.Service
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewLoginCommand creates a new LoginCommand.
@@ -28,15 +28,15 @@ func NewLoginCommand(
 	userRepo user.Repository,
 	sessionRepo session.Repository,
 	jwtService jwt.Service,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *LoginCommand {
 	return &LoginCommand{
-		userRepo:    userRepo,
-		sessionRepo: sessionRepo,
-		jwtService:  jwtService,
-		publisher:   publisher,
-		logger:      logger,
+		userRepo:       userRepo,
+		sessionRepo:    sessionRepo,
+		jwtService:     jwtService,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -136,8 +136,10 @@ func (c *LoginCommand) Handle(ctx context.Context, req LoginRequest) (*dto.Login
 		logger.String("session_id", sess.ID().String()),
 	)
 
-	// Publish events
+	// Publish user events
 	c.publishUserEvents(ctx, u)
+
+	// Publish session events
 	c.publishSessionEvents(ctx, sess)
 
 	// Return response
@@ -151,83 +153,27 @@ func (c *LoginCommand) Handle(ctx context.Context, req LoginRequest) (*dto.Login
 }
 
 // publishUserEvents publishes all domain events from the user aggregate.
-func (c *LoginCommand) publishUserEvents(ctx context.Context, u *user.User) error {
-	events := u.Events()
+func (c *LoginCommand) publishUserEvents(ctx context.Context, u *user.User) {
+	events := messaging.AsDomainEvents(u.Events())
 	defer u.ClearEvents()
 
-	for _, domainEvent := range events {
-		event := c.convertUserEvent(ctx, domainEvent)
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
-
-		c.logger.Debug("event published",
-			logger.String("event_type", event.Type()),
-			logger.String("event_id", event.ID()),
+	if err := c.eventPublisher.PublishAll(ctx, "identity", "user", events); err != nil {
+		c.logger.Error("failed to publish user events",
+			logger.String("user_id", u.ID().String()),
+			logger.Err(err),
 		)
 	}
-
-	return nil
 }
 
 // publishSessionEvents publishes all domain events from the session aggregate.
-func (c *LoginCommand) publishSessionEvents(ctx context.Context, sess *session.Session) error {
-	events := sess.Events()
+func (c *LoginCommand) publishSessionEvents(ctx context.Context, sess *session.Session) {
+	events := messaging.AsDomainEvents(sess.Events())
 	defer sess.ClearEvents()
 
-	for _, domainEvent := range events {
-		event := c.convertSessionEvent(ctx, domainEvent)
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
-
-		c.logger.Debug("event published",
-			logger.String("event_type", event.Type()),
-			logger.String("event_id", event.ID()),
+	if err := c.eventPublisher.PublishAll(ctx, "identity", "session", events); err != nil {
+		c.logger.Error("failed to publish session events",
+			logger.String("session_id", sess.ID().String()),
+			logger.Err(err),
 		)
 	}
-
-	return nil
-}
-
-// convertUserEvent converts a user domain event to a messaging event.
-func (c *LoginCommand) convertUserEvent(ctx context.Context, domainEvent user.Event) *messaging.BaseEvent {
-	event := messaging.NewEventFromContext(
-		ctx,
-		"identity."+domainEvent.Type(),
-		"identity",
-		domainEvent.Payload(),
-	)
-
-	// Add standard metadata
-	event.WithTenantID(domainEvent.AggregateTenantID())
-	event.WithUserID(domainEvent.AggregateID().String())
-
-	// Add aggregate metadata
-	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-	event.WithMetadata("aggregate_type", "user")
-	event.WithMetadata("event_version", domainEvent.Version())
-
-	return event
-}
-
-// convertSessionEvent converts a session domain event to a messaging event.
-func (c *LoginCommand) convertSessionEvent(ctx context.Context, domainEvent session.Event) *messaging.BaseEvent {
-	event := messaging.NewEventFromContext(
-		ctx,
-		"identity."+domainEvent.Type(),
-		"identity",
-		domainEvent.Payload(),
-	)
-
-	// Add standard metadata
-	event.WithTenantID(domainEvent.AggregateTenantID())
-
-	// Add aggregate metadata
-	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-	event.WithMetadata("aggregate_type", "session")
-
-	return event
 }

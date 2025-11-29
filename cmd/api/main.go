@@ -39,6 +39,7 @@ import (
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	emailv1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
+	tenantv1 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
 	pkghttp "github.com/0xsj/hexagonal-go/pkg/http"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
@@ -131,6 +132,9 @@ func run() error {
 	emailRouter := emailv1.NewRouter(app.EmailHandler, app.JWTService, app.Logger, corsConfig)
 	root.Mount("/api/v1/email", emailRouter)
 
+	tenantRouter := tenantv1.NewRouter(app.TenantHandler, app.JWTService, app.Logger, corsConfig)
+	root.Mount("/api/v1/tenants", tenantRouter)
+
 	// Mount identity routes (includes /health and /api/v1/users, /api/v1/auth, etc.)
 	identityRouter := app.IdentityHandler.Routes(app.Logger, corsConfig, app.JWTService)
 	root.Mount("/", identityRouter)
@@ -170,10 +174,15 @@ func registerSubscribers(app *App) error {
 	}
 	app.Logger.Info("registered audit subscriber")
 
-	if err := app.NotificationSubscriber.Register(subscriber); err != nil {
-		return fmt.Errorf("failed to register notification subscriber: %w", err)
+	if err := app.UserNotificationSubscriber.Register(subscriber); err != nil {
+		return fmt.Errorf("failed to register user notification subscriber: %w", err)
 	}
-	app.Logger.Info("registered notification subscriber")
+	app.Logger.Info("registered user notification subscriber")
+
+	if err := app.TenantNotificationSubscriber.Register(subscriber); err != nil {
+		return fmt.Errorf("failed to register tenant notification subscriber: %w", err)
+	}
+	app.Logger.Info("registered tenant notification subscriber")
 
 	return nil
 }

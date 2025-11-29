@@ -3,7 +3,7 @@ package notifications
 import (
 	"github.com/google/wire"
 
-	"github.com/0xsj/hexagonal-go/internal/notifications/application/command"
+	"github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
 	"github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
 	"github.com/0xsj/hexagonal-go/internal/notifications/domain"
 	"github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
@@ -15,9 +15,10 @@ var NotificationsSet = wire.NewSet(
 	repository.NewPostgresRepository,
 	wire.Bind(new(domain.Repository), new(*repository.PostgresRepository)),
 
-	// Application - Commands
-	command.NewSendNotificationCommand,
+	// Application - Job Handlers
+	jobs.NewSendEmailHandler,
 
 	// Application - Subscribers
 	subscriber.NewUserEventSubscriber,
+	subscriber.NewTenantEventSubscriber,
 )

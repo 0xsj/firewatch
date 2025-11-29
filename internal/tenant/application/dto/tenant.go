@@ -13,6 +13,7 @@ type TenantDTO struct {
 	Status      string         `json:"status"`
 	Settings    map[string]any `json:"settings,omitempty"`
 	OwnerID     string         `json:"owner_id"`
+	OwnerEmail  string         `json:"owner_email,omitempty"`
 	BillingID   *string        `json:"billing_id,omitempty"`
 	TrialEndsAt *string        `json:"trial_ends_at,omitempty"`
 	CreatedAt   string         `json:"created_at"`

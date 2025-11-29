@@ -288,11 +288,14 @@ func (b *Bus) UnsubscribeAll() error {
 func (b *Bus) deliver(ctx context.Context, handler messaging.EventHandler, event messaging.Event) {
 	defer b.wg.Done()
 
-	// Propagate event metadata to context
-	ctx = messaging.PropagateToContext(ctx, event)
+	// Create a detached context that won't be canceled when the parent (e.g., HTTP request) ends.
+	// Event handlers should complete independently of the triggering request.
+	// We still propagate event metadata for tracing/correlation.
+	detachedCtx := context.Background()
+	detachedCtx = messaging.PropagateToContext(detachedCtx, event)
 
 	// Invoke handler
-	if err := handler.Handle(ctx, event); err != nil {
+	if err := handler.Handle(detachedCtx, event); err != nil {
 		handlerName := messaging.GetHandlerName(handler)
 
 		// Log error

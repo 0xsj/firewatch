@@ -78,11 +78,12 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 	createdBy := getActorFromContext(r)
 
 	cmdReq := command.CreateTenantRequest{
-		Slug:      dtoReq.Slug,
-		Name:      dtoReq.Name,
-		Plan:      dtoReq.Plan,
-		OwnerID:   dtoReq.OwnerID,
-		CreatedBy: createdBy,
+		Slug:       dtoReq.Slug,
+		Name:       dtoReq.Name,
+		Plan:       dtoReq.Plan,
+		OwnerID:    dtoReq.OwnerID,
+		OwnerEmail: dtoReq.OwnerEmail,
+		CreatedBy:  createdBy,
 	}
 
 	tenantDTO, err := h.createTenantCmd.Handle(r.Context(), cmdReq)

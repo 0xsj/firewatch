@@ -8,13 +8,15 @@ import (
 	"syscall"
 
 	"github.com/0xsj/hexagonal-go/cmd/worker/config"
-	"github.com/0xsj/hexagonal-go/cmd/worker/handlers"
+	notificationjobs "github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
+	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	"github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/email/smtp"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
 	"github.com/0xsj/hexagonal-go/pkg/worker"
 	"github.com/0xsj/hexagonal-go/pkg/worker/memory"
+	postgresqueue "github.com/0xsj/hexagonal-go/pkg/worker/postgres"
 )
 
 func main() {
@@ -46,9 +48,35 @@ func run() error {
 	)
 
 	// ========================================================================
+	// Initialize Database (for PostgreSQL queue)
+	// ========================================================================
+	var db *postgres.PostgresDB
+	if cfg.Worker.QueueType == "postgres" {
+		dbConfig := postgres.Config{
+			Host:     cfg.Database.Host,
+			Port:     cfg.Database.Port,
+			User:     cfg.Database.User,
+			Password: cfg.Database.Password,
+			Database: cfg.Database.Database,
+			SSLMode:  cfg.Database.SSLMode,
+		}
+
+		db, err = postgres.Connect(dbConfig)
+		if err != nil {
+			return fmt.Errorf("failed to connect to database: %w", err)
+		}
+		defer db.Close()
+
+		log.Info("connected to database",
+			logger.String("host", cfg.Database.Host),
+			logger.String("database", cfg.Database.Database),
+		)
+	}
+
+	// ========================================================================
 	// Initialize Queue
 	// ========================================================================
-	queue, err := initQueue(cfg)
+	queue, err := initQueue(cfg, db)
 	if err != nil {
 		return fmt.Errorf("failed to initialize queue: %w", err)
 	}
@@ -75,12 +103,9 @@ func run() error {
 	)
 
 	// ========================================================================
-	// Register Handlers
+	// Register Job Handlers
 	// ========================================================================
-	registry := handlers.SetupHandlers(emailSender, log)
-	registry.RegisterAll(w)
-
-	log.Info("job handlers registered")
+	registerHandlers(w, emailSender, log)
 
 	// ========================================================================
 	// Handle Shutdown Signals
@@ -95,10 +120,10 @@ func run() error {
 	}()
 
 	// ========================================================================
-	// Start Worker
+	// Print Stats and Start Worker
 	// ========================================================================
-	log.Info("worker started, press Ctrl+C to stop")
 	printStats(w, log)
+	log.Info("worker started, press Ctrl+C to stop")
 
 	if err := w.Start(ctx); err != nil {
 		return fmt.Errorf("worker error: %w", err)
@@ -109,13 +134,15 @@ func run() error {
 }
 
 // initQueue initializes the job queue based on configuration.
-func initQueue(cfg *config.Config) (worker.Queue, error) {
+func initQueue(cfg *config.Config, db *postgres.PostgresDB) (worker.Queue, error) {
 	switch cfg.Worker.QueueType {
 	case "memory":
 		return memory.NewQueue(), nil
 	case "postgres":
-		// TODO: Implement postgres queue
-		return nil, fmt.Errorf("postgres queue not yet implemented")
+		if db == nil {
+			return nil, fmt.Errorf("database connection required for postgres queue")
+		}
+		return postgresqueue.NewQueue(db), nil
 	default:
 		return nil, fmt.Errorf("unknown queue type: %s", cfg.Worker.QueueType)
 	}
@@ -135,6 +162,17 @@ func initEmailSender(cfg *config.Config) email.Sender {
 	return smtp.New(emailConfig)
 }
 
+// registerHandlers registers all job handlers with the worker.
+func registerHandlers(w *worker.Worker, emailSender email.Sender, log logger.Logger) {
+	// Notification: Send Email
+	sendEmailHandler := notificationjobs.NewSendEmailHandler(emailSender, log)
+	w.Register(notificationjobs.JobTypeSendEmail, sendEmailHandler)
+
+	log.Info("job handlers registered",
+		logger.String("handler", notificationjobs.JobTypeSendEmail),
+	)
+}
+
 // printStats prints worker startup information.
 func printStats(w *worker.Worker, log logger.Logger) {
 	stats, err := w.Stats(context.Background())
@@ -148,6 +186,7 @@ func printStats(w *worker.Worker, log logger.Logger) {
 		logger.Int64("running", stats.Running),
 		logger.Int64("completed", stats.Completed),
 		logger.Int64("failed", stats.Failed),
+		logger.Int64("retrying", stats.Retrying),
 		logger.Int64("total", stats.Total),
 	)
 }

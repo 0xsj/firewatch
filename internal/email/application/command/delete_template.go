@@ -13,21 +13,21 @@ import (
 
 // DeleteTemplateCommand handles deleting an email template.
 type DeleteTemplateCommand struct {
-	repo      domain.Repository
-	publisher messaging.Publisher
-	logger    logger.Logger
+	repo           domain.Repository
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewDeleteTemplateCommand creates a new DeleteTemplateCommand.
 func NewDeleteTemplateCommand(
 	repo domain.Repository,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *DeleteTemplateCommand {
 	return &DeleteTemplateCommand{
-		repo:      repo,
-		publisher: publisher,
-		logger:    logger,
+		repo:           repo,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -58,7 +58,10 @@ func (c *DeleteTemplateCommand) Handle(ctx context.Context, templateID types.ID,
 	)
 
 	// Publish domain events
-	if err := c.publishEvents(ctx, template); err != nil {
+	events := messaging.AsDomainEvents(template.Events())
+	defer template.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "email", "template", events); err != nil {
 		c.logger.Error("failed to publish events",
 			logger.String("template_id", template.ID().String()),
 			logger.Err(err),
@@ -69,29 +72,4 @@ func (c *DeleteTemplateCommand) Handle(ctx context.Context, templateID types.ID,
 		Success: true,
 		ID:      templateID.String(),
 	}, nil
-}
-
-// publishEvents publishes all domain events from the template aggregate.
-func (c *DeleteTemplateCommand) publishEvents(ctx context.Context, template *domain.Template) error {
-	events := template.Events()
-	defer template.ClearEvents()
-
-	for _, domainEvent := range events {
-		event := messaging.NewEventFromContext(
-			ctx,
-			domainEvent.EventType(),
-			"email",
-			domainEvent.Payload(),
-		)
-
-		event.WithTenantID(domainEvent.AggregateTenantID())
-		event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-		event.WithMetadata("aggregate_type", "email_template")
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.EventType(), err)
-		}
-	}
-
-	return nil
 }

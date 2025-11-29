@@ -2,19 +2,21 @@ package dto
 
 // CreateTenantRequest represents a request to create a new tenant.
 type CreateTenantRequest struct {
-	Slug    string `json:"slug"`
-	Name    string `json:"name"`
-	Plan    string `json:"plan,omitempty"`
-	OwnerID string `json:"owner_id"`
+	Slug       string `json:"slug"`
+	Name       string `json:"name"`
+	Plan       string `json:"plan,omitempty"`
+	OwnerID    string `json:"owner_id"`
+	OwnerEmail string `json:"owner_email"`
 }
 
 // CreateTenantWithTrialRequest represents a request to create a tenant with trial.
 type CreateTenantWithTrialRequest struct {
-	Slug      string `json:"slug"`
-	Name      string `json:"name"`
-	Plan      string `json:"plan,omitempty"`
-	OwnerID   string `json:"owner_id"`
-	TrialDays int    `json:"trial_days,omitempty"`
+	Slug       string `json:"slug"`
+	Name       string `json:"name"`
+	Plan       string `json:"plan,omitempty"`
+	OwnerID    string `json:"owner_id"`
+	OwnerEmail string `json:"owner_email"`
+	TrialDays  int    `json:"trial_days,omitempty"`
 }
 
 // UpdateTenantRequest represents a request to update tenant details.

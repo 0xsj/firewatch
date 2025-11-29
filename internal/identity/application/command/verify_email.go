@@ -13,24 +13,24 @@ import (
 
 // VerifyEmailCommand handles email verification.
 type VerifyEmailCommand struct {
-	repo      user.Repository
-	tokenRepo *repository.PostgresTokenRepository
-	publisher messaging.Publisher
-	logger    logger.Logger
+	repo           user.Repository
+	tokenRepo      *repository.PostgresTokenRepository
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewVerifyEmailCommand creates a new VerifyEmailCommand.
 func NewVerifyEmailCommand(
 	repo user.Repository,
 	tokenRepo *repository.PostgresTokenRepository,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *VerifyEmailCommand {
 	return &VerifyEmailCommand{
-		repo:      repo,
-		tokenRepo: tokenRepo,
-		publisher: publisher,
-		logger:    logger,
+		repo:           repo,
+		tokenRepo:      tokenRepo,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -83,45 +83,13 @@ func (c *VerifyEmailCommand) Handle(ctx context.Context, req VerifyEmailRequest)
 	)
 
 	// Publish domain events
-	if err := c.publishEvents(ctx, u); err != nil {
+	events := messaging.AsDomainEvents(u.Events())
+	defer u.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "identity", "user", events); err != nil {
 		c.logger.Error("failed to publish events",
 			logger.String("user_id", u.ID().String()),
 			logger.Err(err),
-		)
-	}
-
-	return nil
-}
-
-// publishEvents publishes all domain events from the aggregate.
-func (c *VerifyEmailCommand) publishEvents(ctx context.Context, u *user.User) error {
-	events := u.Events()
-	defer u.ClearEvents()
-
-	for _, domainEvent := range events {
-		event := messaging.NewEventFromContext(
-			ctx,
-			"identity."+domainEvent.Type(),
-			"identity",
-			domainEvent.Payload(),
-		)
-
-		// Add standard metadata
-		event.WithTenantID(domainEvent.AggregateTenantID())
-		event.WithUserID(domainEvent.AggregateID().String())
-
-		// Add aggregate metadata
-		event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-		event.WithMetadata("aggregate_type", "user")
-		event.WithMetadata("event_version", domainEvent.Version())
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
-
-		c.logger.Debug("event published",
-			logger.String("event_type", event.Type()),
-			logger.String("event_id", event.ID()),
 		)
 	}
 

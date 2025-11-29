@@ -22,15 +22,15 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
-	command4 "github.com/0xsj/hexagonal-go/internal/notifications/application/command"
+	"github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
-	repository5 "github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
 	command2 "github.com/0xsj/hexagonal-go/internal/tenant/application/command"
 	query2 "github.com/0xsj/hexagonal-go/internal/tenant/application/query"
 	repository2 "github.com/0xsj/hexagonal-go/internal/tenant/infrastructure/repository"
 	v1_2 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
-	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
+	"github.com/0xsj/hexagonal-go/pkg/database"
+	postgres2 "github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	email2 "github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
@@ -39,6 +39,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/0xsj/hexagonal-go/pkg/storage"
+	"github.com/0xsj/hexagonal-go/pkg/worker/postgres"
 
 	_ "github.com/0xsj/hexagonal-go/docs/swagger"
 )
@@ -57,7 +58,8 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	publisher := provider.ProvideEventBus(logger)
 	postgresUserRepository := repository.NewPostgresUserRepository(db)
 	postgresTokenRepository := repository.NewPostgresTokenRepository(db)
-	registerUserCommand := command.NewRegisterUserCommand(postgresUserRepository, postgresTokenRepository, publisher, logger)
+	domainEventPublisher := provider.ProvideDomainEventPublisher(publisher, logger)
+	registerUserCommand := command.NewRegisterUserCommand(postgresUserRepository, postgresTokenRepository, domainEventPublisher, logger)
 	postgresSessionRepository := repository.NewPostgresSessionRepository(db)
 	cacheConfig := ProvideCacheConfig(cfg)
 	cache, err := provider.ProvideCache(cacheConfig)
@@ -68,46 +70,45 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	sessionRepository := identity.ProvideSessionRepository(postgresSessionRepository, cache)
 	jwtConfig := ProvideJWTConfig(cfg)
 	service := provider.ProvideJWTService(jwtConfig)
-	loginCommand := command.NewLoginCommand(postgresUserRepository, sessionRepository, service, publisher, logger)
-	logoutCommand := command.NewLogoutCommand(sessionRepository, service, publisher, logger)
-	refreshTokenCommand := command.NewRefreshTokenCommand(postgresUserRepository, sessionRepository, service, publisher, logger)
-	verifyEmailCommand := command.NewVerifyEmailCommand(postgresUserRepository, postgresTokenRepository, publisher, logger)
+	loginCommand := command.NewLoginCommand(postgresUserRepository, sessionRepository, service, domainEventPublisher, logger)
+	logoutCommand := command.NewLogoutCommand(sessionRepository, service, domainEventPublisher, logger)
+	refreshTokenCommand := command.NewRefreshTokenCommand(postgresUserRepository, sessionRepository, service, domainEventPublisher, logger)
+	verifyEmailCommand := command.NewVerifyEmailCommand(postgresUserRepository, postgresTokenRepository, domainEventPublisher, logger)
 	requestPasswordResetCommand := command.NewRequestPasswordResetCommand(postgresUserRepository, postgresTokenRepository, publisher, logger)
-	resetPasswordCommand := command.NewResetPasswordCommand(postgresUserRepository, postgresTokenRepository, publisher, logger)
-	changePasswordCommand := command.NewChangePasswordCommand(postgresUserRepository, publisher, logger)
-	suspendUserCommand := command.NewSuspendUserCommand(postgresUserRepository, publisher, logger)
-	reactivateUserCommand := command.NewReactivateUserCommand(postgresUserRepository, publisher, logger)
-	changeUserRoleCommand := command.NewChangeUserRoleCommand(postgresUserRepository, publisher, logger)
-	deleteUserCommand := command.NewDeleteUserCommand(postgresUserRepository, publisher, logger)
+	resetPasswordCommand := command.NewResetPasswordCommand(postgresUserRepository, postgresTokenRepository, domainEventPublisher, logger)
+	changePasswordCommand := command.NewChangePasswordCommand(postgresUserRepository, domainEventPublisher, logger)
+	suspendUserCommand := command.NewSuspendUserCommand(postgresUserRepository, domainEventPublisher, logger)
+	reactivateUserCommand := command.NewReactivateUserCommand(postgresUserRepository, domainEventPublisher, logger)
+	changeUserRoleCommand := command.NewChangeUserRoleCommand(postgresUserRepository, domainEventPublisher, logger)
+	deleteUserCommand := command.NewDeleteUserCommand(postgresUserRepository, domainEventPublisher, logger)
 	getUserQuery := query.NewGetUserQuery(postgresUserRepository)
 	getCurrentUserQuery := query.NewGetCurrentUserQuery(postgresUserRepository)
 	listUsersQuery := query.NewListUsersQuery(postgresUserRepository)
 	listSessionsQuery := query.NewListSessionsQuery(sessionRepository)
 	postgresOAuthRepository := repository.NewPostgresOAuthRepository(db)
 	v := identity.ProvideOAuthProviders(logger)
-	oAuthLoginCommand := command.NewOAuthLoginCommand(postgresUserRepository, postgresOAuthRepository, sessionRepository, v, service, publisher, logger)
+	oAuthLoginCommand := command.NewOAuthLoginCommand(postgresUserRepository, postgresOAuthRepository, sessionRepository, v, service, domainEventPublisher, logger)
 	stateManager := identity.ProvideStateManager()
 	oAuthHandler := v1.NewOAuthHandler(oAuthLoginCommand, stateManager, v, logger)
 	handler := v1.NewHandler(registerUserCommand, loginCommand, logoutCommand, refreshTokenCommand, verifyEmailCommand, requestPasswordResetCommand, resetPasswordCommand, changePasswordCommand, suspendUserCommand, reactivateUserCommand, changeUserRoleCommand, deleteUserCommand, getUserQuery, getCurrentUserQuery, listUsersQuery, listSessionsQuery, oAuthHandler, logger)
 	postgresRepository := repository2.NewPostgresRepository(db)
-	createTenantCommand := command2.NewCreateTenantCommand(postgresRepository, publisher, logger)
-	updateTenantCommand := command2.NewUpdateTenantCommand(postgresRepository, publisher, logger)
-	updateSettingsCommand := command2.NewUpdateSettingsCommand(postgresRepository, publisher, logger)
-	domainEventPublisher := provider.ProvideDomainEventPublisher(publisher, logger)
+	createTenantCommand := command2.NewCreateTenantCommand(postgresRepository, domainEventPublisher, logger)
+	updateTenantCommand := command2.NewUpdateTenantCommand(postgresRepository, domainEventPublisher, logger)
+	updateSettingsCommand := command2.NewUpdateSettingsCommand(postgresRepository, domainEventPublisher, logger)
 	suspendTenantCommand := command2.NewSuspendTenantCommand(postgresRepository, domainEventPublisher, logger)
-	reactivateTenantCommand := command2.NewReactivateTenantCommand(postgresRepository, publisher, logger)
-	changePlanCommand := command2.NewChangePlanCommand(postgresRepository, publisher, logger)
-	deleteTenantCommand := command2.NewDeleteTenantCommand(postgresRepository, publisher, logger)
+	reactivateTenantCommand := command2.NewReactivateTenantCommand(postgresRepository, domainEventPublisher, logger)
+	changePlanCommand := command2.NewChangePlanCommand(postgresRepository, domainEventPublisher, logger)
+	deleteTenantCommand := command2.NewDeleteTenantCommand(postgresRepository, domainEventPublisher, logger)
 	getTenantQuery := query2.NewGetTenantQuery(postgresRepository)
 	getTenantBySlugQuery := query2.NewGetTenantBySlugQuery(postgresRepository)
 	listTenantsQuery := query2.NewListTenantsQuery(postgresRepository)
 	v1Handler := v1_2.NewHandler(createTenantCommand, updateTenantCommand, updateSettingsCommand, suspendTenantCommand, reactivateTenantCommand, changePlanCommand, deleteTenantCommand, getTenantQuery, getTenantBySlugQuery, listTenantsQuery, logger)
 	repositoryPostgresRepository := repository3.NewPostgresRepository(db)
-	createTemplateCommand := command3.NewCreateTemplateCommand(repositoryPostgresRepository, publisher, logger)
-	updateTemplateCommand := command3.NewUpdateTemplateCommand(repositoryPostgresRepository, publisher, logger)
-	activateTemplateCommand := command3.NewActivateTemplateCommand(repositoryPostgresRepository, publisher, logger)
-	archiveTemplateCommand := command3.NewArchiveTemplateCommand(repositoryPostgresRepository, publisher, logger)
-	deleteTemplateCommand := command3.NewDeleteTemplateCommand(repositoryPostgresRepository, publisher, logger)
+	createTemplateCommand := command3.NewCreateTemplateCommand(repositoryPostgresRepository, domainEventPublisher, logger)
+	updateTemplateCommand := command3.NewUpdateTemplateCommand(repositoryPostgresRepository, domainEventPublisher, logger)
+	activateTemplateCommand := command3.NewActivateTemplateCommand(repositoryPostgresRepository, domainEventPublisher, logger)
+	archiveTemplateCommand := command3.NewArchiveTemplateCommand(repositoryPostgresRepository, domainEventPublisher, logger)
+	deleteTemplateCommand := command3.NewDeleteTemplateCommand(repositoryPostgresRepository, domainEventPublisher, logger)
 	getTemplateQuery := query3.NewGetTemplateQuery(repositoryPostgresRepository)
 	listTemplatesQuery := query3.NewListTemplatesQuery(repositoryPostgresRepository)
 	renderer := email.ProvideRenderer()
@@ -115,11 +116,14 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	handler2 := v1_3.NewHandler(createTemplateCommand, updateTemplateCommand, activateTemplateCommand, archiveTemplateCommand, deleteTemplateCommand, getTemplateQuery, listTemplatesQuery, previewTemplateQuery, logger)
 	postgresRepository2 := repository4.NewPostgresRepository(db)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository2, logger)
-	postgresRepository3 := repository5.NewPostgresRepository(db)
+	queue := ProvideJobQueue(db)
+	templateRepositoryAdapter := repository3.NewTemplateRepositoryAdapter(repositoryPostgresRepository)
+	templateService := email2.NewTemplateService(templateRepositoryAdapter, renderer)
+	userEventSubscriber := subscriber2.NewUserEventSubscriber(queue, templateService, logger)
+	tenantEventSubscriber := subscriber2.NewTenantEventSubscriber(queue, templateService, logger)
 	emailConfig := ProvideEmailConfig(cfg)
 	sender := provider.ProvideEmailSender(emailConfig)
-	sendNotificationCommand := command4.NewSendNotificationCommand(postgresRepository3, sender, logger)
-	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, logger)
+	sendEmailHandler := jobs.NewSendEmailHandler(sender, logger)
 	storageConfig := ProvideStorageConfig(cfg)
 	storage, err := provider.ProvideStorage(ctx, storageConfig)
 	if err != nil {
@@ -136,20 +140,23 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	}
 	httpMetrics := middleware.NewHTTPMetrics(metricsProvider)
 	app := &App{
-		Logger:                 logger,
-		DB:                     db,
-		EventBus:               publisher,
-		IdentityHandler:        handler,
-		TenantHandler:          v1Handler,
-		EmailHandler:           handler2,
-		AuditSubscriber:        eventSubscriber,
-		NotificationSubscriber: userEventSubscriber,
-		JWTService:             service,
-		Cache:                  cache,
-		Storage:                storage,
-		MetricsProvider:        metricsProvider,
-		TracingProvider:        tracingProvider,
-		HTTPMetrics:            httpMetrics,
+		Logger:                       logger,
+		DB:                           db,
+		EventBus:                     publisher,
+		IdentityHandler:              handler,
+		TenantHandler:                v1Handler,
+		EmailHandler:                 handler2,
+		AuditSubscriber:              eventSubscriber,
+		UserNotificationSubscriber:   userEventSubscriber,
+		TenantNotificationSubscriber: tenantEventSubscriber,
+		JobQueue:                     queue,
+		SendEmailJobHandler:          sendEmailHandler,
+		JWTService:                   service,
+		Cache:                        cache,
+		Storage:                      storage,
+		MetricsProvider:              metricsProvider,
+		TracingProvider:              tracingProvider,
+		HTTPMetrics:                  httpMetrics,
 	}
 	return app, func() {
 		cleanup()
@@ -158,8 +165,13 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 
 // wire.go:
 
+// ProvideJobQueue creates a PostgreSQL-backed job queue.
+func ProvideJobQueue(db database.DB) *postgres.Queue {
+	return postgres.NewQueue(db)
+}
+
 // ProvidePostgresConfig extracts database config from AppConfig.
-func ProvidePostgresConfig(cfg *config.AppConfig) postgres.Config {
+func ProvidePostgresConfig(cfg *config.AppConfig) postgres2.Config {
 	return cfg.Database
 }
 

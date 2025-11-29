@@ -13,21 +13,21 @@ import (
 
 // DeleteTenantCommand handles tenant deletion.
 type DeleteTenantCommand struct {
-	repo      tenant.Repository
-	publisher messaging.Publisher
-	logger    logger.Logger
+	repo           tenant.Repository
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewDeleteTenantCommand creates a new DeleteTenantCommand.
 func NewDeleteTenantCommand(
 	repo tenant.Repository,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *DeleteTenantCommand {
 	return &DeleteTenantCommand{
-		repo:      repo,
-		publisher: publisher,
-		logger:    logger,
+		repo:           repo,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -77,7 +77,10 @@ func (c *DeleteTenantCommand) Handle(ctx context.Context, req DeleteTenantReques
 	)
 
 	// Publish domain events
-	if err := c.publishEvents(ctx, t); err != nil {
+	events := messaging.AsDomainEvents(t.Events())
+	defer t.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "tenant", "tenant", events); err != nil {
 		c.logger.Error("failed to publish events",
 			logger.String("tenant_id", t.ID().String()),
 			logger.Err(err),
@@ -85,39 +88,4 @@ func (c *DeleteTenantCommand) Handle(ctx context.Context, req DeleteTenantReques
 	}
 
 	return dto.ToTenantDTO(t), nil
-}
-
-// publishEvents publishes all domain events from the aggregate.
-func (c *DeleteTenantCommand) publishEvents(ctx context.Context, t *tenant.Tenant) error {
-	events := t.Events()
-	defer t.ClearEvents()
-
-	for _, domainEvent := range events {
-		event := c.convertDomainEvent(domainEvent)
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
-
-		c.logger.Debug("event published",
-			logger.String("event_type", event.Type()),
-			logger.String("event_id", event.ID()),
-		)
-	}
-
-	return nil
-}
-
-// convertDomainEvent converts a domain event to a messaging event.
-func (c *DeleteTenantCommand) convertDomainEvent(domainEvent tenant.Event) *messaging.BaseEvent {
-	event := messaging.NewEvent(
-		"tenant."+domainEvent.Type(),
-		"tenant",
-		domainEvent.Payload(),
-	)
-
-	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-	event.WithMetadata("aggregate_type", "tenant")
-
-	return event
 }

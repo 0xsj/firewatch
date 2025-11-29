@@ -25,7 +25,7 @@ type OAuthLoginCommand struct {
 	sessionRepo    session.Repository
 	oauthProviders map[string]pkgoauth.Provider
 	jwtService     jwt.Service
-	publisher      messaging.Publisher
+	eventPublisher *messaging.DomainEventPublisher
 	logger         logger.Logger
 }
 
@@ -36,7 +36,7 @@ func NewOAuthLoginCommand(
 	sessionRepo session.Repository,
 	oauthProviders map[string]pkgoauth.Provider,
 	jwtService jwt.Service,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *OAuthLoginCommand {
 	return &OAuthLoginCommand{
@@ -45,7 +45,7 @@ func NewOAuthLoginCommand(
 		sessionRepo:    sessionRepo,
 		oauthProviders: oauthProviders,
 		jwtService:     jwtService,
-		publisher:      publisher,
+		eventPublisher: eventPublisher,
 		logger:         logger,
 	}
 }
@@ -232,13 +232,11 @@ func (c *OAuthLoginCommand) Handle(ctx context.Context, req OAuthLoginRequest) (
 		logger.String("session_id", sess.ID().String()),
 	)
 
-	// Publish events
-	if err := c.publishUserEvents(ctx, u); err != nil {
-		c.logger.Error("failed to publish events",
-			logger.String("user_id", u.ID().String()),
-			logger.Err(err),
-		)
-	}
+	// Publish user events
+	c.publishUserEvents(ctx, u)
+
+	// Publish session events
+	c.publishSessionEvents(ctx, sess)
 
 	// Build response
 	return &dto.LoginResponse{
@@ -251,30 +249,29 @@ func (c *OAuthLoginCommand) Handle(ctx context.Context, req OAuthLoginRequest) (
 }
 
 // publishUserEvents publishes all domain events from the user aggregate.
-func (c *OAuthLoginCommand) publishUserEvents(ctx context.Context, u *user.User) error {
-	events := u.Events()
+func (c *OAuthLoginCommand) publishUserEvents(ctx context.Context, u *user.User) {
+	events := messaging.AsDomainEvents(u.Events())
 	defer u.ClearEvents()
 
-	for _, domainEvent := range events {
-		event := messaging.NewEventFromContext(
-			ctx,
-			"identity."+domainEvent.Type(),
-			"identity",
-			domainEvent.Payload(),
+	if err := c.eventPublisher.PublishAll(ctx, "identity", "user", events); err != nil {
+		c.logger.Error("failed to publish user events",
+			logger.String("user_id", u.ID().String()),
+			logger.Err(err),
 		)
-
-		event.WithTenantID(domainEvent.AggregateTenantID())
-		event.WithUserID(domainEvent.AggregateID().String())
-		event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-		event.WithMetadata("aggregate_type", "user")
-		event.WithMetadata("event_version", domainEvent.Version())
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
 	}
+}
 
-	return nil
+// publishSessionEvents publishes all domain events from the session aggregate.
+func (c *OAuthLoginCommand) publishSessionEvents(ctx context.Context, sess *session.Session) {
+	events := messaging.AsDomainEvents(sess.Events())
+	defer sess.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "identity", "session", events); err != nil {
+		c.logger.Error("failed to publish session events",
+			logger.String("session_id", sess.ID().String()),
+			logger.Err(err),
+		)
+	}
 }
 
 // timeFromUnix converts Unix timestamp to *time.Time.

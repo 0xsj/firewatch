@@ -433,7 +433,7 @@ func (u *User) ChangePassword(oldPassword string, newPassword *Password, changed
 	u.updatedAt = types.Now()
 
 	// Emit event
-	u.addEvent(NewUserPasswordChanged(u.id, u.tenantID, changedBy))
+	u.addEvent(NewUserPasswordChanged(u.id, u.tenantID, u.email, changedBy))
 
 	return nil
 }
@@ -470,7 +470,7 @@ func (u *User) SetPassword(password *Password) error {
 	u.updatedAt = types.Now()
 
 	// Emit event
-	u.addEvent(NewUserPasswordChanged(u.id, u.tenantID, "user"))
+	u.addEvent(NewUserPasswordChanged(u.id, u.tenantID, u.email, "user"))
 
 	return nil
 }
@@ -507,7 +507,7 @@ func (u *User) Suspend(reason, suspendedBy string) error {
 	u.updatedAt = types.Now()
 
 	// Emit event
-	u.addEvent(NewUserAccountSuspended(u.id, u.tenantID, reason, suspendedBy))
+	u.addEvent(NewUserAccountSuspended(u.id, u.tenantID, u.email, reason, suspendedBy))
 
 	return nil
 }
@@ -525,7 +525,7 @@ func (u *User) Reactivate(reactivatedBy string) error {
 	u.updatedAt = types.Now()
 
 	// Emit event
-	u.addEvent(NewUserAccountReactivated(u.id, u.tenantID, reactivatedBy))
+	u.addEvent(NewUserAccountReactivated(u.id, u.tenantID, u.email, reactivatedBy))
 
 	return nil
 }
@@ -538,7 +538,7 @@ func (u *User) lock(reason string, duration time.Duration) {
 	u.updatedAt = types.Now()
 
 	// Emit event
-	u.addEvent(NewUserAccountLocked(u.id, u.tenantID, reason, &lockedUntil, "system"))
+	u.addEvent(NewUserAccountLocked(u.id, u.tenantID, u.email, reason, &lockedUntil, "system"))
 }
 
 // unlock unlocks the account.
@@ -553,7 +553,7 @@ func (u *User) unlock() {
 	u.updatedAt = types.Now()
 
 	// Emit event
-	u.addEvent(NewUserAccountUnlocked(u.id, u.tenantID, "system"))
+	u.addEvent(NewUserAccountUnlocked(u.id, u.tenantID, u.email, "system"))
 }
 
 // Delete soft-deletes the user account.
@@ -569,7 +569,7 @@ func (u *User) Delete(reason, deletedBy string) error {
 	u.updatedAt = types.Now()
 
 	// Emit event
-	u.addEvent(NewUserAccountDeleted(u.id, u.tenantID, reason, deletedBy))
+	u.addEvent(NewUserAccountDeleted(u.id, u.tenantID, u.email, reason, deletedBy))
 
 	return nil
 }
@@ -596,7 +596,7 @@ func (u *User) ChangeRole(newRole Role, changedBy, reason string) error {
 	u.updatedAt = types.Now()
 
 	// Emit event
-	u.addEvent(NewUserRoleChanged(u.id, u.tenantID, oldRole, newRole, changedBy, reason))
+	u.addEvent(NewUserRoleChanged(u.id, u.tenantID, u.email, oldRole, newRole, changedBy, reason))
 
 	return nil
 }

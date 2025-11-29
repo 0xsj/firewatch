@@ -35,10 +35,10 @@ func (r *PostgresRepository) Save(ctx context.Context, t *tenant.Tenant) error {
 
 	query := `
 		INSERT INTO tenants (
-			id, slug, name, plan, status, settings, owner_id,
+			id, slug, name, plan, status, settings, owner_id, owner_email,
 			billing_id, trial_ends_at, created_at, updated_at, version
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 		)
 	`
 
@@ -50,6 +50,7 @@ func (r *PostgresRepository) Save(ctx context.Context, t *tenant.Tenant) error {
 		t.Status().String(),
 		settingsJSON,
 		t.OwnerID().String(),
+		stringToNullString(t.OwnerEmail()),
 		stringPtrToNullString(t.BillingID()),
 		timestampPtrToNullTime(t.TrialEndsAt()),
 		t.CreatedAt().Time(),
@@ -78,11 +79,12 @@ func (r *PostgresRepository) Update(ctx context.Context, t *tenant.Tenant) error
 			plan = $2,
 			status = $3,
 			settings = $4,
-			billing_id = $5,
-			trial_ends_at = $6,
-			updated_at = $7,
-			version = $8
-		WHERE id = $9 AND version = $10
+			owner_email = $5,
+			billing_id = $6,
+			trial_ends_at = $7,
+			updated_at = $8,
+			version = $9
+		WHERE id = $10 AND version = $11
 	`
 
 	result, err := r.db.Exec(ctx, query,
@@ -90,6 +92,7 @@ func (r *PostgresRepository) Update(ctx context.Context, t *tenant.Tenant) error
 		t.Plan().String(),
 		t.Status().String(),
 		settingsJSON,
+		stringToNullString(t.OwnerEmail()),
 		stringPtrToNullString(t.BillingID()),
 		timestampPtrToNullTime(t.TrialEndsAt()),
 		t.UpdatedAt().Time(),
@@ -117,7 +120,7 @@ func (r *PostgresRepository) FindByID(ctx context.Context, id types.ID) (*tenant
 	const op = "PostgresRepository.FindByID"
 
 	query := `
-		SELECT id, slug, name, plan, status, settings, owner_id,
+		SELECT id, slug, name, plan, status, settings, owner_id, owner_email,
 			   billing_id, trial_ends_at, created_at, updated_at, version
 		FROM tenants
 		WHERE id = $1
@@ -132,7 +135,7 @@ func (r *PostgresRepository) FindBySlug(ctx context.Context, slug tenant.Slug) (
 	const op = "PostgresRepository.FindBySlug"
 
 	query := `
-		SELECT id, slug, name, plan, status, settings, owner_id,
+		SELECT id, slug, name, plan, status, settings, owner_id, owner_email,
 			   billing_id, trial_ends_at, created_at, updated_at, version
 		FROM tenants
 		WHERE slug = $1
@@ -240,7 +243,7 @@ func (r *PostgresRepository) buildListQuery(filters tenant.ListFilters, countOnl
 		query.WriteString("SELECT COUNT(*) FROM tenants WHERE 1=1")
 	} else {
 		query.WriteString(`
-			SELECT id, slug, name, plan, status, settings, owner_id,
+			SELECT id, slug, name, plan, status, settings, owner_id, owner_email,
 				   billing_id, trial_ends_at, created_at, updated_at, version
 			FROM tenants
 			WHERE 1=1
@@ -293,6 +296,7 @@ func (r *PostgresRepository) scanTenantFromRow(op string, row interface {
 		status      string
 		settings    []byte
 		ownerID     string
+		ownerEmail  sql.NullString
 		billingID   sql.NullString
 		trialEndsAt sql.NullTime
 		createdAt   sql.NullTime
@@ -308,6 +312,7 @@ func (r *PostgresRepository) scanTenantFromRow(op string, row interface {
 		&status,
 		&settings,
 		&ownerID,
+		&ownerEmail,
 		&billingID,
 		&trialEndsAt,
 		&createdAt,
@@ -321,7 +326,7 @@ func (r *PostgresRepository) scanTenantFromRow(op string, row interface {
 		return nil, fmt.Errorf("%s: failed to scan tenant: %w", op, err)
 	}
 
-	return r.rowToTenant(op, id, slug, name, plan, status, settings, ownerID, billingID, trialEndsAt, createdAt, updatedAt, version)
+	return r.rowToTenant(op, id, slug, name, plan, status, settings, ownerID, ownerEmail, billingID, trialEndsAt, createdAt, updatedAt, version)
 }
 
 // scanTenantFromRows scans a tenant from multiple rows.
@@ -336,6 +341,7 @@ func (r *PostgresRepository) scanTenantFromRows(op string, rows interface {
 		status      string
 		settings    []byte
 		ownerID     string
+		ownerEmail  sql.NullString
 		billingID   sql.NullString
 		trialEndsAt sql.NullTime
 		createdAt   sql.NullTime
@@ -351,6 +357,7 @@ func (r *PostgresRepository) scanTenantFromRows(op string, rows interface {
 		&status,
 		&settings,
 		&ownerID,
+		&ownerEmail,
 		&billingID,
 		&trialEndsAt,
 		&createdAt,
@@ -361,7 +368,7 @@ func (r *PostgresRepository) scanTenantFromRows(op string, rows interface {
 		return nil, fmt.Errorf("%s: failed to scan tenant: %w", op, err)
 	}
 
-	return r.rowToTenant(op, id, slug, name, plan, status, settings, ownerID, billingID, trialEndsAt, createdAt, updatedAt, version)
+	return r.rowToTenant(op, id, slug, name, plan, status, settings, ownerID, ownerEmail, billingID, trialEndsAt, createdAt, updatedAt, version)
 }
 
 // rowToTenant converts scanned values to a domain tenant.
@@ -370,6 +377,7 @@ func (r *PostgresRepository) rowToTenant(
 	id, slugStr, name, planStr, statusStr string,
 	settingsJSON []byte,
 	ownerIDStr string,
+	ownerEmail sql.NullString,
 	billingID sql.NullString,
 	trialEndsAt, createdAt, updatedAt sql.NullTime,
 	version int,
@@ -413,6 +421,12 @@ func (r *PostgresRepository) rowToTenant(
 		return nil, fmt.Errorf("%s: invalid owner id: %w", op, err)
 	}
 
+	// Parse owner email
+	ownerEmailStr := ""
+	if ownerEmail.Valid {
+		ownerEmailStr = ownerEmail.String
+	}
+
 	// Parse optional billing ID
 	var billingIDPtr *string
 	if billingID.Valid {
@@ -439,6 +453,7 @@ func (r *PostgresRepository) rowToTenant(
 		status,
 		settings,
 		ownerID,
+		ownerEmailStr,
 		billingIDPtr,
 		trialEndsAtPtr,
 		createdAtTs,
@@ -453,6 +468,14 @@ func stringPtrToNullString(s *string) sql.NullString {
 		return sql.NullString{Valid: false}
 	}
 	return sql.NullString{String: *s, Valid: true}
+}
+
+// stringToNullString converts a string to sql.NullString.
+func stringToNullString(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: s, Valid: true}
 }
 
 // timestampPtrToNullTime converts a *types.Timestamp to sql.NullTime.

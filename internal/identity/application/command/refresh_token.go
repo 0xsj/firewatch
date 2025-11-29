@@ -15,11 +15,11 @@ import (
 
 // RefreshTokenCommand handles token refresh.
 type RefreshTokenCommand struct {
-	userRepo    user.Repository
-	sessionRepo session.Repository
-	jwtService  jwt.Service
-	publisher   messaging.Publisher
-	logger      logger.Logger
+	userRepo       user.Repository
+	sessionRepo    session.Repository
+	jwtService     jwt.Service
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewRefreshTokenCommand creates a new RefreshTokenCommand.
@@ -27,15 +27,15 @@ func NewRefreshTokenCommand(
 	userRepo user.Repository,
 	sessionRepo session.Repository,
 	jwtService jwt.Service,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *RefreshTokenCommand {
 	return &RefreshTokenCommand{
-		userRepo:    userRepo,
-		sessionRepo: sessionRepo,
-		jwtService:  jwtService,
-		publisher:   publisher,
-		logger:      logger,
+		userRepo:       userRepo,
+		sessionRepo:    sessionRepo,
+		jwtService:     jwtService,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -125,8 +125,16 @@ func (c *RefreshTokenCommand) Handle(ctx context.Context, req RefreshTokenReques
 		logger.String("session_id", sess.ID().String()),
 	)
 
-	// Publish session refreshed event
-	c.publishSessionEvents(ctx, sess)
+	// Publish domain events
+	events := messaging.AsDomainEvents(sess.Events())
+	defer sess.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "identity", "session", events); err != nil {
+		c.logger.Error("failed to publish events",
+			logger.String("session_id", sess.ID().String()),
+			logger.Err(err),
+		)
+	}
 
 	return &RefreshTokenResponse{
 		AccessToken:  accessToken,
@@ -134,51 +142,4 @@ func (c *RefreshTokenCommand) Handle(ctx context.Context, req RefreshTokenReques
 		ExpiresIn:    int(auth.AccessTokenTTL.Seconds()),
 		TokenType:    "Bearer",
 	}, nil
-}
-
-// publishSessionEvents publishes all domain events from the session aggregate.
-func (c *RefreshTokenCommand) publishSessionEvents(ctx context.Context, sess *session.Session) error {
-	events := sess.Events()
-	defer sess.ClearEvents()
-
-	for _, domainEvent := range events {
-		event := c.convertSessionEvent(ctx, domainEvent)
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
-
-		c.logger.Debug("event published",
-			logger.String("event_type", event.Type()),
-			logger.String("event_id", event.ID()),
-		)
-	}
-
-	return nil
-}
-
-// convertSessionEvent converts a session domain event to a messaging event.
-func (c *RefreshTokenCommand) convertSessionEvent(ctx context.Context, domainEvent session.Event) *messaging.BaseEvent {
-	event := messaging.NewEventFromContext(
-		ctx,
-		"identity."+domainEvent.Type(),
-		"identity",
-		domainEvent.Payload(),
-	)
-
-	// Add standard metadata
-	event.WithTenantID(domainEvent.AggregateTenantID())
-
-	// Extract user_id from payload
-	if payload := domainEvent.Payload(); payload != nil {
-		if userID, ok := payload["user_id"].(string); ok {
-			event.WithUserID(userID)
-		}
-	}
-
-	// Add aggregate metadata
-	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-	event.WithMetadata("aggregate_type", "session")
-
-	return event
 }

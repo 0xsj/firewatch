@@ -13,31 +13,32 @@ import (
 
 // CreateTenantCommand handles tenant creation.
 type CreateTenantCommand struct {
-	repo      tenant.Repository
-	publisher messaging.Publisher
-	logger    logger.Logger
+	repo           tenant.Repository
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewCreateTenantCommand creates a new CreateTenantCommand.
 func NewCreateTenantCommand(
 	repo tenant.Repository,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *CreateTenantCommand {
 	return &CreateTenantCommand{
-		repo:      repo,
-		publisher: publisher,
-		logger:    logger,
+		repo:           repo,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
 // CreateTenantRequest is the input for tenant creation.
 type CreateTenantRequest struct {
-	Slug      string
-	Name      string
-	Plan      string
-	OwnerID   string
-	CreatedBy string
+	Slug       string
+	Name       string
+	Plan       string
+	OwnerID    string
+	OwnerEmail string
+	CreatedBy  string
 }
 
 // Handle executes the create tenant command.
@@ -74,6 +75,11 @@ func (c *CreateTenantCommand) Handle(ctx context.Context, req CreateTenantReques
 		return nil, fmt.Errorf("%s: invalid owner_id: %w", op, err)
 	}
 
+	// Validate owner email
+	if req.OwnerEmail == "" {
+		return nil, fmt.Errorf("%s: owner_email is required", op)
+	}
+
 	// Create tenant
 	tenantID := types.NewID()
 	t, err := tenant.Create(
@@ -82,6 +88,7 @@ func (c *CreateTenantCommand) Handle(ctx context.Context, req CreateTenantReques
 		req.Name,
 		plan,
 		ownerID,
+		req.OwnerEmail,
 		req.CreatedBy,
 	)
 	if err != nil {
@@ -97,10 +104,14 @@ func (c *CreateTenantCommand) Handle(ctx context.Context, req CreateTenantReques
 		logger.String("tenant_id", t.ID().String()),
 		logger.String("slug", t.Slug().String()),
 		logger.String("owner_id", ownerID.String()),
+		logger.String("owner_email", req.OwnerEmail),
 	)
 
 	// Publish domain events
-	if err := c.publishEvents(ctx, t); err != nil {
+	events := messaging.AsDomainEvents(t.Events())
+	defer t.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "tenant", "tenant", events); err != nil {
 		c.logger.Error("failed to publish events",
 			logger.String("tenant_id", t.ID().String()),
 			logger.Err(err),
@@ -108,39 +119,4 @@ func (c *CreateTenantCommand) Handle(ctx context.Context, req CreateTenantReques
 	}
 
 	return dto.ToTenantDTO(t), nil
-}
-
-// publishEvents publishes all domain events from the aggregate.
-func (c *CreateTenantCommand) publishEvents(ctx context.Context, t *tenant.Tenant) error {
-	events := t.Events()
-	defer t.ClearEvents()
-
-	for _, domainEvent := range events {
-		event := c.convertDomainEvent(domainEvent)
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
-
-		c.logger.Debug("event published",
-			logger.String("event_type", event.Type()),
-			logger.String("event_id", event.ID()),
-		)
-	}
-
-	return nil
-}
-
-// convertDomainEvent converts a domain event to a messaging event.
-func (c *CreateTenantCommand) convertDomainEvent(domainEvent tenant.Event) *messaging.BaseEvent {
-	event := messaging.NewEvent(
-		"tenant."+domainEvent.Type(),
-		"tenant",
-		domainEvent.Payload(),
-	)
-
-	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-	event.WithMetadata("aggregate_type", "tenant")
-
-	return event
 }

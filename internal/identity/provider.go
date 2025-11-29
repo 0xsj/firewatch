@@ -131,6 +131,7 @@ func ProvideStateManager() *pkgoauth.StateManager {
 func ProvideModule(
 	db database.DB,
 	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	jwtService jwt.Service,
 	cache cache.Cache,
 	log logger.Logger,

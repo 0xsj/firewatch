@@ -7,7 +7,7 @@ DB_HOST ?= localhost
 DB_PORT ?= 5436
 DB_USER ?= hexagonal
 DB_PASSWORD ?= hexagonal_dev_pass
-DB_NAME ?= hexagonal_identity
+DB_NAME ?= hexagonal_go
 DB_SSL_MODE ?= disable
 
 # Derived
@@ -56,6 +56,10 @@ install-tools: ## Install development tools (air, wire, migrate)
 .PHONY: dev
 dev: ## Run with hot reload (requires air)
 	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_DATABASE=$(DB_NAME) air
+
+.PHONY: worker
+worker: ## Run the background worker
+	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_DATABASE=$(DB_NAME) go run ./cmd/worker
 
 .PHONY: run
 run: wire ## Run the API server
