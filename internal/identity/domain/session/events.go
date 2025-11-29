@@ -17,27 +17,31 @@ const (
 )
 
 // Event is the interface for session domain events.
+// Aligns with messaging.DomainEvent for consistent event publishing.
 type Event interface {
 	Type() string
-	OccurredAt() time.Time
+	EventTime() time.Time
 	AggregateID() types.ID
 	AggregateTenantID() string
 	Payload() map[string]any
+	Version() int
 }
 
 // BaseEvent contains common event fields.
 type BaseEvent struct {
-	eventType  string
-	occurredAt time.Time
-	sessionID  types.ID
-	userID     types.ID
-	tenantID   string
+	eventType string
+	eventTime time.Time
+	sessionID types.ID
+	userID    types.ID
+	tenantID  string
+	version   int
 }
 
 func (e BaseEvent) Type() string              { return e.eventType }
-func (e BaseEvent) OccurredAt() time.Time     { return e.occurredAt }
+func (e BaseEvent) EventTime() time.Time      { return e.eventTime }
 func (e BaseEvent) AggregateID() types.ID     { return e.sessionID }
 func (e BaseEvent) AggregateTenantID() string { return e.tenantID }
+func (e BaseEvent) Version() int              { return e.version }
 
 // ============================================================================
 // Session Created
@@ -62,11 +66,12 @@ func NewSessionCreated(
 ) SessionCreated {
 	return SessionCreated{
 		BaseEvent: BaseEvent{
-			eventType:  EventTypeSessionCreated,
-			occurredAt: time.Now().UTC(),
-			sessionID:  sessionID,
-			userID:     userID,
-			tenantID:   tenantID,
+			eventType: EventTypeSessionCreated,
+			eventTime: time.Now().UTC(),
+			sessionID: sessionID,
+			userID:    userID,
+			tenantID:  tenantID,
+			version:   1,
 		},
 		Provider:  provider,
 		IPAddress: ipAddress,
@@ -107,11 +112,12 @@ func NewSessionRefreshed(
 ) SessionRefreshed {
 	return SessionRefreshed{
 		BaseEvent: BaseEvent{
-			eventType:  EventTypeSessionRefreshed,
-			occurredAt: time.Now().UTC(),
-			sessionID:  sessionID,
-			userID:     userID,
-			tenantID:   tenantID,
+			eventType: EventTypeSessionRefreshed,
+			eventTime: time.Now().UTC(),
+			sessionID: sessionID,
+			userID:    userID,
+			tenantID:  tenantID,
+			version:   1,
 		},
 		OldRefreshToken: oldToken,
 		NewRefreshToken: newToken,
@@ -148,11 +154,12 @@ func NewSessionRevoked(
 ) SessionRevoked {
 	return SessionRevoked{
 		BaseEvent: BaseEvent{
-			eventType:  EventTypeSessionRevoked,
-			occurredAt: time.Now().UTC(),
-			sessionID:  sessionID,
-			userID:     userID,
-			tenantID:   tenantID,
+			eventType: EventTypeSessionRevoked,
+			eventTime: time.Now().UTC(),
+			sessionID: sessionID,
+			userID:    userID,
+			tenantID:  tenantID,
+			version:   1,
 		},
 		Reason: reason,
 	}
@@ -185,11 +192,12 @@ func NewSessionLoggedOut(
 ) SessionLoggedOut {
 	return SessionLoggedOut{
 		BaseEvent: BaseEvent{
-			eventType:  EventTypeSessionLoggedOut,
-			occurredAt: time.Now().UTC(),
-			sessionID:  sessionID,
-			userID:     userID,
-			tenantID:   tenantID,
+			eventType: EventTypeSessionLoggedOut,
+			eventTime: time.Now().UTC(),
+			sessionID: sessionID,
+			userID:    userID,
+			tenantID:  tenantID,
+			version:   1,
 		},
 	}
 }
@@ -220,11 +228,12 @@ func NewSessionExpired(
 ) SessionExpired {
 	return SessionExpired{
 		BaseEvent: BaseEvent{
-			eventType:  EventTypeSessionExpired,
-			occurredAt: time.Now().UTC(),
-			sessionID:  sessionID,
-			userID:     userID,
-			tenantID:   tenantID,
+			eventType: EventTypeSessionExpired,
+			eventTime: time.Now().UTC(),
+			sessionID: sessionID,
+			userID:    userID,
+			tenantID:  tenantID,
+			version:   1,
 		},
 	}
 }

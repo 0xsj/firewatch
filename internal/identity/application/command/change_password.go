@@ -56,7 +56,7 @@ func (c *ChangePasswordCommand) Handle(ctx context.Context, req ChangePasswordRe
 	}
 
 	// Change password (domain logic validates old password)
-	if err := u.ChangePassword(req.OldPassword, newPassword, req.IPAddress); err != nil {
+	if err := u.ChangePassword(req.OldPassword, newPassword, "user"); err != nil {
 		c.logger.Warn("password change failed",
 			logger.String("user_id", req.UserID.String()),
 			logger.String("ip_address", req.IPAddress),

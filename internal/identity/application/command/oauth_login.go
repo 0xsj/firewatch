@@ -232,10 +232,18 @@ func (c *OAuthLoginCommand) Handle(ctx context.Context, req OAuthLoginRequest) (
 		logger.String("session_id", sess.ID().String()),
 	)
 
-	// Publish events
+	// Publish user events
 	if err := c.publishUserEvents(ctx, u); err != nil {
-		c.logger.Error("failed to publish events",
+		c.logger.Error("failed to publish user events",
 			logger.String("user_id", u.ID().String()),
+			logger.Err(err),
+		)
+	}
+
+	// Publish session events
+	if err := c.publishSessionEvents(ctx, sess); err != nil {
+		c.logger.Error("failed to publish session events",
+			logger.String("session_id", sess.ID().String()),
 			logger.Err(err),
 		)
 	}
@@ -256,25 +264,82 @@ func (c *OAuthLoginCommand) publishUserEvents(ctx context.Context, u *user.User)
 	defer u.ClearEvents()
 
 	for _, domainEvent := range events {
-		event := messaging.NewEventFromContext(
-			ctx,
-			"identity."+domainEvent.Type(),
-			"identity",
-			domainEvent.Payload(),
-		)
-
-		event.WithTenantID(domainEvent.AggregateTenantID())
-		event.WithUserID(domainEvent.AggregateID().String())
-		event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-		event.WithMetadata("aggregate_type", "user")
-		event.WithMetadata("event_version", domainEvent.Version())
+		event := c.convertUserEvent(ctx, domainEvent)
 
 		if err := c.publisher.Publish(ctx, event); err != nil {
 			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
 		}
+
+		c.logger.Debug("event published",
+			logger.String("event_type", event.Type()),
+			logger.String("event_id", event.ID()),
+		)
 	}
 
 	return nil
+}
+
+// publishSessionEvents publishes all domain events from the session aggregate.
+func (c *OAuthLoginCommand) publishSessionEvents(ctx context.Context, sess *session.Session) error {
+	events := sess.Events()
+	defer sess.ClearEvents()
+
+	for _, domainEvent := range events {
+		event := c.convertSessionEvent(ctx, domainEvent)
+
+		if err := c.publisher.Publish(ctx, event); err != nil {
+			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
+		}
+
+		c.logger.Debug("event published",
+			logger.String("event_type", event.Type()),
+			logger.String("event_id", event.ID()),
+		)
+	}
+
+	return nil
+}
+
+// convertUserEvent converts a user domain event to a messaging event.
+func (c *OAuthLoginCommand) convertUserEvent(ctx context.Context, domainEvent user.Event) *messaging.BaseEvent {
+	event := messaging.NewEventFromContext(
+		ctx,
+		"identity."+domainEvent.Type(),
+		"identity",
+		domainEvent.Payload(),
+	)
+
+	event.WithTenantID(domainEvent.AggregateTenantID())
+	event.WithUserID(domainEvent.AggregateID().String())
+	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
+	event.WithMetadata("aggregate_type", "user")
+	event.WithMetadata("event_version", domainEvent.Version())
+
+	return event
+}
+
+// convertSessionEvent converts a session domain event to a messaging event.
+func (c *OAuthLoginCommand) convertSessionEvent(ctx context.Context, domainEvent session.Event) *messaging.BaseEvent {
+	event := messaging.NewEventFromContext(
+		ctx,
+		"identity."+domainEvent.Type(),
+		"identity",
+		domainEvent.Payload(),
+	)
+
+	event.WithTenantID(domainEvent.AggregateTenantID())
+
+	// Extract user_id from payload
+	if payload := domainEvent.Payload(); payload != nil {
+		if userID, ok := payload["user_id"].(string); ok {
+			event.WithUserID(userID)
+		}
+	}
+
+	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
+	event.WithMetadata("aggregate_type", "session")
+
+	return event
 }
 
 // timeFromUnix converts Unix timestamp to *time.Time.
