@@ -20,4 +20,5 @@ var NotificationsSet = wire.NewSet(
 
 	// Application - Subscribers
 	subscriber.NewUserEventSubscriber,
+	subscriber.NewTenantEventSubscriber,
 )

@@ -6,6 +6,7 @@ import (
 	identityv1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	notificationsubscriber "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
 	tenantv1 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
+
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
@@ -25,12 +26,13 @@ type App struct {
 
 	// Domain Handlers
 	IdentityHandler *identityv1.Handler
-	TenantHandler   *tenantv1.Handler // NEW
+	TenantHandler   *tenantv1.Handler
 	EmailHandler    *emailv1.Handler
 
 	// Subscribers
-	AuditSubscriber        *auditsubscriber.EventSubscriber
-	NotificationSubscriber *notificationsubscriber.UserEventSubscriber
+	AuditSubscriber              *auditsubscriber.EventSubscriber
+	UserNotificationSubscriber   *notificationsubscriber.UserEventSubscriber
+	TenantNotificationSubscriber *notificationsubscriber.TenantEventSubscriber
 
 	// Security
 	JWTService jwt.Service

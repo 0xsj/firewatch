@@ -122,6 +122,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	templateRepositoryAdapter := repository3.NewTemplateRepositoryAdapter(repositoryPostgresRepository)
 	templateService := email2.NewTemplateService(templateRepositoryAdapter, renderer)
 	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, templateService, logger)
+	tenantEventSubscriber := subscriber2.NewTenantEventSubscriber(sendNotificationCommand, templateService, logger)
 	storageConfig := ProvideStorageConfig(cfg)
 	storage, err := provider.ProvideStorage(ctx, storageConfig)
 	if err != nil {
@@ -138,20 +139,21 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	}
 	httpMetrics := middleware.NewHTTPMetrics(metricsProvider)
 	app := &App{
-		Logger:                 logger,
-		DB:                     db,
-		EventBus:               publisher,
-		IdentityHandler:        handler,
-		TenantHandler:          v1Handler,
-		EmailHandler:           handler2,
-		AuditSubscriber:        eventSubscriber,
-		NotificationSubscriber: userEventSubscriber,
-		JWTService:             service,
-		Cache:                  cache,
-		Storage:                storage,
-		MetricsProvider:        metricsProvider,
-		TracingProvider:        tracingProvider,
-		HTTPMetrics:            httpMetrics,
+		Logger:                       logger,
+		DB:                           db,
+		EventBus:                     publisher,
+		IdentityHandler:              handler,
+		TenantHandler:                v1Handler,
+		EmailHandler:                 handler2,
+		AuditSubscriber:              eventSubscriber,
+		UserNotificationSubscriber:   userEventSubscriber,
+		TenantNotificationSubscriber: tenantEventSubscriber,
+		JWTService:                   service,
+		Cache:                        cache,
+		Storage:                      storage,
+		MetricsProvider:              metricsProvider,
+		TracingProvider:              tracingProvider,
+		HTTPMetrics:                  httpMetrics,
 	}
 	return app, func() {
 		cleanup()
