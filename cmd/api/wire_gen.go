@@ -22,15 +22,15 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
-	command4 "github.com/0xsj/hexagonal-go/internal/notifications/application/command"
+	"github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
-	repository5 "github.com/0xsj/hexagonal-go/internal/notifications/infrastructure/repository"
 	command2 "github.com/0xsj/hexagonal-go/internal/tenant/application/command"
 	query2 "github.com/0xsj/hexagonal-go/internal/tenant/application/query"
 	repository2 "github.com/0xsj/hexagonal-go/internal/tenant/infrastructure/repository"
 	v1_2 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
-	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
+	"github.com/0xsj/hexagonal-go/pkg/database"
+	postgres2 "github.com/0xsj/hexagonal-go/pkg/database/postgres"
 	email2 "github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger/console"
@@ -39,6 +39,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/provider"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/0xsj/hexagonal-go/pkg/storage"
+	"github.com/0xsj/hexagonal-go/pkg/worker/postgres"
 
 	_ "github.com/0xsj/hexagonal-go/docs/swagger"
 )
@@ -115,14 +116,14 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	handler2 := v1_3.NewHandler(createTemplateCommand, updateTemplateCommand, activateTemplateCommand, archiveTemplateCommand, deleteTemplateCommand, getTemplateQuery, listTemplatesQuery, previewTemplateQuery, logger)
 	postgresRepository2 := repository4.NewPostgresRepository(db)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository2, logger)
-	postgresRepository3 := repository5.NewPostgresRepository(db)
-	emailConfig := ProvideEmailConfig(cfg)
-	sender := provider.ProvideEmailSender(emailConfig)
-	sendNotificationCommand := command4.NewSendNotificationCommand(postgresRepository3, sender, logger)
+	queue := ProvideJobQueue(db)
 	templateRepositoryAdapter := repository3.NewTemplateRepositoryAdapter(repositoryPostgresRepository)
 	templateService := email2.NewTemplateService(templateRepositoryAdapter, renderer)
-	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, templateService, logger)
-	tenantEventSubscriber := subscriber2.NewTenantEventSubscriber(sendNotificationCommand, templateService, logger)
+	userEventSubscriber := subscriber2.NewUserEventSubscriber(queue, templateService, logger)
+	tenantEventSubscriber := subscriber2.NewTenantEventSubscriber(queue, templateService, logger)
+	emailConfig := ProvideEmailConfig(cfg)
+	sender := provider.ProvideEmailSender(emailConfig)
+	sendEmailHandler := jobs.NewSendEmailHandler(sender, logger)
 	storageConfig := ProvideStorageConfig(cfg)
 	storage, err := provider.ProvideStorage(ctx, storageConfig)
 	if err != nil {
@@ -148,6 +149,8 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		AuditSubscriber:              eventSubscriber,
 		UserNotificationSubscriber:   userEventSubscriber,
 		TenantNotificationSubscriber: tenantEventSubscriber,
+		JobQueue:                     queue,
+		SendEmailJobHandler:          sendEmailHandler,
 		JWTService:                   service,
 		Cache:                        cache,
 		Storage:                      storage,
@@ -162,8 +165,13 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 
 // wire.go:
 
+// ProvideJobQueue creates a PostgreSQL-backed job queue.
+func ProvideJobQueue(db database.DB) *postgres.Queue {
+	return postgres.NewQueue(db)
+}
+
 // ProvidePostgresConfig extracts database config from AppConfig.
-func ProvidePostgresConfig(cfg *config.AppConfig) postgres.Config {
+func ProvidePostgresConfig(cfg *config.AppConfig) postgres2.Config {
 	return cfg.Database
 }
 

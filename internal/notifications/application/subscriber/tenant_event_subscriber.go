@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/0xsj/hexagonal-go/internal/notifications/application/command"
-	"github.com/0xsj/hexagonal-go/internal/notifications/application/dto"
+	"github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
 	"github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
+	"github.com/0xsj/hexagonal-go/pkg/worker"
 )
 
 // Template slugs for tenant notifications.
@@ -19,21 +19,21 @@ const (
 	TemplateSlugTenantPlanChanged = "tenant-plan-changed"
 )
 
-// TenantEventSubscriber subscribes to tenant domain events and sends notifications.
+// TenantEventSubscriber subscribes to tenant domain events and enqueues notification jobs.
 type TenantEventSubscriber struct {
-	sendCmd         *command.SendNotificationCommand
+	queue           worker.Queue
 	templateService *email.TemplateService
 	logger          logger.Logger
 }
 
 // NewTenantEventSubscriber creates a new TenantEventSubscriber.
 func NewTenantEventSubscriber(
-	sendCmd *command.SendNotificationCommand,
+	queue worker.Queue,
 	templateService *email.TemplateService,
 	logger logger.Logger,
 ) *TenantEventSubscriber {
 	return &TenantEventSubscriber{
-		sendCmd:         sendCmd,
+		queue:           queue,
 		templateService: templateService,
 		logger:          logger,
 	}
@@ -70,13 +70,13 @@ func (s *TenantEventSubscriber) Handle(ctx context.Context, event messaging.Even
 
 	switch event.Type() {
 	case "tenant.tenant.created":
-		return s.handleTenantCreated(event)
+		return s.handleTenantCreated(ctx, event)
 	case "tenant.tenant.suspended":
-		return s.handleTenantSuspended(event)
+		return s.handleTenantSuspended(ctx, event)
 	case "tenant.tenant.reactivated":
-		return s.handleTenantReactivated(event)
+		return s.handleTenantReactivated(ctx, event)
 	case "tenant.tenant.plan_changed":
-		return s.handleTenantPlanChanged(event)
+		return s.handleTenantPlanChanged(ctx, event)
 	default:
 		s.logger.Warn("unhandled tenant event type",
 			logger.String("event_type", event.Type()),
@@ -85,11 +85,10 @@ func (s *TenantEventSubscriber) Handle(ctx context.Context, event messaging.Even
 	}
 }
 
-// handleTenantCreated sends a welcome email to the tenant owner.
-func (s *TenantEventSubscriber) handleTenantCreated(event messaging.Event) error {
+// handleTenantCreated enqueues a welcome email job for the tenant owner.
+func (s *TenantEventSubscriber) handleTenantCreated(ctx context.Context, event messaging.Event) error {
 	const op = "TenantEventSubscriber.handleTenantCreated"
 
-	ctx := context.Background()
 	data := event.Data()
 
 	ownerEmail, _ := data["owner_email"].(string)
@@ -131,25 +130,27 @@ func (s *TenantEventSubscriber) handleTenantCreated(event messaging.Event) error
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	req := dto.SendEmailRequest{
+	payload := jobs.SendEmailPayload{
 		TenantID:      tenantID,
 		Recipient:     ownerEmail,
 		Subject:       rendered.Subject,
-		TextBody:      rendered.BodyText,
 		HTMLBody:      rendered.BodyHTML,
+		TextBody:      rendered.BodyText,
 		CorrelationID: messaging.GetCorrelationID(event),
 		EventType:     event.Type(),
 	}
 
-	if _, err := s.sendCmd.Handle(ctx, req); err != nil {
-		s.logger.Error("failed to send tenant welcome notification",
-			logger.String("email", ownerEmail),
-			logger.Err(err),
-		)
-		return fmt.Errorf("%s: %w", op, err)
+	job, err := worker.NewJobWithData(jobs.JobTypeSendEmail, payload)
+	if err != nil {
+		return fmt.Errorf("%s: failed to create job: %w", op, err)
 	}
 
-	s.logger.Info("tenant welcome notification sent",
+	if err := s.queue.Enqueue(ctx, job); err != nil {
+		return fmt.Errorf("%s: failed to enqueue job: %w", op, err)
+	}
+
+	s.logger.Info("tenant welcome email job enqueued",
+		logger.String("job_id", job.ID().String()),
 		logger.String("email", ownerEmail),
 		logger.String("tenant_slug", tenantSlug),
 	)
@@ -157,11 +158,10 @@ func (s *TenantEventSubscriber) handleTenantCreated(event messaging.Event) error
 	return nil
 }
 
-// handleTenantSuspended sends a suspension notification to the tenant owner.
-func (s *TenantEventSubscriber) handleTenantSuspended(event messaging.Event) error {
+// handleTenantSuspended enqueues a suspension notification job.
+func (s *TenantEventSubscriber) handleTenantSuspended(ctx context.Context, event messaging.Event) error {
 	const op = "TenantEventSubscriber.handleTenantSuspended"
 
-	ctx := context.Background()
 	data := event.Data()
 
 	ownerEmail, _ := data["owner_email"].(string)
@@ -199,25 +199,27 @@ func (s *TenantEventSubscriber) handleTenantSuspended(event messaging.Event) err
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	req := dto.SendEmailRequest{
+	payload := jobs.SendEmailPayload{
 		TenantID:      tenantID,
 		Recipient:     ownerEmail,
 		Subject:       rendered.Subject,
-		TextBody:      rendered.BodyText,
 		HTMLBody:      rendered.BodyHTML,
+		TextBody:      rendered.BodyText,
 		CorrelationID: messaging.GetCorrelationID(event),
 		EventType:     event.Type(),
 	}
 
-	if _, err := s.sendCmd.Handle(ctx, req); err != nil {
-		s.logger.Error("failed to send tenant suspended notification",
-			logger.String("email", ownerEmail),
-			logger.Err(err),
-		)
-		return fmt.Errorf("%s: %w", op, err)
+	job, err := worker.NewJobWithData(jobs.JobTypeSendEmail, payload)
+	if err != nil {
+		return fmt.Errorf("%s: failed to create job: %w", op, err)
 	}
 
-	s.logger.Info("tenant suspended notification sent",
+	if err := s.queue.Enqueue(ctx, job); err != nil {
+		return fmt.Errorf("%s: failed to enqueue job: %w", op, err)
+	}
+
+	s.logger.Info("tenant suspended email job enqueued",
+		logger.String("job_id", job.ID().String()),
 		logger.String("email", ownerEmail),
 		logger.String("tenant_id", tenantID),
 	)
@@ -225,11 +227,10 @@ func (s *TenantEventSubscriber) handleTenantSuspended(event messaging.Event) err
 	return nil
 }
 
-// handleTenantReactivated sends a reactivation notification to the tenant owner.
-func (s *TenantEventSubscriber) handleTenantReactivated(event messaging.Event) error {
+// handleTenantReactivated enqueues a reactivation notification job.
+func (s *TenantEventSubscriber) handleTenantReactivated(ctx context.Context, event messaging.Event) error {
 	const op = "TenantEventSubscriber.handleTenantReactivated"
 
-	ctx := context.Background()
 	data := event.Data()
 
 	ownerEmail, _ := data["owner_email"].(string)
@@ -265,25 +266,27 @@ func (s *TenantEventSubscriber) handleTenantReactivated(event messaging.Event) e
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	req := dto.SendEmailRequest{
+	payload := jobs.SendEmailPayload{
 		TenantID:      tenantID,
 		Recipient:     ownerEmail,
 		Subject:       rendered.Subject,
-		TextBody:      rendered.BodyText,
 		HTMLBody:      rendered.BodyHTML,
+		TextBody:      rendered.BodyText,
 		CorrelationID: messaging.GetCorrelationID(event),
 		EventType:     event.Type(),
 	}
 
-	if _, err := s.sendCmd.Handle(ctx, req); err != nil {
-		s.logger.Error("failed to send tenant reactivated notification",
-			logger.String("email", ownerEmail),
-			logger.Err(err),
-		)
-		return fmt.Errorf("%s: %w", op, err)
+	job, err := worker.NewJobWithData(jobs.JobTypeSendEmail, payload)
+	if err != nil {
+		return fmt.Errorf("%s: failed to create job: %w", op, err)
 	}
 
-	s.logger.Info("tenant reactivated notification sent",
+	if err := s.queue.Enqueue(ctx, job); err != nil {
+		return fmt.Errorf("%s: failed to enqueue job: %w", op, err)
+	}
+
+	s.logger.Info("tenant reactivated email job enqueued",
+		logger.String("job_id", job.ID().String()),
 		logger.String("email", ownerEmail),
 		logger.String("tenant_id", tenantID),
 	)
@@ -291,11 +294,10 @@ func (s *TenantEventSubscriber) handleTenantReactivated(event messaging.Event) e
 	return nil
 }
 
-// handleTenantPlanChanged sends a plan change confirmation to the tenant owner.
-func (s *TenantEventSubscriber) handleTenantPlanChanged(event messaging.Event) error {
+// handleTenantPlanChanged enqueues a plan change confirmation job.
+func (s *TenantEventSubscriber) handleTenantPlanChanged(ctx context.Context, event messaging.Event) error {
 	const op = "TenantEventSubscriber.handleTenantPlanChanged"
 
-	ctx := context.Background()
 	data := event.Data()
 
 	ownerEmail, _ := data["owner_email"].(string)
@@ -335,25 +337,31 @@ func (s *TenantEventSubscriber) handleTenantPlanChanged(event messaging.Event) e
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	req := dto.SendEmailRequest{
+	payload := jobs.SendEmailPayload{
 		TenantID:      tenantID,
 		Recipient:     ownerEmail,
 		Subject:       rendered.Subject,
-		TextBody:      rendered.BodyText,
 		HTMLBody:      rendered.BodyHTML,
+		TextBody:      rendered.BodyText,
 		CorrelationID: messaging.GetCorrelationID(event),
 		EventType:     event.Type(),
+		Metadata: map[string]any{
+			"old_plan": oldPlan,
+			"new_plan": newPlan,
+		},
 	}
 
-	if _, err := s.sendCmd.Handle(ctx, req); err != nil {
-		s.logger.Error("failed to send tenant plan changed notification",
-			logger.String("email", ownerEmail),
-			logger.Err(err),
-		)
-		return fmt.Errorf("%s: %w", op, err)
+	job, err := worker.NewJobWithData(jobs.JobTypeSendEmail, payload)
+	if err != nil {
+		return fmt.Errorf("%s: failed to create job: %w", op, err)
 	}
 
-	s.logger.Info("tenant plan changed notification sent",
+	if err := s.queue.Enqueue(ctx, job); err != nil {
+		return fmt.Errorf("%s: failed to enqueue job: %w", op, err)
+	}
+
+	s.logger.Info("tenant plan changed email job enqueued",
+		logger.String("job_id", job.ID().String()),
 		logger.String("email", ownerEmail),
 		logger.String("tenant_id", tenantID),
 		logger.String("old_plan", oldPlan),

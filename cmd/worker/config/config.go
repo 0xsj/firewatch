@@ -46,7 +46,7 @@ func DefaultWorkerConfig() WorkerConfig {
 		JobTimeout:      5 * time.Minute,
 		ShutdownTimeout: 30 * time.Second,
 		BatchSize:       10,
-		QueueType:       "memory",
+		QueueType:       "postgres",
 	}
 }
 
@@ -56,7 +56,7 @@ type DatabaseConfig struct {
 	Port     int    `config:"PORT"`
 	User     string `config:"USER"`
 	Password string `config:"PASSWORD"`
-	Name     string `config:"NAME"`
+	Database string `config:"DATABASE"`
 	SSLMode  string `config:"SSL_MODE"`
 }
 
@@ -64,10 +64,10 @@ type DatabaseConfig struct {
 func DefaultDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
 		Host:     "localhost",
-		Port:     5432,
-		User:     "postgres",
-		Password: "postgres",
-		Name:     "hexagonal",
+		Port:     5436,
+		User:     "hexagonal",
+		Password: "hexagonal_dev_pass",
+		Database: "hexagonal_go",
 		SSLMode:  "disable",
 	}
 }
@@ -78,7 +78,7 @@ func (c DatabaseConfig) DSN() string {
 		" port=" + itoa(c.Port) +
 		" user=" + c.User +
 		" password=" + c.Password +
-		" dbname=" + c.Name +
+		" dbname=" + c.Database +
 		" sslmode=" + c.SSLMode
 }
 
@@ -94,7 +94,7 @@ type RedisConfig struct {
 func DefaultRedisConfig() RedisConfig {
 	return RedisConfig{
 		Host:     "localhost",
-		Port:     6379,
+		Port:     6383,
 		Password: "",
 		DB:       0,
 	}
@@ -119,10 +119,10 @@ type EmailConfig struct {
 func DefaultEmailConfig() EmailConfig {
 	return EmailConfig{
 		Host:        "localhost",
-		Port:        1025,
+		Port:        1027,
 		User:        "",
 		Password:    "",
-		FromAddress: "noreply@example.com",
+		FromAddress: "noreply@hexagonal.app",
 		FromName:    "Hexagonal App",
 	}
 }
