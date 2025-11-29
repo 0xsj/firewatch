@@ -14,7 +14,7 @@ services:
     environment:
       POSTGRES_USER: hexagonal
       POSTGRES_PASSWORD: hexagonal_dev_pass
-      POSTGRES_DB: hexagonal_identity
+      POSTGRES_DB: hexagonal_go
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5436:5432" # Changed to avoid conflicts
@@ -178,6 +178,8 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  minio_data:
     driver: local
 
 networks:

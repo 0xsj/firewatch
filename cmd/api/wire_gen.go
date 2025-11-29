@@ -119,7 +119,9 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	emailConfig := ProvideEmailConfig(cfg)
 	sender := provider.ProvideEmailSender(emailConfig)
 	sendNotificationCommand := command4.NewSendNotificationCommand(postgresRepository3, sender, logger)
-	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, logger)
+	templateRepositoryAdapter := repository3.NewTemplateRepositoryAdapter(repositoryPostgresRepository)
+	templateService := email2.NewTemplateService(templateRepositoryAdapter, renderer)
+	userEventSubscriber := subscriber2.NewUserEventSubscriber(sendNotificationCommand, templateService, logger)
 	storageConfig := ProvideStorageConfig(cfg)
 	storage, err := provider.ProvideStorage(ctx, storageConfig)
 	if err != nil {

@@ -181,11 +181,12 @@ func (e UserEmailVerified) Payload() map[string]any {
 // UserPasswordChanged is emitted when a user changes their password.
 type UserPasswordChanged struct {
 	EventMetadata
+	Email     string `json:"email"`
 	ChangedBy string `json:"changed_by"` // "user" or "admin"
 }
 
 // NewUserPasswordChanged creates a new UserPasswordChanged event.
-func NewUserPasswordChanged(userID types.ID, tenantID string, changedBy string) UserPasswordChanged {
+func NewUserPasswordChanged(userID types.ID, tenantID string, email Email, changedBy string) UserPasswordChanged {
 	return UserPasswordChanged{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserPasswordChanged,
@@ -194,6 +195,7 @@ func NewUserPasswordChanged(userID types.ID, tenantID string, changedBy string) 
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:     email.String(),
 		ChangedBy: changedBy,
 	}
 }
@@ -203,6 +205,7 @@ func (e UserPasswordChanged) Payload() map[string]any {
 	return map[string]any{
 		"user_id":    e.UserID.String(),
 		"tenant_id":  e.TenantID,
+		"email":      e.Email,
 		"changed_by": e.ChangedBy,
 	}
 }
@@ -287,12 +290,13 @@ func (e UserLoggedIn) Payload() map[string]any {
 // UserLoggedOut is emitted when a user logs out.
 type UserLoggedOut struct {
 	EventMetadata
+	Email     string `json:"email"`
 	SessionID string `json:"session_id,omitempty"`
 	Reason    string `json:"reason,omitempty"` // "user_initiated", "session_expired", "forced"
 }
 
 // NewUserLoggedOut creates a new UserLoggedOut event.
-func NewUserLoggedOut(userID types.ID, tenantID string, sessionID, reason string) UserLoggedOut {
+func NewUserLoggedOut(userID types.ID, tenantID string, email Email, sessionID, reason string) UserLoggedOut {
 	return UserLoggedOut{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserLoggedOut,
@@ -301,6 +305,7 @@ func NewUserLoggedOut(userID types.ID, tenantID string, sessionID, reason string
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:     email.String(),
 		SessionID: sessionID,
 		Reason:    reason,
 	}
@@ -311,6 +316,7 @@ func (e UserLoggedOut) Payload() map[string]any {
 	return map[string]any{
 		"user_id":    e.UserID.String(),
 		"tenant_id":  e.TenantID,
+		"email":      e.Email,
 		"session_id": e.SessionID,
 		"reason":     e.Reason,
 	}
@@ -364,13 +370,14 @@ func (e UserLoginFailed) Payload() map[string]any {
 // UserAccountLocked is emitted when a user account is locked.
 type UserAccountLocked struct {
 	EventMetadata
+	Email       string     `json:"email"`
 	Reason      string     `json:"reason"` // "too_many_attempts", "admin_action", "suspicious_activity"
 	LockedUntil *time.Time `json:"locked_until,omitempty"`
 	LockedBy    string     `json:"locked_by,omitempty"` // "system" or admin user ID
 }
 
 // NewUserAccountLocked creates a new UserAccountLocked event.
-func NewUserAccountLocked(userID types.ID, tenantID string, reason string, lockedUntil *time.Time, lockedBy string) UserAccountLocked {
+func NewUserAccountLocked(userID types.ID, tenantID string, email Email, reason string, lockedUntil *time.Time, lockedBy string) UserAccountLocked {
 	return UserAccountLocked{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserAccountLocked,
@@ -379,6 +386,7 @@ func NewUserAccountLocked(userID types.ID, tenantID string, reason string, locke
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:       email.String(),
 		Reason:      reason,
 		LockedUntil: lockedUntil,
 		LockedBy:    lockedBy,
@@ -390,6 +398,7 @@ func (e UserAccountLocked) Payload() map[string]any {
 	payload := map[string]any{
 		"user_id":   e.UserID.String(),
 		"tenant_id": e.TenantID,
+		"email":     e.Email,
 		"reason":    e.Reason,
 		"locked_by": e.LockedBy,
 	}
@@ -402,11 +411,12 @@ func (e UserAccountLocked) Payload() map[string]any {
 // UserAccountUnlocked is emitted when a locked account is unlocked.
 type UserAccountUnlocked struct {
 	EventMetadata
+	Email      string `json:"email"`
 	UnlockedBy string `json:"unlocked_by"` // "system" or admin user ID
 }
 
 // NewUserAccountUnlocked creates a new UserAccountUnlocked event.
-func NewUserAccountUnlocked(userID types.ID, tenantID string, unlockedBy string) UserAccountUnlocked {
+func NewUserAccountUnlocked(userID types.ID, tenantID string, email Email, unlockedBy string) UserAccountUnlocked {
 	return UserAccountUnlocked{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserAccountUnlocked,
@@ -415,6 +425,7 @@ func NewUserAccountUnlocked(userID types.ID, tenantID string, unlockedBy string)
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:      email.String(),
 		UnlockedBy: unlockedBy,
 	}
 }
@@ -424,6 +435,7 @@ func (e UserAccountUnlocked) Payload() map[string]any {
 	return map[string]any{
 		"user_id":     e.UserID.String(),
 		"tenant_id":   e.TenantID,
+		"email":       e.Email,
 		"unlocked_by": e.UnlockedBy,
 	}
 }
@@ -431,12 +443,13 @@ func (e UserAccountUnlocked) Payload() map[string]any {
 // UserAccountSuspended is emitted when an account is suspended.
 type UserAccountSuspended struct {
 	EventMetadata
+	Email       string `json:"email"`
 	Reason      string `json:"reason"`
 	SuspendedBy string `json:"suspended_by"` // Admin user ID
 }
 
 // NewUserAccountSuspended creates a new UserAccountSuspended event.
-func NewUserAccountSuspended(userID types.ID, tenantID string, reason, suspendedBy string) UserAccountSuspended {
+func NewUserAccountSuspended(userID types.ID, tenantID string, email Email, reason, suspendedBy string) UserAccountSuspended {
 	return UserAccountSuspended{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserAccountSuspended,
@@ -445,6 +458,7 @@ func NewUserAccountSuspended(userID types.ID, tenantID string, reason, suspended
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:       email.String(),
 		Reason:      reason,
 		SuspendedBy: suspendedBy,
 	}
@@ -455,6 +469,7 @@ func (e UserAccountSuspended) Payload() map[string]any {
 	return map[string]any{
 		"user_id":      e.UserID.String(),
 		"tenant_id":    e.TenantID,
+		"email":        e.Email,
 		"reason":       e.Reason,
 		"suspended_by": e.SuspendedBy,
 	}
@@ -463,11 +478,12 @@ func (e UserAccountSuspended) Payload() map[string]any {
 // UserAccountReactivated is emitted when a suspended account is reactivated.
 type UserAccountReactivated struct {
 	EventMetadata
+	Email         string `json:"email"`
 	ReactivatedBy string `json:"reactivated_by"` // Admin user ID
 }
 
 // NewUserAccountReactivated creates a new UserAccountReactivated event.
-func NewUserAccountReactivated(userID types.ID, tenantID string, reactivatedBy string) UserAccountReactivated {
+func NewUserAccountReactivated(userID types.ID, tenantID string, email Email, reactivatedBy string) UserAccountReactivated {
 	return UserAccountReactivated{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserAccountReactivated,
@@ -476,6 +492,7 @@ func NewUserAccountReactivated(userID types.ID, tenantID string, reactivatedBy s
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:         email.String(),
 		ReactivatedBy: reactivatedBy,
 	}
 }
@@ -485,6 +502,7 @@ func (e UserAccountReactivated) Payload() map[string]any {
 	return map[string]any{
 		"user_id":        e.UserID.String(),
 		"tenant_id":      e.TenantID,
+		"email":          e.Email,
 		"reactivated_by": e.ReactivatedBy,
 	}
 }
@@ -492,12 +510,13 @@ func (e UserAccountReactivated) Payload() map[string]any {
 // UserAccountDeleted is emitted when an account is deleted.
 type UserAccountDeleted struct {
 	EventMetadata
+	Email     string `json:"email"`
 	Reason    string `json:"reason,omitempty"`
 	DeletedBy string `json:"deleted_by"` // "user" or admin user ID
 }
 
 // NewUserAccountDeleted creates a new UserAccountDeleted event.
-func NewUserAccountDeleted(userID types.ID, tenantID string, reason, deletedBy string) UserAccountDeleted {
+func NewUserAccountDeleted(userID types.ID, tenantID string, email Email, reason, deletedBy string) UserAccountDeleted {
 	return UserAccountDeleted{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserAccountDeleted,
@@ -506,6 +525,7 @@ func NewUserAccountDeleted(userID types.ID, tenantID string, reason, deletedBy s
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:     email.String(),
 		Reason:    reason,
 		DeletedBy: deletedBy,
 	}
@@ -516,6 +536,7 @@ func (e UserAccountDeleted) Payload() map[string]any {
 	return map[string]any{
 		"user_id":    e.UserID.String(),
 		"tenant_id":  e.TenantID,
+		"email":      e.Email,
 		"reason":     e.Reason,
 		"deleted_by": e.DeletedBy,
 	}
@@ -528,6 +549,7 @@ func (e UserAccountDeleted) Payload() map[string]any {
 // UserRoleChanged is emitted when a user's role changes.
 type UserRoleChanged struct {
 	EventMetadata
+	Email     string `json:"email"`
 	OldRole   string `json:"old_role"`
 	NewRole   string `json:"new_role"`
 	ChangedBy string `json:"changed_by"` // Admin user ID
@@ -535,7 +557,7 @@ type UserRoleChanged struct {
 }
 
 // NewUserRoleChanged creates a new UserRoleChanged event.
-func NewUserRoleChanged(userID types.ID, tenantID string, oldRole, newRole Role, changedBy, reason string) UserRoleChanged {
+func NewUserRoleChanged(userID types.ID, tenantID string, email Email, oldRole, newRole Role, changedBy, reason string) UserRoleChanged {
 	return UserRoleChanged{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserRoleChanged,
@@ -544,6 +566,7 @@ func NewUserRoleChanged(userID types.ID, tenantID string, oldRole, newRole Role,
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:     email.String(),
 		OldRole:   oldRole.String(),
 		NewRole:   newRole.String(),
 		ChangedBy: changedBy,
@@ -556,6 +579,7 @@ func (e UserRoleChanged) Payload() map[string]any {
 	return map[string]any{
 		"user_id":    e.UserID.String(),
 		"tenant_id":  e.TenantID,
+		"email":      e.Email,
 		"old_role":   e.OldRole,
 		"new_role":   e.NewRole,
 		"changed_by": e.ChangedBy,
@@ -570,11 +594,12 @@ func (e UserRoleChanged) Payload() map[string]any {
 // UserProfileUpdated is emitted when user profile information changes.
 type UserProfileUpdated struct {
 	EventMetadata
+	Email         string   `json:"email"`
 	UpdatedFields []string `json:"updated_fields"` // List of fields that changed
 }
 
 // NewUserProfileUpdated creates a new UserProfileUpdated event.
-func NewUserProfileUpdated(userID types.ID, tenantID string, updatedFields []string) UserProfileUpdated {
+func NewUserProfileUpdated(userID types.ID, tenantID string, email Email, updatedFields []string) UserProfileUpdated {
 	return UserProfileUpdated{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeUserProfileUpdated,
@@ -583,6 +608,7 @@ func NewUserProfileUpdated(userID types.ID, tenantID string, updatedFields []str
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		Email:         email.String(),
 		UpdatedFields: updatedFields,
 	}
 }
@@ -592,6 +618,7 @@ func (e UserProfileUpdated) Payload() map[string]any {
 	return map[string]any{
 		"user_id":        e.UserID.String(),
 		"tenant_id":      e.TenantID,
+		"email":          e.Email,
 		"updated_fields": e.UpdatedFields,
 	}
 }

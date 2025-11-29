@@ -10,7 +10,7 @@ CREATE SCHEMA IF NOT EXISTS identity;
 CREATE SCHEMA IF NOT EXISTS audit;
 
 -- Set search path
-ALTER DATABASE hexagonal_identity SET search_path TO identity, public;
+ALTER DATABASE hexagonal_go SET search_path TO identity, public;
 
 -- Create audit trigger function (for tracking changes)
 CREATE OR REPLACE FUNCTION audit.audit_trigger()

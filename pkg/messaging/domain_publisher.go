@@ -111,12 +111,22 @@ func (p *DomainEventPublisher) publishOne(
 	// Build event type with domain prefix: "identity.user.registered"
 	eventType := domainName + "." + domainEvent.Type()
 
+	// Start with domain event payload
+	payload := domainEvent.Payload()
+
+	// Merge event-specific data into payload (e.g., verification_token)
+	if eventData, ok := options.EventMetadata[domainEvent.Type()]; ok {
+		for key, value := range eventData {
+			payload[key] = value
+		}
+	}
+
 	// Create messaging event with context metadata (correlation ID, tracing, etc.)
 	event := NewEventFromContext(
 		ctx,
 		eventType,
 		domainName,
-		domainEvent.Payload(),
+		payload,
 	)
 
 	// Add tenant context if the event is tenant-scoped
@@ -140,13 +150,6 @@ func (p *DomainEventPublisher) publishOne(
 	// Add extra metadata (applies to all events)
 	for key, value := range options.ExtraMetadata {
 		event.WithMetadata(key, value)
-	}
-
-	// Add event-specific metadata
-	if eventMeta, ok := options.EventMetadata[domainEvent.Type()]; ok {
-		for key, value := range eventMeta {
-			event.WithMetadata(key, value)
-		}
 	}
 
 	// Publish
