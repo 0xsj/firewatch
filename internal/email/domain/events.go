@@ -16,24 +16,34 @@ const (
 )
 
 // TemplateEvent is the base interface for all template domain events.
+// Aligns with messaging.DomainEvent for consistent event publishing.
 type TemplateEvent interface {
-	EventType() string
+	Type() string
+	EventTime() time.Time
 	AggregateID() types.ID
 	AggregateTenantID() string
-	OccurredAt() time.Time
-	Payload() map[string]interface{}
+	Payload() map[string]any
+	Version() int
 }
 
 // baseTemplateEvent contains common fields for all template events.
 type baseTemplateEvent struct {
+	eventType  string
 	templateID types.ID
 	tenantID   string
-	occurredAt time.Time
+	eventTime  time.Time
+	version    int
 }
 
+func (e baseTemplateEvent) Type() string              { return e.eventType }
+func (e baseTemplateEvent) EventTime() time.Time      { return e.eventTime }
 func (e baseTemplateEvent) AggregateID() types.ID     { return e.templateID }
 func (e baseTemplateEvent) AggregateTenantID() string { return e.tenantID }
-func (e baseTemplateEvent) OccurredAt() time.Time     { return e.occurredAt }
+func (e baseTemplateEvent) Version() int              { return e.version }
+
+// ============================================================================
+// Template Created Event
+// ============================================================================
 
 // TemplateCreatedEvent is emitted when a template is created.
 type TemplateCreatedEvent struct {
@@ -44,10 +54,8 @@ type TemplateCreatedEvent struct {
 	CreatedBy *types.ID
 }
 
-func (e TemplateCreatedEvent) EventType() string { return EventTemplateCreated }
-
-func (e TemplateCreatedEvent) Payload() map[string]interface{} {
-	payload := map[string]interface{}{
+func (e TemplateCreatedEvent) Payload() map[string]any {
+	payload := map[string]any{
 		"template_id": e.templateID.String(),
 		"tenant_id":   e.tenantID,
 		"slug":        e.Slug,
@@ -64,9 +72,11 @@ func (e TemplateCreatedEvent) Payload() map[string]interface{} {
 func NewTemplateCreatedEvent(templateID types.ID, tenantID string, slug, name string, locale Locale, createdBy *types.ID) TemplateCreatedEvent {
 	return TemplateCreatedEvent{
 		baseTemplateEvent: baseTemplateEvent{
+			eventType:  EventTemplateCreated,
 			templateID: templateID,
 			tenantID:   tenantID,
-			occurredAt: time.Now(),
+			eventTime:  time.Now(),
+			version:    1,
 		},
 		Slug:      slug,
 		Name:      name,
@@ -74,6 +84,10 @@ func NewTemplateCreatedEvent(templateID types.ID, tenantID string, slug, name st
 		CreatedBy: createdBy,
 	}
 }
+
+// ============================================================================
+// Template Updated Event
+// ============================================================================
 
 // TemplateUpdatedEvent is emitted when a template is updated.
 type TemplateUpdatedEvent struct {
@@ -83,10 +97,8 @@ type TemplateUpdatedEvent struct {
 	UpdatedBy *types.ID
 }
 
-func (e TemplateUpdatedEvent) EventType() string { return EventTemplateUpdated }
-
-func (e TemplateUpdatedEvent) Payload() map[string]interface{} {
-	payload := map[string]interface{}{
+func (e TemplateUpdatedEvent) Payload() map[string]any {
+	payload := map[string]any{
 		"template_id": e.templateID.String(),
 		"tenant_id":   e.tenantID,
 		"slug":        e.Slug,
@@ -102,15 +114,21 @@ func (e TemplateUpdatedEvent) Payload() map[string]interface{} {
 func NewTemplateUpdatedEvent(templateID types.ID, tenantID string, slug string, changes []string, updatedBy *types.ID) TemplateUpdatedEvent {
 	return TemplateUpdatedEvent{
 		baseTemplateEvent: baseTemplateEvent{
+			eventType:  EventTemplateUpdated,
 			templateID: templateID,
 			tenantID:   tenantID,
-			occurredAt: time.Now(),
+			eventTime:  time.Now(),
+			version:    1,
 		},
 		Slug:      slug,
 		Changes:   changes,
 		UpdatedBy: updatedBy,
 	}
 }
+
+// ============================================================================
+// Template Activated Event
+// ============================================================================
 
 // TemplateActivatedEvent is emitted when a template is activated.
 type TemplateActivatedEvent struct {
@@ -120,10 +138,8 @@ type TemplateActivatedEvent struct {
 	ActivatedBy *types.ID
 }
 
-func (e TemplateActivatedEvent) EventType() string { return EventTemplateActivated }
-
-func (e TemplateActivatedEvent) Payload() map[string]interface{} {
-	payload := map[string]interface{}{
+func (e TemplateActivatedEvent) Payload() map[string]any {
+	payload := map[string]any{
 		"template_id": e.templateID.String(),
 		"tenant_id":   e.tenantID,
 		"slug":        e.Slug,
@@ -139,15 +155,21 @@ func (e TemplateActivatedEvent) Payload() map[string]interface{} {
 func NewTemplateActivatedEvent(templateID types.ID, tenantID string, slug string, locale Locale, activatedBy *types.ID) TemplateActivatedEvent {
 	return TemplateActivatedEvent{
 		baseTemplateEvent: baseTemplateEvent{
+			eventType:  EventTemplateActivated,
 			templateID: templateID,
 			tenantID:   tenantID,
-			occurredAt: time.Now(),
+			eventTime:  time.Now(),
+			version:    1,
 		},
 		Slug:        slug,
 		Locale:      locale,
 		ActivatedBy: activatedBy,
 	}
 }
+
+// ============================================================================
+// Template Archived Event
+// ============================================================================
 
 // TemplateArchivedEvent is emitted when a template is archived.
 type TemplateArchivedEvent struct {
@@ -157,10 +179,8 @@ type TemplateArchivedEvent struct {
 	ArchivedBy *types.ID
 }
 
-func (e TemplateArchivedEvent) EventType() string { return EventTemplateArchived }
-
-func (e TemplateArchivedEvent) Payload() map[string]interface{} {
-	payload := map[string]interface{}{
+func (e TemplateArchivedEvent) Payload() map[string]any {
+	payload := map[string]any{
 		"template_id": e.templateID.String(),
 		"tenant_id":   e.tenantID,
 		"slug":        e.Slug,
@@ -176,15 +196,21 @@ func (e TemplateArchivedEvent) Payload() map[string]interface{} {
 func NewTemplateArchivedEvent(templateID types.ID, tenantID string, slug string, locale Locale, archivedBy *types.ID) TemplateArchivedEvent {
 	return TemplateArchivedEvent{
 		baseTemplateEvent: baseTemplateEvent{
+			eventType:  EventTemplateArchived,
 			templateID: templateID,
 			tenantID:   tenantID,
-			occurredAt: time.Now(),
+			eventTime:  time.Now(),
+			version:    1,
 		},
 		Slug:       slug,
 		Locale:     locale,
 		ArchivedBy: archivedBy,
 	}
 }
+
+// ============================================================================
+// Template Deleted Event
+// ============================================================================
 
 // TemplateDeletedEvent is emitted when a template is deleted.
 type TemplateDeletedEvent struct {
@@ -194,10 +220,8 @@ type TemplateDeletedEvent struct {
 	DeletedBy *types.ID
 }
 
-func (e TemplateDeletedEvent) EventType() string { return EventTemplateDeleted }
-
-func (e TemplateDeletedEvent) Payload() map[string]interface{} {
-	payload := map[string]interface{}{
+func (e TemplateDeletedEvent) Payload() map[string]any {
+	payload := map[string]any{
 		"template_id": e.templateID.String(),
 		"tenant_id":   e.tenantID,
 		"slug":        e.Slug,
@@ -213,9 +237,11 @@ func (e TemplateDeletedEvent) Payload() map[string]interface{} {
 func NewTemplateDeletedEvent(templateID types.ID, tenantID string, slug string, locale Locale, deletedBy *types.ID) TemplateDeletedEvent {
 	return TemplateDeletedEvent{
 		baseTemplateEvent: baseTemplateEvent{
+			eventType:  EventTemplateDeleted,
 			templateID: templateID,
 			tenantID:   tenantID,
-			occurredAt: time.Now(),
+			eventTime:  time.Now(),
+			version:    1,
 		},
 		Slug:      slug,
 		Locale:    locale,

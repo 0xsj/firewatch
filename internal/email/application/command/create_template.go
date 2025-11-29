@@ -13,21 +13,21 @@ import (
 
 // CreateTemplateCommand handles creating a new email template.
 type CreateTemplateCommand struct {
-	repo      domain.Repository
-	publisher messaging.Publisher
-	logger    logger.Logger
+	repo           domain.Repository
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewCreateTemplateCommand creates a new CreateTemplateCommand.
 func NewCreateTemplateCommand(
 	repo domain.Repository,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *CreateTemplateCommand {
 	return &CreateTemplateCommand{
-		repo:      repo,
-		publisher: publisher,
-		logger:    logger,
+		repo:           repo,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -86,7 +86,10 @@ func (c *CreateTemplateCommand) Handle(ctx context.Context, req dto.CreateTempla
 	)
 
 	// Publish domain events
-	if err := c.publishEvents(ctx, template); err != nil {
+	events := messaging.AsDomainEvents(template.Events())
+	defer template.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "email", "template", events); err != nil {
 		c.logger.Error("failed to publish events",
 			logger.String("template_id", template.ID().String()),
 			logger.Err(err),
@@ -96,31 +99,6 @@ func (c *CreateTemplateCommand) Handle(ctx context.Context, req dto.CreateTempla
 	return &dto.CreateTemplateResponse{
 		Template: dto.MapTemplateToDTO(template),
 	}, nil
-}
-
-// publishEvents publishes all domain events from the template aggregate.
-func (c *CreateTemplateCommand) publishEvents(ctx context.Context, template *domain.Template) error {
-	events := template.Events()
-	defer template.ClearEvents()
-
-	for _, domainEvent := range events {
-		event := messaging.NewEventFromContext(
-			ctx,
-			domainEvent.EventType(),
-			"email",
-			domainEvent.Payload(),
-		)
-
-		event.WithTenantID(domainEvent.AggregateTenantID())
-		event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-		event.WithMetadata("aggregate_type", "email_template")
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.EventType(), err)
-		}
-	}
-
-	return nil
 }
 
 // mapVariablesFromRequest maps variable DTOs to domain variables.

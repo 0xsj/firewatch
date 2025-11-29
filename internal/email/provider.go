@@ -50,7 +50,7 @@ func ProvideRenderer() *email.Renderer {
 // ProvideModule wires up the complete Email module.
 func ProvideModule(
 	db database.DB,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	log logger.Logger,
 ) (*v1.Handler, error) {
 	wire.Build(EmailSet)

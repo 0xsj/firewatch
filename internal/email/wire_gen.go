@@ -22,13 +22,13 @@ import (
 // Injectors from provider.go:
 
 // ProvideModule wires up the complete Email module.
-func ProvideModule(db database.DB, publisher messaging.Publisher, log logger.Logger) (*v1.Handler, error) {
+func ProvideModule(db database.DB, eventPublisher *messaging.DomainEventPublisher, log logger.Logger) (*v1.Handler, error) {
 	postgresRepository := repository.NewPostgresRepository(db)
-	createTemplateCommand := command.NewCreateTemplateCommand(postgresRepository, publisher, log)
-	updateTemplateCommand := command.NewUpdateTemplateCommand(postgresRepository, publisher, log)
-	activateTemplateCommand := command.NewActivateTemplateCommand(postgresRepository, publisher, log)
-	archiveTemplateCommand := command.NewArchiveTemplateCommand(postgresRepository, publisher, log)
-	deleteTemplateCommand := command.NewDeleteTemplateCommand(postgresRepository, publisher, log)
+	createTemplateCommand := command.NewCreateTemplateCommand(postgresRepository, eventPublisher, log)
+	updateTemplateCommand := command.NewUpdateTemplateCommand(postgresRepository, eventPublisher, log)
+	activateTemplateCommand := command.NewActivateTemplateCommand(postgresRepository, eventPublisher, log)
+	archiveTemplateCommand := command.NewArchiveTemplateCommand(postgresRepository, eventPublisher, log)
+	deleteTemplateCommand := command.NewDeleteTemplateCommand(postgresRepository, eventPublisher, log)
 	getTemplateQuery := query.NewGetTemplateQuery(postgresRepository)
 	listTemplatesQuery := query.NewListTemplatesQuery(postgresRepository)
 	renderer := ProvideRenderer()

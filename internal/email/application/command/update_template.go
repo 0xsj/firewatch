@@ -13,21 +13,21 @@ import (
 
 // UpdateTemplateCommand handles updating an email template.
 type UpdateTemplateCommand struct {
-	repo      domain.Repository
-	publisher messaging.Publisher
-	logger    logger.Logger
+	repo           domain.Repository
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewUpdateTemplateCommand creates a new UpdateTemplateCommand.
 func NewUpdateTemplateCommand(
 	repo domain.Repository,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *UpdateTemplateCommand {
 	return &UpdateTemplateCommand{
-		repo:      repo,
-		publisher: publisher,
-		logger:    logger,
+		repo:           repo,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -100,7 +100,10 @@ func (c *UpdateTemplateCommand) Handle(ctx context.Context, templateID types.ID,
 	)
 
 	// Publish domain events
-	if err := c.publishEvents(ctx, template); err != nil {
+	events := messaging.AsDomainEvents(template.Events())
+	defer template.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "email", "template", events); err != nil {
 		c.logger.Error("failed to publish events",
 			logger.String("template_id", template.ID().String()),
 			logger.Err(err),
@@ -110,29 +113,4 @@ func (c *UpdateTemplateCommand) Handle(ctx context.Context, templateID types.ID,
 	return &dto.UpdateTemplateResponse{
 		Template: dto.MapTemplateToDTO(template),
 	}, nil
-}
-
-// publishEvents publishes all domain events from the template aggregate.
-func (c *UpdateTemplateCommand) publishEvents(ctx context.Context, template *domain.Template) error {
-	events := template.Events()
-	defer template.ClearEvents()
-
-	for _, domainEvent := range events {
-		event := messaging.NewEventFromContext(
-			ctx,
-			domainEvent.EventType(),
-			"email",
-			domainEvent.Payload(),
-		)
-
-		event.WithTenantID(domainEvent.AggregateTenantID())
-		event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-		event.WithMetadata("aggregate_type", "email_template")
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.EventType(), err)
-		}
-	}
-
-	return nil
 }
