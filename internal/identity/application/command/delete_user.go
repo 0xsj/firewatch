@@ -13,21 +13,21 @@ import (
 
 // DeleteUserCommand handles user deletion (soft delete) by admins.
 type DeleteUserCommand struct {
-	userRepo  user.Repository
-	publisher messaging.Publisher
-	logger    logger.Logger
+	userRepo       user.Repository
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewDeleteUserCommand creates a new DeleteUserCommand.
 func NewDeleteUserCommand(
 	userRepo user.Repository,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *DeleteUserCommand {
 	return &DeleteUserCommand{
-		userRepo:  userRepo,
-		publisher: publisher,
-		logger:    logger,
+		userRepo:       userRepo,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -67,56 +67,16 @@ func (c *DeleteUserCommand) Handle(ctx context.Context, req DeleteUserRequest) e
 		logger.String("reason", req.Reason),
 	)
 
-	// Publish user events
-	if err := c.publishUserEvents(ctx, u); err != nil {
+	// Publish domain events
+	events := messaging.AsDomainEvents(u.Events())
+	defer u.ClearEvents()
+
+	if err := c.eventPublisher.PublishAll(ctx, "identity", "user", events); err != nil {
 		c.logger.Error("failed to publish events",
 			logger.String("user_id", u.ID().String()),
 			logger.Err(err),
 		)
-		// Don't fail - user is already deleted
 	}
 
 	return nil
-}
-
-// publishUserEvents publishes all domain events from the user aggregate.
-func (c *DeleteUserCommand) publishUserEvents(ctx context.Context, u *user.User) error {
-	events := u.Events()
-	defer u.ClearEvents()
-
-	for _, domainEvent := range events {
-		event := c.convertUserEvent(ctx, domainEvent)
-
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
-
-		c.logger.Debug("event published",
-			logger.String("event_type", event.Type()),
-			logger.String("event_id", event.ID()),
-		)
-	}
-
-	return nil
-}
-
-// convertUserEvent converts a user domain event to a messaging event.
-func (c *DeleteUserCommand) convertUserEvent(ctx context.Context, domainEvent user.Event) *messaging.BaseEvent {
-	event := messaging.NewEventFromContext(
-		ctx,
-		"identity."+domainEvent.Type(),
-		"identity",
-		domainEvent.Payload(),
-	)
-
-	// Add standard metadata
-	event.WithTenantID(domainEvent.AggregateTenantID())
-	event.WithUserID(domainEvent.AggregateID().String())
-
-	// Add aggregate metadata
-	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-	event.WithMetadata("aggregate_type", "user")
-	event.WithMetadata("event_version", domainEvent.Version())
-
-	return event
 }

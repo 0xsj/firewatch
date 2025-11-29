@@ -16,24 +16,24 @@ import (
 
 // RegisterUserCommand handles user registration.
 type RegisterUserCommand struct {
-	repo      user.Repository
-	tokenRepo *repository.PostgresTokenRepository
-	publisher messaging.Publisher
-	logger    logger.Logger
+	repo           user.Repository
+	tokenRepo      *repository.PostgresTokenRepository
+	eventPublisher *messaging.DomainEventPublisher
+	logger         logger.Logger
 }
 
 // NewRegisterUserCommand creates a new RegisterUserCommand.
 func NewRegisterUserCommand(
 	repo user.Repository,
 	tokenRepo *repository.PostgresTokenRepository,
-	publisher messaging.Publisher,
+	eventPublisher *messaging.DomainEventPublisher,
 	logger logger.Logger,
 ) *RegisterUserCommand {
 	return &RegisterUserCommand{
-		repo:      repo,
-		tokenRepo: tokenRepo,
-		publisher: publisher,
-		logger:    logger,
+		repo:           repo,
+		tokenRepo:      tokenRepo,
+		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -88,7 +88,8 @@ func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (
 	}
 
 	// Create email verification token
-	verificationToken, err := auth.NewToken(
+	var verificationToken *auth.Token
+	verificationToken, err = auth.NewToken(
 		auth.TokenTypeVerification,
 		u.ID(),
 		u.TenantID(),
@@ -100,6 +101,7 @@ func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (
 			logger.Err(err),
 		)
 		// Don't fail registration - user can request new token
+		verificationToken = nil
 	} else {
 		// Save verification token
 		if err := c.tokenRepo.SaveEmailVerificationToken(ctx, verificationToken, "", ""); err != nil {
@@ -108,6 +110,7 @@ func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (
 				logger.Err(err),
 			)
 			// Don't fail registration
+			verificationToken = nil
 		} else {
 			c.logger.Debug("verification token created",
 				logger.String("user_id", u.ID().String()),
@@ -121,9 +124,19 @@ func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (
 		logger.String("tenant_id", u.TenantID()),
 	)
 
-	// Publish domain events (includes verification token)
-	if err := c.publishEvents(ctx, u, verificationToken); err != nil {
-		// Log but don't fail - event publishing is best-effort
+	// Publish domain events
+	events := messaging.AsDomainEvents(u.Events())
+	defer u.ClearEvents()
+
+	// Build publish options with verification token if available
+	var opts []messaging.PublishOption
+	if verificationToken != nil {
+		opts = append(opts, messaging.WithEventMetadata("user.registered", map[string]any{
+			"verification_token": verificationToken.Value(),
+		}))
+	}
+
+	if err := c.eventPublisher.PublishAll(ctx, "identity", "user", events, opts...); err != nil {
 		c.logger.Error("failed to publish events",
 			logger.String("user_id", u.ID().String()),
 			logger.Err(err),
@@ -131,53 +144,4 @@ func (c *RegisterUserCommand) Handle(ctx context.Context, req RegisterRequest) (
 	}
 
 	return dto.NewUserResponse(u), nil
-}
-
-// publishEvents publishes all domain events from the aggregate.
-func (c *RegisterUserCommand) publishEvents(ctx context.Context, u *user.User, verificationToken *auth.Token) error {
-	events := u.Events()
-	defer u.ClearEvents() // Clear after publishing
-
-	for _, domainEvent := range events {
-		// Convert domain event to messaging event
-		event := c.convertDomainEvent(ctx, domainEvent)
-
-		// Add verification token to user.registered event
-		if domainEvent.Type() == "user.registered" && verificationToken != nil {
-			event.WithMetadata("verification_token", verificationToken.Value())
-		}
-
-		// Publish to event bus
-		if err := c.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish event %s: %w", domainEvent.Type(), err)
-		}
-
-		c.logger.Debug("event published",
-			logger.String("event_type", event.Type()),
-			logger.String("event_id", event.ID()),
-		)
-	}
-
-	return nil
-}
-
-// convertDomainEvent converts a domain event to a messaging event.
-func (c *RegisterUserCommand) convertDomainEvent(ctx context.Context, domainEvent user.Event) *messaging.BaseEvent {
-	// Create messaging event with context metadata
-	event := messaging.NewEventFromContext(
-		ctx,
-		"identity."+domainEvent.Type(), // Prefix with domain: "identity.user.registered"
-		"identity",
-		domainEvent.Payload(),
-	)
-
-	// Add standard metadata for cross-cutting concerns
-	event.WithTenantID(domainEvent.AggregateTenantID())
-	event.WithUserID(domainEvent.AggregateID().String())
-
-	// Add aggregate metadata for event sourcing/replay
-	event.WithMetadata("aggregate_id", domainEvent.AggregateID().String())
-	event.WithMetadata("aggregate_type", "user")
-
-	return event
 }

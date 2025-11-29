@@ -7,7 +7,7 @@ DB_HOST ?= localhost
 DB_PORT ?= 5436
 DB_USER ?= hexagonal
 DB_PASSWORD ?= hexagonal_dev_pass
-DB_NAME ?= hexagonal_identity
+DB_NAME ?= hexagonal_go
 DB_SSL_MODE ?= disable
 
 # Derived

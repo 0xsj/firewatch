@@ -81,7 +81,7 @@ func (c *RequestPasswordResetCommand) Handle(ctx context.Context, req RequestPas
 		return fmt.Errorf("%s: failed to save reset token: %w", op, err)
 	}
 
-	// Publish event (notification subscriber will send email)
+	// Publish application event (notification subscriber will send email)
 	event := messaging.NewEventFromContext(
 		ctx,
 		"identity.password_reset_requested",
@@ -93,8 +93,13 @@ func (c *RequestPasswordResetCommand) Handle(ctx context.Context, req RequestPas
 			"token":     resetToken.Value(),
 		},
 	)
+
+	// Add standard metadata for consistency
 	event.WithTenantID(u.TenantID())
 	event.WithUserID(u.ID().String())
+	event.WithMetadata("aggregate_id", u.ID().String())
+	event.WithMetadata("aggregate_type", "user")
+	event.WithMetadata("event_version", 0) // Application event, not from aggregate
 
 	if err := c.publisher.Publish(ctx, event); err != nil {
 		c.logger.Error("failed to publish password reset event",
