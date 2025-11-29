@@ -39,6 +39,7 @@ import (
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	emailv1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
+	flagsv1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
 	tenantv1 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
 	pkghttp "github.com/0xsj/hexagonal-go/pkg/http"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
@@ -134,6 +135,10 @@ func run() error {
 
 	tenantRouter := tenantv1.NewRouter(app.TenantHandler, app.JWTService, app.Logger, corsConfig)
 	root.Mount("/api/v1/tenants", tenantRouter)
+
+	// Mount flags routes
+	flagsRouter := flagsv1.NewRouter(app.FlagsHandler, app.JWTService, app.Logger, corsConfig)
+	root.Mount("/api/v1/flags", flagsRouter)
 
 	// Mount identity routes (includes /health and /api/v1/users, /api/v1/auth, etc.)
 	identityRouter := app.IdentityHandler.Routes(app.Logger, corsConfig, app.JWTService)
@@ -246,6 +251,21 @@ func printEndpoints(port, metricsPort int) {
 	fmt.Printf("  POST %s/api/v1/email/templates/{id}/preview\n", baseURL)
 	fmt.Printf("  GET  %s/api/v1/email/templates/by-slug?slug=...&locale=...\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/email/templates/preview-by-slug\n", baseURL)
+	fmt.Println("Protected - Feature Flags (requires JWT):")
+	fmt.Printf("  GET  %s/api/v1/flags\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/flags\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/flags/{id}\n", baseURL)
+	fmt.Printf("  PUT  %s/api/v1/flags/{id}\n", baseURL)
+	fmt.Printf("  DELETE %s/api/v1/flags/{id}\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/flags/{id}/enable\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/flags/{id}/disable\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/flags/by-key?key=...\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/flags/{id}/rules\n", baseURL)
+	fmt.Printf("  DELETE %s/api/v1/flags/{id}/rules/{ruleId}\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/flags/{id}/overrides\n", baseURL)
+	fmt.Printf("  DELETE %s/api/v1/flags/{id}/overrides\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/flags/{key}/evaluate\n", baseURL)
+	fmt.Println()
 	fmt.Println()
 	fmt.Println("Observability:")
 	fmt.Printf("  GET  %s/metrics\n", metricsURL)

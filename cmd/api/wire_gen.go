@@ -8,20 +8,23 @@ package main
 
 import (
 	"context"
-
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
-	repository4 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
+	repository5 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
 	"github.com/0xsj/hexagonal-go/internal/email"
 	command3 "github.com/0xsj/hexagonal-go/internal/email/application/command"
 	query3 "github.com/0xsj/hexagonal-go/internal/email/application/query"
 	repository3 "github.com/0xsj/hexagonal-go/internal/email/infrastructure/repository"
 	v1_3 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
+	command4 "github.com/0xsj/hexagonal-go/internal/flags/application/command"
+	query4 "github.com/0xsj/hexagonal-go/internal/flags/application/query"
+	repository4 "github.com/0xsj/hexagonal-go/internal/flags/infrastructure/repository"
+	v1_4 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
-	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	"github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
 	command2 "github.com/0xsj/hexagonal-go/internal/tenant/application/command"
@@ -40,7 +43,9 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/0xsj/hexagonal-go/pkg/storage"
 	"github.com/0xsj/hexagonal-go/pkg/worker/postgres"
+)
 
+import (
 	_ "github.com/0xsj/hexagonal-go/docs/swagger"
 )
 
@@ -115,7 +120,21 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	previewTemplateQuery := query3.NewPreviewTemplateQuery(repositoryPostgresRepository, renderer)
 	handler2 := v1_3.NewHandler(createTemplateCommand, updateTemplateCommand, activateTemplateCommand, archiveTemplateCommand, deleteTemplateCommand, getTemplateQuery, listTemplatesQuery, previewTemplateQuery, logger)
 	postgresRepository2 := repository4.NewPostgresRepository(db)
-	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository2, logger)
+	createFlagCommand := command4.NewCreateFlagCommand(postgresRepository2, domainEventPublisher, logger)
+	updateFlagCommand := command4.NewUpdateFlagCommand(postgresRepository2, domainEventPublisher, logger)
+	deleteFlagCommand := command4.NewDeleteFlagCommand(postgresRepository2, domainEventPublisher, logger)
+	enableFlagCommand := command4.NewEnableFlagCommand(postgresRepository2, domainEventPublisher, logger)
+	disableFlagCommand := command4.NewDisableFlagCommand(postgresRepository2, domainEventPublisher, logger)
+	addRuleCommand := command4.NewAddRuleCommand(postgresRepository2, domainEventPublisher, logger)
+	removeRuleCommand := command4.NewRemoveRuleCommand(postgresRepository2, domainEventPublisher, logger)
+	setOverrideCommand := command4.NewSetOverrideCommand(postgresRepository2, domainEventPublisher, logger)
+	removeOverrideCommand := command4.NewRemoveOverrideCommand(postgresRepository2, domainEventPublisher, logger)
+	getFlagQuery := query4.NewGetFlagQuery(postgresRepository2)
+	listFlagsQuery := query4.NewListFlagsQuery(postgresRepository2)
+	evaluateFlagQuery := query4.NewEvaluateFlagQuery(postgresRepository2)
+	handler3 := v1_4.NewHandler(createFlagCommand, updateFlagCommand, deleteFlagCommand, enableFlagCommand, disableFlagCommand, addRuleCommand, removeRuleCommand, setOverrideCommand, removeOverrideCommand, getFlagQuery, listFlagsQuery, evaluateFlagQuery, logger)
+	postgresRepository3 := repository5.NewPostgresRepository(db)
+	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository3, logger)
 	queue := ProvideJobQueue(db)
 	templateRepositoryAdapter := repository3.NewTemplateRepositoryAdapter(repositoryPostgresRepository)
 	templateService := email2.NewTemplateService(templateRepositoryAdapter, renderer)
@@ -146,6 +165,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		IdentityHandler:              handler,
 		TenantHandler:                v1Handler,
 		EmailHandler:                 handler2,
+		FlagsHandler:                 handler3,
 		AuditSubscriber:              eventSubscriber,
 		UserNotificationSubscriber:   userEventSubscriber,
 		TenantNotificationSubscriber: tenantEventSubscriber,

@@ -15,6 +15,7 @@
 // 	"github.com/0xsj/hexagonal-go/internal/notifications"
 // 	"github.com/0xsj/hexagonal-go/internal/tenant"
 // 	"github.com/0xsj/hexagonal-go/pkg/cache"
+// 	"github.com/0xsj/hexagonal-go/pkg/database"
 // 	"github.com/0xsj/hexagonal-go/pkg/database/postgres"
 // 	pkgemail "github.com/0xsj/hexagonal-go/pkg/email"
 // 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
@@ -24,6 +25,8 @@
 // 	"github.com/0xsj/hexagonal-go/pkg/provider"
 // 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 // 	"github.com/0xsj/hexagonal-go/pkg/storage"
+// 	"github.com/0xsj/hexagonal-go/pkg/worker"
+// 	postgresqueue "github.com/0xsj/hexagonal-go/pkg/worker/postgres"
 // )
 
 // // InitializeApp wires up the entire application.
@@ -43,13 +46,17 @@
 // 		provider.ProvideLogger,
 // 		provider.ProvideDatabase,
 // 		provider.ProvideEventBus,
-// 		provider.ProvideDomainEventPublisher, // NEW: shared domain event publisher
+// 		provider.ProvideDomainEventPublisher,
 // 		provider.ProvideEmailSender,
 // 		provider.ProvideMetricsProvider,
 // 		provider.ProvideTracingProvider,
 // 		provider.ProvideJWTService,
 // 		provider.ProvideCache,
 // 		provider.ProvideStorage,
+
+// 		// Job Queue
+// 		ProvideJobQueue,
+// 		wire.Bind(new(worker.Queue), new(*postgresqueue.Queue)),
 
 // 		// HTTP Metrics
 // 		middleware.NewHTTPMetrics,
@@ -58,7 +65,7 @@
 // 		identity.IdentitySet,
 
 // 		// Tenant domain
-// 		tenant.TenantSet, // NEW: tenant domain
+// 		tenant.TenantSet,
 
 // 		// Audit domain
 // 		audit.AuditSet,
@@ -73,6 +80,11 @@
 // 		wire.Struct(new(App), "*"),
 // 	)
 // 	return &App{}, nil, nil
+// }
+
+// // ProvideJobQueue creates a PostgreSQL-backed job queue.
+// func ProvideJobQueue(db database.DB) *postgresqueue.Queue {
+// 	return postgresqueue.NewQueue(db)
 // }
 
 // // ProvidePostgresConfig extracts database config from AppConfig.
@@ -128,6 +140,7 @@ import (
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit"
 	"github.com/0xsj/hexagonal-go/internal/email"
+	"github.com/0xsj/hexagonal-go/internal/flags"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/notifications"
 	"github.com/0xsj/hexagonal-go/internal/tenant"
@@ -192,6 +205,9 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 
 		// Email domain
 		email.EmailSet,
+
+		// Flags domain
+		flags.FlagsSet,
 
 		// Wire the App struct
 		wire.Struct(new(App), "*"),

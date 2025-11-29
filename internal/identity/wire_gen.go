@@ -7,15 +7,13 @@
 package identity
 
 import (
-	"os"
-
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/oauth"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/session"
 	"github.com/0xsj/hexagonal-go/internal/identity/domain/user"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
-	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	"github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
@@ -25,6 +23,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/google/wire"
+	"os"
 )
 
 // Injectors from provider.go:

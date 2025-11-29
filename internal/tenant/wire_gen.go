@@ -9,9 +9,9 @@ package tenant
 import (
 	"github.com/0xsj/hexagonal-go/internal/tenant/application/command"
 	"github.com/0xsj/hexagonal-go/internal/tenant/application/query"
-	tenant "github.com/0xsj/hexagonal-go/internal/tenant/domain"
+	"github.com/0xsj/hexagonal-go/internal/tenant/domain"
 	"github.com/0xsj/hexagonal-go/internal/tenant/infrastructure/repository"
-	v1 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
+	"github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
