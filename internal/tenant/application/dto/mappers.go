@@ -18,6 +18,7 @@ func ToTenantDTO(t *tenant.Tenant) *TenantDTO {
 		Status:      t.Status().String(),
 		Settings:    t.Settings().ToMap(),
 		OwnerID:     t.OwnerID().String(),
+		OwnerEmail:  t.OwnerEmail(),
 		BillingID:   t.BillingID(),
 		TrialEndsAt: formatTimestampPtr(t.TrialEndsAt()),
 		CreatedAt:   formatTimestamp(t.CreatedAt()),

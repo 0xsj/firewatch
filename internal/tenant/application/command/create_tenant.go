@@ -33,11 +33,12 @@ func NewCreateTenantCommand(
 
 // CreateTenantRequest is the input for tenant creation.
 type CreateTenantRequest struct {
-	Slug      string
-	Name      string
-	Plan      string
-	OwnerID   string
-	CreatedBy string
+	Slug       string
+	Name       string
+	Plan       string
+	OwnerID    string
+	OwnerEmail string
+	CreatedBy  string
 }
 
 // Handle executes the create tenant command.
@@ -74,6 +75,11 @@ func (c *CreateTenantCommand) Handle(ctx context.Context, req CreateTenantReques
 		return nil, fmt.Errorf("%s: invalid owner_id: %w", op, err)
 	}
 
+	// Validate owner email
+	if req.OwnerEmail == "" {
+		return nil, fmt.Errorf("%s: owner_email is required", op)
+	}
+
 	// Create tenant
 	tenantID := types.NewID()
 	t, err := tenant.Create(
@@ -82,6 +88,7 @@ func (c *CreateTenantCommand) Handle(ctx context.Context, req CreateTenantReques
 		req.Name,
 		plan,
 		ownerID,
+		req.OwnerEmail,
 		req.CreatedBy,
 	)
 	if err != nil {
@@ -97,6 +104,7 @@ func (c *CreateTenantCommand) Handle(ctx context.Context, req CreateTenantReques
 		logger.String("tenant_id", t.ID().String()),
 		logger.String("slug", t.Slug().String()),
 		logger.String("owner_id", ownerID.String()),
+		logger.String("owner_email", req.OwnerEmail),
 	)
 
 	// Publish domain events

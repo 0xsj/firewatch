@@ -28,7 +28,8 @@ type Tenant struct {
 	settings Settings
 
 	// Ownership
-	ownerID types.ID
+	ownerID    types.ID
+	ownerEmail string
 
 	// Billing integration (optional)
 	billingID   *string
@@ -56,6 +57,7 @@ func (t *Tenant) Plan() Plan                    { return t.plan }
 func (t *Tenant) Status() Status                { return t.status }
 func (t *Tenant) Settings() Settings            { return t.settings }
 func (t *Tenant) OwnerID() types.ID             { return t.ownerID }
+func (t *Tenant) OwnerEmail() string            { return t.ownerEmail }
 func (t *Tenant) BillingID() *string            { return t.billingID }
 func (t *Tenant) TrialEndsAt() *types.Timestamp { return t.trialEndsAt }
 func (t *Tenant) CreatedAt() types.Timestamp    { return t.createdAt }
@@ -89,6 +91,7 @@ func Create(
 	name string,
 	plan Plan,
 	ownerID types.ID,
+	ownerEmail string,
 	createdBy string,
 ) (*Tenant, error) {
 	const op = "tenant.Create"
@@ -112,6 +115,9 @@ func Create(
 	if ownerID.IsEmpty() {
 		return nil, fmt.Errorf("%s: owner id is required", op)
 	}
+	if ownerEmail == "" {
+		return nil, fmt.Errorf("%s: owner email is required", op)
+	}
 
 	now := types.Now()
 
@@ -123,6 +129,7 @@ func Create(
 		status:      StatusActive,
 		settings:    NewSettings(),
 		ownerID:     ownerID,
+		ownerEmail:  ownerEmail,
 		billingID:   nil,
 		trialEndsAt: nil,
 		createdAt:   now,
@@ -133,7 +140,7 @@ func Create(
 
 	// Emit domain event
 	tenant.addEvent(NewTenantCreated(
-		id, slug, name, plan, ownerID, createdBy,
+		id, slug, name, plan, ownerID, ownerEmail, createdBy,
 	))
 
 	return tenant, nil
@@ -147,12 +154,13 @@ func CreateWithTrial(
 	name string,
 	plan Plan,
 	ownerID types.ID,
+	ownerEmail string,
 	trialEndsAt types.Timestamp,
 	createdBy string,
 ) (*Tenant, error) {
 	const op = "tenant.CreateWithTrial"
 
-	tenant, err := Create(id, slug, name, plan, ownerID, createdBy)
+	tenant, err := Create(id, slug, name, plan, ownerID, ownerEmail, createdBy)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +172,7 @@ func CreateWithTrial(
 	// Clear and re-emit event with correct status
 	tenant.events = make([]Event, 0)
 	tenant.addEvent(NewTenantCreated(
-		id, slug, name, plan, ownerID, createdBy,
+		id, slug, name, plan, ownerID, ownerEmail, createdBy,
 	))
 
 	return tenant, nil
@@ -180,6 +188,7 @@ func Reconstitute(
 	status Status,
 	settings Settings,
 	ownerID types.ID,
+	ownerEmail string,
 	billingID *string,
 	trialEndsAt *types.Timestamp,
 	createdAt types.Timestamp,
@@ -194,6 +203,7 @@ func Reconstitute(
 		status:      status,
 		settings:    settings,
 		ownerID:     ownerID,
+		ownerEmail:  ownerEmail,
 		billingID:   billingID,
 		trialEndsAt: trialEndsAt,
 		createdAt:   createdAt,
@@ -233,7 +243,7 @@ func (t *Tenant) Update(name string, updatedBy string) error {
 	t.updatedAt = types.Now()
 
 	// Emit event
-	t.addEvent(NewTenantUpdated(t.id, updatedFields, updatedBy))
+	t.addEvent(NewTenantUpdated(t.id, t.ownerEmail, updatedFields, updatedBy))
 
 	return nil
 }
@@ -271,7 +281,7 @@ func (t *Tenant) UpdateSettings(settings Settings, updatedBy string) error {
 	t.updatedAt = types.Now()
 
 	// Emit event
-	t.addEvent(NewTenantSettingsUpdated(t.id, changedKeys, updatedBy))
+	t.addEvent(NewTenantSettingsUpdated(t.id, t.ownerEmail, changedKeys, updatedBy))
 
 	return nil
 }
@@ -288,9 +298,15 @@ func (t *Tenant) SetBillingID(billingID string, updatedBy string) error {
 	t.updatedAt = types.Now()
 
 	// Emit event
-	t.addEvent(NewTenantUpdated(t.id, []string{"billing_id"}, updatedBy))
+	t.addEvent(NewTenantUpdated(t.id, t.ownerEmail, []string{"billing_id"}, updatedBy))
 
 	return nil
+}
+
+// SetOwnerEmail updates the owner email (used when owner changes or email is updated).
+func (t *Tenant) SetOwnerEmail(ownerEmail string) {
+	t.ownerEmail = ownerEmail
+	t.updatedAt = types.Now()
 }
 
 // ============================================================================
@@ -319,7 +335,7 @@ func (t *Tenant) ChangePlan(newPlan Plan, changedBy string, reason string) error
 	t.updatedAt = types.Now()
 
 	// Emit event
-	t.addEvent(NewTenantPlanChanged(t.id, oldPlan, newPlan, changedBy, reason))
+	t.addEvent(NewTenantPlanChanged(t.id, t.ownerEmail, oldPlan, newPlan, changedBy, reason))
 
 	return nil
 }
@@ -341,7 +357,7 @@ func (t *Tenant) Suspend(reason string, suspendedBy string) error {
 	t.updatedAt = types.Now()
 
 	// Emit event
-	t.addEvent(NewTenantSuspended(t.id, reason, suspendedBy))
+	t.addEvent(NewTenantSuspended(t.id, t.ownerEmail, reason, suspendedBy))
 
 	return nil
 }
@@ -359,7 +375,7 @@ func (t *Tenant) Reactivate(reactivatedBy string) error {
 	t.updatedAt = types.Now()
 
 	// Emit event
-	t.addEvent(NewTenantReactivated(t.id, reactivatedBy))
+	t.addEvent(NewTenantReactivated(t.id, t.ownerEmail, reactivatedBy))
 
 	return nil
 }
@@ -392,7 +408,7 @@ func (t *Tenant) Delete(reason string, deletedBy string) error {
 	t.updatedAt = types.Now()
 
 	// Emit event
-	t.addEvent(NewTenantDeleted(t.id, reason, deletedBy))
+	t.addEvent(NewTenantDeleted(t.id, t.ownerEmail, reason, deletedBy))
 
 	return nil
 }
@@ -411,7 +427,7 @@ func (t *Tenant) Activate(activatedBy string) error {
 	t.updatedAt = types.Now()
 
 	// Emit event
-	t.addEvent(NewTenantReactivated(t.id, activatedBy))
+	t.addEvent(NewTenantReactivated(t.id, t.ownerEmail, activatedBy))
 
 	return nil
 }

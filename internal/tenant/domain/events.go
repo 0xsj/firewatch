@@ -83,15 +83,16 @@ const (
 // TenantCreated is emitted when a new tenant is created.
 type TenantCreated struct {
 	EventMetadata
-	Slug      string `json:"slug"`
-	Name      string `json:"name"`
-	Plan      string `json:"plan"`
-	OwnerID   string `json:"owner_id"`
-	CreatedBy string `json:"created_by"`
+	Slug       string `json:"slug"`
+	Name       string `json:"name"`
+	Plan       string `json:"plan"`
+	OwnerID    string `json:"owner_id"`
+	OwnerEmail string `json:"owner_email"`
+	CreatedBy  string `json:"created_by"`
 }
 
 // NewTenantCreated creates a new TenantCreated event.
-func NewTenantCreated(tenantID types.ID, slug Slug, name string, plan Plan, ownerID types.ID, createdBy string) TenantCreated {
+func NewTenantCreated(tenantID types.ID, slug Slug, name string, plan Plan, ownerID types.ID, ownerEmail, createdBy string) TenantCreated {
 	return TenantCreated{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeTenantCreated,
@@ -100,23 +101,25 @@ func NewTenantCreated(tenantID types.ID, slug Slug, name string, plan Plan, owne
 			Version_:   1,
 			Metadata:   make(map[string]any),
 		},
-		Slug:      slug.String(),
-		Name:      name,
-		Plan:      plan.String(),
-		OwnerID:   ownerID.String(),
-		CreatedBy: createdBy,
+		Slug:       slug.String(),
+		Name:       name,
+		Plan:       plan.String(),
+		OwnerID:    ownerID.String(),
+		OwnerEmail: ownerEmail,
+		CreatedBy:  createdBy,
 	}
 }
 
 // Payload returns the event payload.
 func (e TenantCreated) Payload() map[string]any {
 	return map[string]any{
-		"tenant_id":  e.TenantID.String(),
-		"slug":       e.Slug,
-		"name":       e.Name,
-		"plan":       e.Plan,
-		"owner_id":   e.OwnerID,
-		"created_by": e.CreatedBy,
+		"tenant_id":   e.TenantID.String(),
+		"slug":        e.Slug,
+		"name":        e.Name,
+		"plan":        e.Plan,
+		"owner_id":    e.OwnerID,
+		"owner_email": e.OwnerEmail,
+		"created_by":  e.CreatedBy,
 	}
 }
 
@@ -127,12 +130,13 @@ func (e TenantCreated) Payload() map[string]any {
 // TenantUpdated is emitted when tenant details are updated.
 type TenantUpdated struct {
 	EventMetadata
+	OwnerEmail    string   `json:"owner_email"`
 	UpdatedFields []string `json:"updated_fields"`
 	UpdatedBy     string   `json:"updated_by"`
 }
 
 // NewTenantUpdated creates a new TenantUpdated event.
-func NewTenantUpdated(tenantID types.ID, updatedFields []string, updatedBy string) TenantUpdated {
+func NewTenantUpdated(tenantID types.ID, ownerEmail string, updatedFields []string, updatedBy string) TenantUpdated {
 	return TenantUpdated{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeTenantUpdated,
@@ -140,6 +144,7 @@ func NewTenantUpdated(tenantID types.ID, updatedFields []string, updatedBy strin
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		OwnerEmail:    ownerEmail,
 		UpdatedFields: updatedFields,
 		UpdatedBy:     updatedBy,
 	}
@@ -149,6 +154,7 @@ func NewTenantUpdated(tenantID types.ID, updatedFields []string, updatedBy strin
 func (e TenantUpdated) Payload() map[string]any {
 	return map[string]any{
 		"tenant_id":      e.TenantID.String(),
+		"owner_email":    e.OwnerEmail,
 		"updated_fields": e.UpdatedFields,
 		"updated_by":     e.UpdatedBy,
 	}
@@ -161,12 +167,13 @@ func (e TenantUpdated) Payload() map[string]any {
 // TenantSettingsUpdated is emitted when tenant settings are updated.
 type TenantSettingsUpdated struct {
 	EventMetadata
+	OwnerEmail  string   `json:"owner_email"`
 	ChangedKeys []string `json:"changed_keys"`
 	UpdatedBy   string   `json:"updated_by"`
 }
 
 // NewTenantSettingsUpdated creates a new TenantSettingsUpdated event.
-func NewTenantSettingsUpdated(tenantID types.ID, changedKeys []string, updatedBy string) TenantSettingsUpdated {
+func NewTenantSettingsUpdated(tenantID types.ID, ownerEmail string, changedKeys []string, updatedBy string) TenantSettingsUpdated {
 	return TenantSettingsUpdated{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeTenantSettingsUpdated,
@@ -174,6 +181,7 @@ func NewTenantSettingsUpdated(tenantID types.ID, changedKeys []string, updatedBy
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		OwnerEmail:  ownerEmail,
 		ChangedKeys: changedKeys,
 		UpdatedBy:   updatedBy,
 	}
@@ -183,6 +191,7 @@ func NewTenantSettingsUpdated(tenantID types.ID, changedKeys []string, updatedBy
 func (e TenantSettingsUpdated) Payload() map[string]any {
 	return map[string]any{
 		"tenant_id":    e.TenantID.String(),
+		"owner_email":  e.OwnerEmail,
 		"changed_keys": e.ChangedKeys,
 		"updated_by":   e.UpdatedBy,
 	}
@@ -195,12 +204,13 @@ func (e TenantSettingsUpdated) Payload() map[string]any {
 // TenantSuspended is emitted when a tenant is suspended.
 type TenantSuspended struct {
 	EventMetadata
+	OwnerEmail  string `json:"owner_email"`
 	Reason      string `json:"reason"`
 	SuspendedBy string `json:"suspended_by"`
 }
 
 // NewTenantSuspended creates a new TenantSuspended event.
-func NewTenantSuspended(tenantID types.ID, reason string, suspendedBy string) TenantSuspended {
+func NewTenantSuspended(tenantID types.ID, ownerEmail, reason, suspendedBy string) TenantSuspended {
 	return TenantSuspended{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeTenantSuspended,
@@ -208,6 +218,7 @@ func NewTenantSuspended(tenantID types.ID, reason string, suspendedBy string) Te
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		OwnerEmail:  ownerEmail,
 		Reason:      reason,
 		SuspendedBy: suspendedBy,
 	}
@@ -217,6 +228,7 @@ func NewTenantSuspended(tenantID types.ID, reason string, suspendedBy string) Te
 func (e TenantSuspended) Payload() map[string]any {
 	return map[string]any{
 		"tenant_id":    e.TenantID.String(),
+		"owner_email":  e.OwnerEmail,
 		"reason":       e.Reason,
 		"suspended_by": e.SuspendedBy,
 	}
@@ -229,11 +241,12 @@ func (e TenantSuspended) Payload() map[string]any {
 // TenantReactivated is emitted when a suspended tenant is reactivated.
 type TenantReactivated struct {
 	EventMetadata
+	OwnerEmail    string `json:"owner_email"`
 	ReactivatedBy string `json:"reactivated_by"`
 }
 
 // NewTenantReactivated creates a new TenantReactivated event.
-func NewTenantReactivated(tenantID types.ID, reactivatedBy string) TenantReactivated {
+func NewTenantReactivated(tenantID types.ID, ownerEmail, reactivatedBy string) TenantReactivated {
 	return TenantReactivated{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeTenantReactivated,
@@ -241,6 +254,7 @@ func NewTenantReactivated(tenantID types.ID, reactivatedBy string) TenantReactiv
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
+		OwnerEmail:    ownerEmail,
 		ReactivatedBy: reactivatedBy,
 	}
 }
@@ -249,6 +263,7 @@ func NewTenantReactivated(tenantID types.ID, reactivatedBy string) TenantReactiv
 func (e TenantReactivated) Payload() map[string]any {
 	return map[string]any{
 		"tenant_id":      e.TenantID.String(),
+		"owner_email":    e.OwnerEmail,
 		"reactivated_by": e.ReactivatedBy,
 	}
 }
@@ -260,14 +275,15 @@ func (e TenantReactivated) Payload() map[string]any {
 // TenantPlanChanged is emitted when a tenant's plan changes.
 type TenantPlanChanged struct {
 	EventMetadata
-	OldPlan   string `json:"old_plan"`
-	NewPlan   string `json:"new_plan"`
-	ChangedBy string `json:"changed_by"`
-	Reason    string `json:"reason,omitempty"`
+	OwnerEmail string `json:"owner_email"`
+	OldPlan    string `json:"old_plan"`
+	NewPlan    string `json:"new_plan"`
+	ChangedBy  string `json:"changed_by"`
+	Reason     string `json:"reason,omitempty"`
 }
 
 // NewTenantPlanChanged creates a new TenantPlanChanged event.
-func NewTenantPlanChanged(tenantID types.ID, oldPlan Plan, newPlan Plan, changedBy string, reason string) TenantPlanChanged {
+func NewTenantPlanChanged(tenantID types.ID, ownerEmail string, oldPlan, newPlan Plan, changedBy, reason string) TenantPlanChanged {
 	return TenantPlanChanged{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeTenantPlanChanged,
@@ -275,21 +291,23 @@ func NewTenantPlanChanged(tenantID types.ID, oldPlan Plan, newPlan Plan, changed
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
-		OldPlan:   oldPlan.String(),
-		NewPlan:   newPlan.String(),
-		ChangedBy: changedBy,
-		Reason:    reason,
+		OwnerEmail: ownerEmail,
+		OldPlan:    oldPlan.String(),
+		NewPlan:    newPlan.String(),
+		ChangedBy:  changedBy,
+		Reason:     reason,
 	}
 }
 
 // Payload returns the event payload.
 func (e TenantPlanChanged) Payload() map[string]any {
 	return map[string]any{
-		"tenant_id":  e.TenantID.String(),
-		"old_plan":   e.OldPlan,
-		"new_plan":   e.NewPlan,
-		"changed_by": e.ChangedBy,
-		"reason":     e.Reason,
+		"tenant_id":   e.TenantID.String(),
+		"owner_email": e.OwnerEmail,
+		"old_plan":    e.OldPlan,
+		"new_plan":    e.NewPlan,
+		"changed_by":  e.ChangedBy,
+		"reason":      e.Reason,
 	}
 }
 
@@ -300,12 +318,13 @@ func (e TenantPlanChanged) Payload() map[string]any {
 // TenantDeleted is emitted when a tenant is deleted.
 type TenantDeleted struct {
 	EventMetadata
-	Reason    string `json:"reason,omitempty"`
-	DeletedBy string `json:"deleted_by"`
+	OwnerEmail string `json:"owner_email"`
+	Reason     string `json:"reason,omitempty"`
+	DeletedBy  string `json:"deleted_by"`
 }
 
 // NewTenantDeleted creates a new TenantDeleted event.
-func NewTenantDeleted(tenantID types.ID, reason string, deletedBy string) TenantDeleted {
+func NewTenantDeleted(tenantID types.ID, ownerEmail, reason, deletedBy string) TenantDeleted {
 	return TenantDeleted{
 		EventMetadata: EventMetadata{
 			EventType_: EventTypeTenantDeleted,
@@ -313,16 +332,18 @@ func NewTenantDeleted(tenantID types.ID, reason string, deletedBy string) Tenant
 			TenantID:   tenantID,
 			Metadata:   make(map[string]any),
 		},
-		Reason:    reason,
-		DeletedBy: deletedBy,
+		OwnerEmail: ownerEmail,
+		Reason:     reason,
+		DeletedBy:  deletedBy,
 	}
 }
 
 // Payload returns the event payload.
 func (e TenantDeleted) Payload() map[string]any {
 	return map[string]any{
-		"tenant_id":  e.TenantID.String(),
-		"reason":     e.Reason,
-		"deleted_by": e.DeletedBy,
+		"tenant_id":   e.TenantID.String(),
+		"owner_email": e.OwnerEmail,
+		"reason":      e.Reason,
+		"deleted_by":  e.DeletedBy,
 	}
 }
