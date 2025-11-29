@@ -77,6 +77,47 @@ func (c *redisCache) Exists(ctx context.Context, key string) (bool, error) {
 	return n > 0, nil
 }
 
+// Increment atomically increments a key by delta and returns the new value.
+func (c *redisCache) Increment(ctx context.Context, key string, delta int64) (int64, error) {
+	val, err := c.client.IncrBy(ctx, key, delta).Result()
+	if err != nil {
+		return 0, fmt.Errorf("redis increment failed: %w", err)
+	}
+	return val, nil
+}
+
+// Expire sets a TTL on an existing key.
+func (c *redisCache) Expire(ctx context.Context, key string, ttl time.Duration) error {
+	set, err := c.client.Expire(ctx, key, ttl).Result()
+	if err != nil {
+		return fmt.Errorf("redis expire failed: %w", err)
+	}
+	if !set {
+		return cache.ErrKeyNotFound
+	}
+	return nil
+}
+
+// TTL returns the remaining time-to-live for a key.
+func (c *redisCache) TTL(ctx context.Context, key string) (time.Duration, error) {
+	ttl, err := c.client.TTL(ctx, key).Result()
+	if err != nil {
+		return 0, fmt.Errorf("redis ttl failed: %w", err)
+	}
+
+	// Redis returns -2 if the key does not exist
+	if ttl == -2*time.Second {
+		return 0, cache.ErrKeyNotFound
+	}
+
+	// Redis returns -1 if the key exists but has no expiration
+	if ttl == -1*time.Second {
+		return 0, nil
+	}
+
+	return ttl, nil
+}
+
 // Close closes the Redis connection.
 func (c *redisCache) Close() error {
 	return c.client.Close()
