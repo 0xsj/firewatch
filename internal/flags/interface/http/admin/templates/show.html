@@ -1,0 +1,215 @@
+{{define "content"}}
+<div class="card">
+  <div class="card-header">
+    <div class="flex items-center gap-2">
+      <h2 class="card-title">{{.Content.Name}}</h2>
+      <button
+        class="toggle-btn {{if .Content.Enabled}}enabled{{else}}disabled{{end}}"
+        hx-post="/admin/flags/{{.Content.ID}}/toggle"
+        hx-swap="outerHTML"
+        title="Click to {{if .Content.Enabled}}disable{{else}}enable{{end}}"
+      >
+        {{if .Content.Enabled}}ON{{else}}OFF{{end}}
+      </button>
+    </div>
+    <div class="flex gap-2">
+      <a href="/admin/flags/{{.Content.ID}}/edit" class="btn btn-secondary">Edit</a>
+      <a href="/admin/flags?tenant_id={{.Content.TenantID}}" class="btn btn-secondary">← Back</a>
+    </div>
+  </div>
+
+  <!-- Basic Info -->
+  <div class="mb-4">
+    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem">Details</h3>
+    <table class="table" style="max-width: 500px">
+      <tr>
+        <td class="text-muted" style="width: 120px">Key</td>
+        <td>
+          <code
+            style="background: var(--gray-100); padding: 0.125rem 0.5rem; border-radius: 0.25rem"
+            >{{.Content.Key}}</code
+          >
+        </td>
+      </tr>
+      <tr>
+        <td class="text-muted">Tenant ID</td>
+        <td>{{.Content.TenantID}}</td>
+      </tr>
+      <tr>
+        <td class="text-muted">Description</td>
+        <td>
+          {{if .Content.Description}}{{.Content.Description}}{{else}}<span class="text-muted"
+            >—</span
+          >{{end}}
+        </td>
+      </tr>
+      <tr>
+        <td class="text-muted">Created</td>
+        <td>{{.Content.CreatedAt}}</td>
+      </tr>
+      <tr>
+        <td class="text-muted">Updated</td>
+        <td>{{.Content.UpdatedAt}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Variants -->
+  <div class="mb-4">
+    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem">Variants</h3>
+    {{if .Content.Variants}}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Value</th>
+          <th>Weight</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Content.Variants}}
+        <tr>
+          <td>
+            <code
+              style="background: var(--gray-100); padding: 0.125rem 0.5rem; border-radius: 0.25rem"
+              >{{.Key}}</code
+            >
+          </td>
+          <td>{{.Value}}</td>
+          <td>{{.Weight}}%</td>
+          <td class="text-muted text-sm">{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
+          <td>
+            {{if eq .Key $.Content.DefaultVariant}}
+            <span class="badge badge-success">Default</span>
+            {{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="text-muted">No variants defined.</p>
+    {{end}}
+  </div>
+
+  <!-- Rules -->
+  <div class="mb-4">
+    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem">Targeting Rules</h3>
+    {{if .Content.Rules}}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Priority</th>
+          <th>Type</th>
+          <th>Condition</th>
+          <th>Variant</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Content.Rules}}
+        <tr>
+          <td>{{.Priority}}</td>
+          <td>
+            <span class="badge badge-gray">{{.Type}}</span>
+          </td>
+          <td>
+            {{if eq .Type "percent"}} {{.Percentage}}% of traffic {{else if eq .Type "tenant"}}
+            Tenant in [{{range $i, $v := .Values}}{{if $i}}, {{end}}{{$v}}{{end}}] {{else if eq
+            .Type "user"}} User in [{{range $i, $v := .Values}}{{if $i}}, {{end}}{{$v}}{{end}}]
+            {{else if eq .Type "attribute"}} {{.Attribute}} {{.Operator}} {{range $i, $v :=
+            .Values}}{{if $i}}, {{end}}{{$v}}{{end}} {{else}} — {{end}}
+          </td>
+          <td>
+            <code
+              style="background: var(--gray-100); padding: 0.125rem 0.5rem; border-radius: 0.25rem"
+              >{{.VariantKey}}</code
+            >
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="text-muted">No targeting rules. All users will receive the default variant.</p>
+    {{end}}
+  </div>
+
+  <!-- Overrides -->
+  <div class="mb-4">
+    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem">Overrides</h3>
+    {{if .Content.Overrides}}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Target Type</th>
+          <th>Target ID</th>
+          <th>Variant</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Content.Overrides}}
+        <tr>
+          <td><span class="badge badge-gray">{{.TargetType}}</span></td>
+          <td>{{.TargetID}}</td>
+          <td>
+            <code
+              style="background: var(--gray-100); padding: 0.125rem 0.5rem; border-radius: 0.25rem"
+              >{{.VariantKey}}</code
+            >
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="text-muted">No overrides configured.</p>
+    {{end}}
+  </div>
+
+  <!-- Usage -->
+  <div class="mb-4">
+    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem">Usage</h3>
+    <p class="text-sm text-muted mb-4">Use this flag in your code:</p>
+    <pre
+      style="
+        background: var(--gray-900);
+        color: #e5e7eb;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+        font-size: 0.875rem;
+      "
+    ><code>// Check if flag is enabled
+if flags.IsEnabled(ctx, "{{.Content.Key}}") {
+    // Feature is enabled
+}
+
+// Get variant value
+variant := flags.GetVariant(ctx, "{{.Content.Key}}")
+if variant == "enabled" {
+    // Use enabled variant
+}</code></pre>
+  </div>
+
+  <!-- Danger Zone -->
+  <div
+    style="border: 1px solid var(--danger); border-radius: 0.5rem; padding: 1rem; margin-top: 2rem"
+  >
+    <h3 style="font-size: 1rem; font-weight: 600; color: var(--danger); margin-bottom: 0.5rem">
+      Danger Zone
+    </h3>
+    <p class="text-sm text-muted mb-4">
+      Deleting a flag cannot be undone. Make sure no code depends on this flag.
+    </p>
+    <button
+      class="btn btn-danger"
+      hx-delete="/admin/flags/{{.Content.ID}}"
+      hx-confirm="Are you sure you want to delete '{{.Content.Key}}'? This action cannot be undone."
+    >
+      Delete Flag
+    </button>
+  </div>
+</div>
+{{end}}

@@ -11,7 +11,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/flags/application/query"
 	"github.com/0xsj/hexagonal-go/internal/flags/domain"
 	"github.com/0xsj/hexagonal-go/internal/flags/infrastructure/repository"
-	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
+	v1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"

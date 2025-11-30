@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
 	repository5 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
@@ -24,7 +25,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
-	"github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
 	command2 "github.com/0xsj/hexagonal-go/internal/tenant/application/command"
@@ -43,9 +44,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/0xsj/hexagonal-go/pkg/storage"
 	"github.com/0xsj/hexagonal-go/pkg/worker/postgres"
-)
 
-import (
 	_ "github.com/0xsj/hexagonal-go/docs/swagger"
 )
 
@@ -133,6 +132,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	listFlagsQuery := query4.NewListFlagsQuery(postgresRepository2)
 	evaluateFlagQuery := query4.NewEvaluateFlagQuery(postgresRepository2)
 	handler3 := v1_4.NewHandler(createFlagCommand, updateFlagCommand, deleteFlagCommand, enableFlagCommand, disableFlagCommand, addRuleCommand, removeRuleCommand, setOverrideCommand, removeOverrideCommand, getFlagQuery, listFlagsQuery, evaluateFlagQuery, logger)
+	client := provider.ProvideFlagsClient(db, logger)
 	postgresRepository3 := repository5.NewPostgresRepository(db)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository3, logger)
 	queue := ProvideJobQueue(db)
@@ -166,6 +166,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		TenantHandler:                v1Handler,
 		EmailHandler:                 handler2,
 		FlagsHandler:                 handler3,
+		FlagsClient:                  client,
 		AuditSubscriber:              eventSubscriber,
 		UserNotificationSubscriber:   userEventSubscriber,
 		TenantNotificationSubscriber: tenantEventSubscriber,

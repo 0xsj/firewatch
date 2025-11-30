@@ -1,0 +1,218 @@
+{{define "content"}}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Edit: {{.Content.Name}}</h2>
+    <div class="flex gap-2">
+      <a href="/admin/flags/{{.Content.ID}}" class="btn btn-secondary">← Back to Flag</a>
+    </div>
+  </div>
+
+  <form
+    method="POST"
+    action="/admin/flags/{{.Content.ID}}"
+    hx-post="/admin/flags/{{.Content.ID}}"
+    hx-swap="none"
+  >
+    <div class="form-group">
+      <label class="form-label">Key</label>
+      <input
+        type="text"
+        class="form-input"
+        value="{{.Content.Key}}"
+        disabled
+        style="background: var(--gray-100); cursor: not-allowed"
+      />
+      <p class="form-hint">Flag keys cannot be changed after creation.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Tenant ID</label>
+      <input
+        type="text"
+        class="form-input"
+        value="{{.Content.TenantID}}"
+        disabled
+        style="background: var(--gray-100); cursor: not-allowed"
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="name">Name</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        class="form-input"
+        placeholder="My Feature Flag"
+        value="{{.Content.Name}}"
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="description">Description</label>
+      <textarea
+        id="description"
+        name="description"
+        class="form-input form-textarea"
+        placeholder="Describe what this flag controls..."
+      >
+{{.Content.Description}}</textarea
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="toggle-btn {{if .Content.Enabled}}enabled{{else}}disabled{{end}}"
+          hx-post="/admin/flags/{{.Content.ID}}/toggle"
+          hx-swap="outerHTML"
+          title="Click to {{if .Content.Enabled}}disable{{else}}enable{{end}}"
+        >
+          {{if .Content.Enabled}}ON{{else}}OFF{{end}}
+        </button>
+        <span class="text-sm text-muted">
+          {{if .Content.Enabled}}Flag is currently enabled{{else}}Flag is currently disabled{{end}}
+        </span>
+      </div>
+    </div>
+
+    <div class="flex gap-2">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="/admin/flags/{{.Content.ID}}" class="btn btn-secondary"> Cancel </a>
+    </div>
+  </form>
+</div>
+
+<!-- Variants Section -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Variants</h3>
+  </div>
+
+  {{if .Content.Variants}}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>Value</th>
+        <th>Weight</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Content.Variants}}
+      <tr>
+        <td>
+          <code
+            style="background: var(--gray-100); padding: 0.125rem 0.5rem; border-radius: 0.25rem"
+            >{{.Key}}</code
+          >
+        </td>
+        <td>{{.Value}}</td>
+        <td>{{.Weight}}%</td>
+        <td>
+          {{if eq .Key $.Content.DefaultVariant}}
+          <span class="badge badge-success">Default</span>
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="text-muted">No variants defined.</p>
+  {{end}}
+
+  <p class="text-sm text-muted mt-4">
+    Variant management coming soon. Use the API to add/remove variants.
+  </p>
+</div>
+
+<!-- Rules Section -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Targeting Rules</h3>
+  </div>
+
+  {{if .Content.Rules}}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Priority</th>
+        <th>Type</th>
+        <th>Condition</th>
+        <th>Variant</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Content.Rules}}
+      <tr>
+        <td>{{.Priority}}</td>
+        <td><span class="badge badge-gray">{{.Type}}</span></td>
+        <td>
+          {{if eq .Type "percent"}} {{.Percentage}}% of traffic {{else if eq .Type "tenant"}} Tenant
+          in [{{range $i, $v := .Values}}{{if $i}}, {{end}}{{$v}}{{end}}] {{else if eq .Type
+          "user"}} User in [{{range $i, $v := .Values}}{{if $i}}, {{end}}{{$v}}{{end}}] {{else if eq
+          .Type "attribute"}} {{.Attribute}} {{.Operator}} {{range $i, $v := .Values}}{{if $i}},
+          {{end}}{{$v}}{{end}} {{else}} — {{end}}
+        </td>
+        <td>
+          <code
+            style="background: var(--gray-100); padding: 0.125rem 0.5rem; border-radius: 0.25rem"
+            >{{.VariantKey}}</code
+          >
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="text-muted">No targeting rules configured.</p>
+  {{end}}
+
+  <p class="text-sm text-muted mt-4">
+    Rule management coming soon. Use the API to add/remove rules.
+  </p>
+</div>
+
+<!-- Overrides Section -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Overrides</h3>
+  </div>
+
+  {{if .Content.Overrides}}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Target Type</th>
+        <th>Target ID</th>
+        <th>Variant</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Content.Overrides}}
+      <tr>
+        <td><span class="badge badge-gray">{{.TargetType}}</span></td>
+        <td>{{.TargetID}}</td>
+        <td>
+          <code
+            style="background: var(--gray-100); padding: 0.125rem 0.5rem; border-radius: 0.25rem"
+            >{{.VariantKey}}</code
+          >
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="text-muted">No overrides configured.</p>
+  {{end}}
+
+  <p class="text-sm text-muted mt-4">
+    Override management coming soon. Use the API to add/remove overrides.
+  </p>
+</div>
+{{end}}

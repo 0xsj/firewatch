@@ -1,0 +1,76 @@
+{{define "content"}}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Create Feature Flag</h2>
+    <a href="/admin/flags?tenant_id={{.Content.TenantID}}" class="btn btn-secondary">
+      ← Back to List
+    </a>
+  </div>
+
+  <form method="POST" action="/admin/flags" hx-post="/admin/flags" hx-swap="none">
+    <input type="hidden" name="tenant_id" value="{{.Content.TenantID}}" />
+
+    <div class="form-group">
+      <label class="form-label" for="key">Key *</label>
+      <input
+        type="text"
+        id="key"
+        name="key"
+        class="form-input"
+        placeholder="my_feature_flag"
+        value="{{if .Content.Form}}{{.Content.Form.Key}}{{end}}"
+        required
+        pattern="^[a-z][a-z0-9_-]*$"
+      />
+      <p class="form-hint">
+        Lowercase letters, numbers, underscores, and hyphens. Must start with a letter.
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="name">Name</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        class="form-input"
+        placeholder="My Feature Flag"
+        value="{{if .Content.Form}}{{.Content.Form.Name}}{{end}}"
+      />
+      <p class="form-hint">Human-readable name. Defaults to key if not provided.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="description">Description</label>
+      <textarea
+        id="description"
+        name="description"
+        class="form-input form-textarea"
+        placeholder="Describe what this flag controls..."
+      >
+{{if .Content.Form}}{{.Content.Form.Description}}{{end}}</textarea
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-checkbox">
+        <input
+          type="checkbox"
+          id="enabled"
+          name="enabled"
+          {{if
+          .Content.Form}}{{if
+          .Content.Form.Enabled}}checked{{end}}{{end}}
+        />
+        <span>Enable flag immediately</span>
+      </label>
+      <p class="form-hint">If unchecked, the flag will be created in a disabled state.</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button type="submit" class="btn btn-primary">Create Flag</button>
+      <a href="/admin/flags?tenant_id={{.Content.TenantID}}" class="btn btn-secondary"> Cancel </a>
+    </div>
+  </form>
+</div>
+{{end}}

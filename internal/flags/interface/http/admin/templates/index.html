@@ -1,0 +1,100 @@
+{{define "content"}}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Feature Flags</h2>
+    <a href="/admin/flags/new?tenant_id={{.Content.TenantID}}" class="btn btn-primary">
+      + Create Flag
+    </a>
+  </div>
+
+  <div class="mb-4">
+    <form method="GET" action="/admin/flags" class="flex gap-2 items-center">
+      <label class="text-sm text-muted">Tenant:</label>
+      <input
+        type="text"
+        name="tenant_id"
+        value="{{.Content.TenantID}}"
+        class="form-input"
+        style="width: 200px"
+        placeholder="Tenant ID"
+      />
+      <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+    </form>
+  </div>
+
+  {{if .Content.Flags}}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Key</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Rules</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Content.Flags}} {{template "flag-row" .}} {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <div class="text-center text-muted" style="padding: 3rem">
+    <p>No feature flags found.</p>
+    <p class="mt-4">
+      <a href="/admin/flags/new?tenant_id={{.Content.TenantID}}" class="btn btn-primary">
+        Create your first flag
+      </a>
+    </p>
+  </div>
+  {{end}}
+</div>
+{{end}} {{define "flag-row"}}
+<tr id="flag-{{.ID}}">
+  <td>
+    <button
+      class="toggle-btn {{if .Enabled}}enabled{{else}}disabled{{end}}"
+      hx-post="/admin/flags/{{.ID}}/toggle"
+      hx-swap="outerHTML"
+      title="Click to {{if .Enabled}}disable{{else}}enable{{end}}"
+    >
+      {{if .Enabled}}ON{{else}}OFF{{end}}
+    </button>
+  </td>
+  <td>
+    <a
+      href="/admin/flags/{{.ID}}"
+      style="color: var(--primary); text-decoration: none; font-weight: 500"
+    >
+      {{.Key}}
+    </a>
+  </td>
+  <td>{{.Name}}</td>
+  <td class="text-muted text-sm">
+    {{if .Description}} {{if gt (len .Description) 50}} {{slice .Description 0 50}}... {{else}}
+    {{.Description}} {{end}} {{else}} — {{end}}
+  </td>
+  <td>
+    {{if .Rules}}
+    <span class="badge badge-gray">{{len .Rules}} rules</span>
+    {{else}}
+    <span class="text-muted text-sm">—</span>
+    {{end}}
+  </td>
+  <td>
+    <div class="flex gap-2">
+      <a href="/admin/flags/{{.ID}}" class="btn btn-secondary btn-sm">View</a>
+      <a href="/admin/flags/{{.ID}}/edit" class="btn btn-secondary btn-sm">Edit</a>
+      <button
+        class="btn btn-danger btn-sm"
+        hx-delete="/admin/flags/{{.ID}}"
+        hx-confirm="Are you sure you want to delete this flag?"
+        hx-target="#flag-{{.ID}}"
+        hx-swap="outerHTML"
+      >
+        Delete
+      </button>
+    </div>
+  </td>
+</tr>
+{{end}}

@@ -1,0 +1,11 @@
+{{define "content"}}
+<div class="card" style="text-align: center; padding: 3rem">
+  <div style="font-size: 4rem; margin-bottom: 1rem">⚠️</div>
+  <h2 style="margin-bottom: 1rem">Something went wrong</h2>
+  <p class="text-muted mb-4">{{.Error}}</p>
+  <div class="flex gap-2" style="justify-content: center">
+    <a href="/admin/flags" class="btn btn-primary">← Back to Flags</a>
+    <button onclick="history.back()" class="btn btn-secondary">Go Back</button>
+  </div>
+</div>
+{{end}}
