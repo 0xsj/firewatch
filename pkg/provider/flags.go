@@ -15,6 +15,7 @@ func ProvideFlagsClient(db database.DB, log logger.Logger) flags.Client {
 	return flags.NewClient(
 		repo,
 		log,
-		flags.WithCache(5*time.Minute),
+		flags.WithCache(10*time.Second), // Short TTL for development
+		flags.WithDefaultTenant("default"),
 	)
 }

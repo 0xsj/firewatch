@@ -10,6 +10,7 @@ import (
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit"
+	"github.com/0xsj/hexagonal-go/internal/demo"
 	"github.com/0xsj/hexagonal-go/internal/email"
 	"github.com/0xsj/hexagonal-go/internal/flags"
 	"github.com/0xsj/hexagonal-go/internal/identity"
@@ -82,6 +83,9 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 
 		// Flags domain
 		flags.FlagsSet,
+
+		// Demo handler
+		demo.NewHandler,
 
 		// Wire the App struct
 		wire.Struct(new(App), "*"),

@@ -30,7 +30,6 @@
         <th>Key</th>
         <th>Name</th>
         <th>Description</th>
-        <th>Rules</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -73,13 +72,6 @@
   <td class="text-muted text-sm">
     {{if .Description}} {{if gt (len .Description) 50}} {{slice .Description 0 50}}... {{else}}
     {{.Description}} {{end}} {{else}} — {{end}}
-  </td>
-  <td>
-    {{if .Rules}}
-    <span class="badge badge-gray">{{len .Rules}} rules</span>
-    {{else}}
-    <span class="text-muted text-sm">—</span>
-    {{end}}
   </td>
   <td>
     <div class="flex gap-2">

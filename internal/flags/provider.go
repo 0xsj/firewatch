@@ -10,6 +10,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/flags/application/query"
 	"github.com/0xsj/hexagonal-go/internal/flags/domain"
 	"github.com/0xsj/hexagonal-go/internal/flags/infrastructure/repository"
+	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/admin"
 	v1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
@@ -38,8 +39,11 @@ var FlagsSet = wire.NewSet(
 	query.NewListFlagsQuery,
 	query.NewEvaluateFlagQuery,
 
-	// Interface - HTTP Handler
+	// Interface - HTTP Handler (API)
 	v1.NewHandler,
+
+	// Interface - HTTP Handler (Admin Dashboard)
+	admin.NewHandler,
 )
 
 // ProvideModule wires up the complete Flags module.

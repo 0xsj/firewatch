@@ -11,6 +11,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/flags/application/query"
 	"github.com/0xsj/hexagonal-go/internal/flags/domain"
 	"github.com/0xsj/hexagonal-go/internal/flags/infrastructure/repository"
+	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/admin"
 	v1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
@@ -42,4 +43,4 @@ func ProvideModule(db database.DB, eventPublisher *messaging.DomainEventPublishe
 // provider.go:
 
 // FlagsSet provides all dependencies for the Flags domain.
-var FlagsSet = wire.NewSet(repository.NewPostgresRepository, wire.Bind(new(domain.Repository), new(*repository.PostgresRepository)), command.NewCreateFlagCommand, command.NewUpdateFlagCommand, command.NewDeleteFlagCommand, command.NewEnableFlagCommand, command.NewDisableFlagCommand, command.NewAddRuleCommand, command.NewRemoveRuleCommand, command.NewSetOverrideCommand, command.NewRemoveOverrideCommand, query.NewGetFlagQuery, query.NewListFlagsQuery, query.NewEvaluateFlagQuery, v1.NewHandler)
+var FlagsSet = wire.NewSet(repository.NewPostgresRepository, wire.Bind(new(domain.Repository), new(*repository.PostgresRepository)), command.NewCreateFlagCommand, command.NewUpdateFlagCommand, command.NewDeleteFlagCommand, command.NewEnableFlagCommand, command.NewDisableFlagCommand, command.NewAddRuleCommand, command.NewRemoveRuleCommand, command.NewSetOverrideCommand, command.NewRemoveOverrideCommand, query.NewGetFlagQuery, query.NewListFlagsQuery, query.NewEvaluateFlagQuery, v1.NewHandler, admin.NewHandler)

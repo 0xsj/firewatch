@@ -12,6 +12,7 @@ import (
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
 	repository5 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
+	"github.com/0xsj/hexagonal-go/internal/demo"
 	"github.com/0xsj/hexagonal-go/internal/email"
 	command3 "github.com/0xsj/hexagonal-go/internal/email/application/command"
 	query3 "github.com/0xsj/hexagonal-go/internal/email/application/query"
@@ -20,6 +21,7 @@ import (
 	command4 "github.com/0xsj/hexagonal-go/internal/flags/application/command"
 	query4 "github.com/0xsj/hexagonal-go/internal/flags/application/query"
 	repository4 "github.com/0xsj/hexagonal-go/internal/flags/infrastructure/repository"
+	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/admin"
 	v1_4 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
@@ -132,7 +134,9 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	listFlagsQuery := query4.NewListFlagsQuery(postgresRepository2)
 	evaluateFlagQuery := query4.NewEvaluateFlagQuery(postgresRepository2)
 	handler3 := v1_4.NewHandler(createFlagCommand, updateFlagCommand, deleteFlagCommand, enableFlagCommand, disableFlagCommand, addRuleCommand, removeRuleCommand, setOverrideCommand, removeOverrideCommand, getFlagQuery, listFlagsQuery, evaluateFlagQuery, logger)
+	adminHandler := admin.NewHandler(createFlagCommand, updateFlagCommand, deleteFlagCommand, enableFlagCommand, disableFlagCommand, getFlagQuery, listFlagsQuery, logger)
 	client := provider.ProvideFlagsClient(db, logger)
+	demoHandler := demo.NewHandler(client, logger)
 	postgresRepository3 := repository5.NewPostgresRepository(db)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository3, logger)
 	queue := ProvideJobQueue(db)
@@ -166,6 +170,8 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		TenantHandler:                v1Handler,
 		EmailHandler:                 handler2,
 		FlagsHandler:                 handler3,
+		FlagsAdminHandler:            adminHandler,
+		DemoHandler:                  demoHandler,
 		FlagsClient:                  client,
 		AuditSubscriber:              eventSubscriber,
 		UserNotificationSubscriber:   userEventSubscriber,

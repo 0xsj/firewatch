@@ -2,7 +2,9 @@ package main
 
 import (
 	auditsubscriber "github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
+	"github.com/0xsj/hexagonal-go/internal/demo"
 	emailv1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
+	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/admin"
 	flagsv1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
 	identityv1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	notificationjobs "github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
@@ -28,10 +30,14 @@ type App struct {
 	EventBus messaging.Publisher
 
 	// Domain Handlers
-	IdentityHandler *identityv1.Handler
-	TenantHandler   *tenantv1.Handler
-	EmailHandler    *emailv1.Handler
-	FlagsHandler    *flagsv1.Handler
+	IdentityHandler   *identityv1.Handler
+	TenantHandler     *tenantv1.Handler
+	EmailHandler      *emailv1.Handler
+	FlagsHandler      *flagsv1.Handler
+	FlagsAdminHandler *admin.Handler
+
+	// Demo Handler
+	DemoHandler *demo.Handler
 
 	// Feature Flags Client (SDK)
 	FlagsClient flags.Client

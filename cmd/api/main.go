@@ -38,7 +38,9 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
+	"github.com/0xsj/hexagonal-go/internal/demo"
 	emailv1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
+	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/admin"
 	flagsv1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
 	tenantv1 "github.com/0xsj/hexagonal-go/internal/tenant/interface/http/v1"
 	pkghttp "github.com/0xsj/hexagonal-go/pkg/http"
@@ -139,6 +141,14 @@ func run() error {
 	// Mount flags routes
 	flagsRouter := flagsv1.NewRouter(app.FlagsHandler, app.JWTService, app.Logger, corsConfig)
 	root.Mount("/api/v1/flags", flagsRouter)
+
+	// Mount demo routes
+	demoRouter := demo.NewRouter(app.DemoHandler, app.Logger)
+	root.Mount("/demo", demoRouter)
+
+	// Mount flags admin dashboard (public for development)
+	flagsAdminRouter := admin.NewPublicRouter(app.FlagsAdminHandler, app.Logger)
+	root.Mount("/admin/flags", flagsAdminRouter)
 
 	// Mount identity routes (includes /health and /api/v1/users, /api/v1/auth, etc.)
 	identityRouter := app.IdentityHandler.Routes(app.Logger, corsConfig, app.JWTService)
@@ -251,6 +261,7 @@ func printEndpoints(port, metricsPort int) {
 	fmt.Printf("  POST %s/api/v1/email/templates/{id}/preview\n", baseURL)
 	fmt.Printf("  GET  %s/api/v1/email/templates/by-slug?slug=...&locale=...\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/email/templates/preview-by-slug\n", baseURL)
+	fmt.Println()
 	fmt.Println("Protected - Feature Flags (requires JWT):")
 	fmt.Printf("  GET  %s/api/v1/flags\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/flags\n", baseURL)
@@ -265,6 +276,12 @@ func printEndpoints(port, metricsPort int) {
 	fmt.Printf("  POST %s/api/v1/flags/{id}/overrides\n", baseURL)
 	fmt.Printf("  DELETE %s/api/v1/flags/{id}/overrides\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/flags/{key}/evaluate\n", baseURL)
+	fmt.Println()
+	fmt.Println("Admin Dashboard:")
+	fmt.Printf("  GET  %s/admin/flags\n", baseURL)
+	fmt.Printf("  GET  %s/admin/flags/new\n", baseURL)
+	fmt.Printf("  GET  %s/admin/flags/{id}\n", baseURL)
+	fmt.Printf("  GET  %s/admin/flags/{id}/edit\n", baseURL)
 	fmt.Println()
 	fmt.Println()
 	fmt.Println("Observability:")
