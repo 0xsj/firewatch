@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
 	repository6 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
@@ -26,7 +27,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
-	"github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
 	command5 "github.com/0xsj/hexagonal-go/internal/permissions/application/command"
@@ -49,9 +50,7 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/0xsj/hexagonal-go/pkg/storage"
 	"github.com/0xsj/hexagonal-go/pkg/worker/postgres"
-)
 
-import (
 	_ "github.com/0xsj/hexagonal-go/docs/swagger"
 )
 

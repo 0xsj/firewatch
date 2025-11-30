@@ -11,7 +11,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/email/application/query"
 	"github.com/0xsj/hexagonal-go/internal/email/domain"
 	"github.com/0xsj/hexagonal-go/internal/email/infrastructure/repository"
-	"github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
+	v1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/database"
 	"github.com/0xsj/hexagonal-go/pkg/email"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"

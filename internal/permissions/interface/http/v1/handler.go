@@ -13,16 +13,16 @@ import (
 
 // Handler handles HTTP requests for the Permissions domain (v1 API).
 type Handler struct {
-	createRoleCmd          *command.CreateRoleCommand
-	updateRoleCmd          *command.UpdateRoleCommand
-	deleteRoleCmd          *command.DeleteRoleCommand
-	assignRoleCmd          *command.AssignRoleCommand
-	revokeRoleCmd          *command.RevokeRoleCommand
-	getRoleQuery           *query.GetRoleQuery
-	listRolesQuery         *query.ListRolesQuery
+	createRoleCmd           *command.CreateRoleCommand
+	updateRoleCmd           *command.UpdateRoleCommand
+	deleteRoleCmd           *command.DeleteRoleCommand
+	assignRoleCmd           *command.AssignRoleCommand
+	revokeRoleCmd           *command.RevokeRoleCommand
+	getRoleQuery            *query.GetRoleQuery
+	listRolesQuery          *query.ListRolesQuery
 	getUserPermissionsQuery *query.GetUserPermissionsQuery
-	checkPermissionQuery   *query.CheckPermissionQuery
-	logger                 logger.Logger
+	checkPermissionQuery    *query.CheckPermissionQuery
+	logger                  logger.Logger
 }
 
 // NewHandler creates a new v1 permissions HTTP handler.
@@ -39,16 +39,16 @@ func NewHandler(
 	log logger.Logger,
 ) *Handler {
 	return &Handler{
-		createRoleCmd:          createRoleCmd,
-		updateRoleCmd:          updateRoleCmd,
-		deleteRoleCmd:          deleteRoleCmd,
-		assignRoleCmd:          assignRoleCmd,
-		revokeRoleCmd:          revokeRoleCmd,
-		getRoleQuery:           getRoleQuery,
-		listRolesQuery:         listRolesQuery,
+		createRoleCmd:           createRoleCmd,
+		updateRoleCmd:           updateRoleCmd,
+		deleteRoleCmd:           deleteRoleCmd,
+		assignRoleCmd:           assignRoleCmd,
+		revokeRoleCmd:           revokeRoleCmd,
+		getRoleQuery:            getRoleQuery,
+		listRolesQuery:          listRolesQuery,
 		getUserPermissionsQuery: getUserPermissionsQuery,
-		checkPermissionQuery:   checkPermissionQuery,
-		logger:                 log,
+		checkPermissionQuery:    checkPermissionQuery,
+		logger:                  log,
 	}
 }
 
@@ -436,6 +436,17 @@ func (h *Handler) GetMyPermissions(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Info("permissions retrieved", logger.String("user_id", userIDStr), logger.Int("count", len(resp.Permissions.Permissions)))
 	response.JSON(w, http.StatusOK, resp.Permissions)
+}
+
+// Health godoc
+// @Summary      Permissions health check
+// @Description  Returns OK if the permissions service is healthy
+// @Tags         permissions
+// @Produce      json
+// @Success      200 {object} MessageResponse "Service is healthy"
+// @Router       /api/v1/permissions/health [get]
+func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
+	RespondWithMessage(w, "permissions OK")
 }
 
 // CheckPermission godoc

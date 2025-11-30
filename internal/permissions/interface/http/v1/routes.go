@@ -9,7 +9,7 @@ import (
 )
 
 // Routes creates and configures the Chi router for v1 Permissions API.
-// Returns a chi.Router with all middleware and routes configured.
+// This router should be mounted at /api/v1/permissions.
 func (h *Handler) Routes(log logger.Logger, corsConfig middleware.CORSConfig, jwtService jwt.Service) chi.Router {
 	r := chi.NewRouter()
 
@@ -23,43 +23,42 @@ func (h *Handler) Routes(log logger.Logger, corsConfig middleware.CORSConfig, jw
 	r.Use(middleware.Recovery(log))
 
 	// ========================================================================
-	// API v1 Routes
+	// Public Routes (no authentication required)
 	// ========================================================================
+	r.Get("/health", h.Health)
 
-	r.Route("/api/v1", func(r chi.Router) {
-		// ====================================================================
-		// Protected Routes (authentication required)
-		// ====================================================================
+	// ========================================================================
+	// Protected Routes (authentication required)
+	// ========================================================================
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RequireAuth(jwtService, log))
+
+		// ================================================================
+		// Permission queries (any authenticated user)
+		// ================================================================
+		r.Get("/me", h.GetMyPermissions)
+		r.Get("/check", h.CheckPermission)
+
+		// ================================================================
+		// Role queries (any authenticated user can view)
+		// ================================================================
+		r.Get("/roles", h.ListRoles)
+		r.Get("/roles/{id}", h.GetRole)
+
+		// ================================================================
+		// Admin routes (require admin role)
+		// ================================================================
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.RequireAuth(jwtService, log))
+			r.Use(middleware.RequireAdmin(log))
 
-			// ================================================================
-			// Permission queries (any authenticated user)
-			// ================================================================
-			r.Get("/permissions/me", h.GetMyPermissions)
-			r.Get("/permissions/check", h.CheckPermission)
+			// Role management
+			r.Post("/roles", h.CreateRole)
+			r.Put("/roles/{id}", h.UpdateRole)
+			r.Delete("/roles/{id}", h.DeleteRole)
 
-			// ================================================================
-			// Role queries (any authenticated user can view)
-			// ================================================================
-			r.Get("/roles", h.ListRoles)
-			r.Get("/roles/{id}", h.GetRole)
-
-			// ================================================================
-			// Admin routes (require admin role)
-			// ================================================================
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAdmin(log))
-
-				// Role management
-				r.Post("/roles", h.CreateRole)
-				r.Put("/roles/{id}", h.UpdateRole)
-				r.Delete("/roles/{id}", h.DeleteRole)
-
-				// Assignment management
-				r.Post("/assignments", h.AssignRole)
-				r.Post("/assignments/revoke", h.RevokeRole)
-			})
+			// Assignment management
+			r.Post("/assignments", h.AssignRole)
+			r.Post("/assignments/revoke", h.RevokeRole)
 		})
 	})
 

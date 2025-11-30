@@ -147,7 +147,7 @@ func run() error {
 
 	// Mount permissions routes
 	permissionsRouter := app.PermissionsHandler.Routes(app.Logger, corsConfig, app.JWTService)
-	root.Mount("", permissionsRouter)
+	root.Mount("/api/v1/permissions", permissionsRouter)
 
 	// Mount demo routes
 	demoRouter := demo.NewRouter(app.DemoHandler, app.Logger)
