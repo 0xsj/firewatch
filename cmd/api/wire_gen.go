@@ -8,10 +8,9 @@ package main
 
 import (
 	"context"
-
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
-	repository5 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
+	repository6 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
 	"github.com/0xsj/hexagonal-go/internal/demo"
 	"github.com/0xsj/hexagonal-go/internal/email"
 	command3 "github.com/0xsj/hexagonal-go/internal/email/application/command"
@@ -27,9 +26,13 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/identity/application/command"
 	"github.com/0xsj/hexagonal-go/internal/identity/application/query"
 	"github.com/0xsj/hexagonal-go/internal/identity/infrastructure/repository"
-	v1 "github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
+	"github.com/0xsj/hexagonal-go/internal/identity/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/notifications/application/jobs"
 	subscriber2 "github.com/0xsj/hexagonal-go/internal/notifications/application/subscriber"
+	command5 "github.com/0xsj/hexagonal-go/internal/permissions/application/command"
+	query5 "github.com/0xsj/hexagonal-go/internal/permissions/application/query"
+	repository5 "github.com/0xsj/hexagonal-go/internal/permissions/infrastructure/repository"
+	v1_5 "github.com/0xsj/hexagonal-go/internal/permissions/interface/http/v1"
 	command2 "github.com/0xsj/hexagonal-go/internal/tenant/application/command"
 	query2 "github.com/0xsj/hexagonal-go/internal/tenant/application/query"
 	repository2 "github.com/0xsj/hexagonal-go/internal/tenant/infrastructure/repository"
@@ -46,7 +49,9 @@ import (
 	"github.com/0xsj/hexagonal-go/pkg/security/jwt"
 	"github.com/0xsj/hexagonal-go/pkg/storage"
 	"github.com/0xsj/hexagonal-go/pkg/worker/postgres"
+)
 
+import (
 	_ "github.com/0xsj/hexagonal-go/docs/swagger"
 )
 
@@ -135,9 +140,21 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	evaluateFlagQuery := query4.NewEvaluateFlagQuery(postgresRepository2)
 	handler3 := v1_4.NewHandler(createFlagCommand, updateFlagCommand, deleteFlagCommand, enableFlagCommand, disableFlagCommand, addRuleCommand, removeRuleCommand, setOverrideCommand, removeOverrideCommand, getFlagQuery, listFlagsQuery, evaluateFlagQuery, logger)
 	adminHandler := admin.NewHandler(createFlagCommand, updateFlagCommand, deleteFlagCommand, enableFlagCommand, disableFlagCommand, getFlagQuery, listFlagsQuery, logger)
+	postgresRoleRepository := repository5.NewPostgresRoleRepository(db)
+	createRoleCommand := command5.NewCreateRoleCommand(postgresRoleRepository, domainEventPublisher, logger)
+	updateRoleCommand := command5.NewUpdateRoleCommand(postgresRoleRepository, domainEventPublisher, logger)
+	postgresAssignmentRepository := repository5.NewPostgresAssignmentRepository(db)
+	deleteRoleCommand := command5.NewDeleteRoleCommand(postgresRoleRepository, postgresAssignmentRepository, domainEventPublisher, logger)
+	assignRoleCommand := command5.NewAssignRoleCommand(postgresRoleRepository, postgresAssignmentRepository, domainEventPublisher, logger)
+	revokeRoleCommand := command5.NewRevokeRoleCommand(postgresRoleRepository, postgresAssignmentRepository, domainEventPublisher, logger)
+	getRoleQuery := query5.NewGetRoleQuery(postgresRoleRepository, logger)
+	listRolesQuery := query5.NewListRolesQuery(postgresRoleRepository, logger)
+	getUserPermissionsQuery := query5.NewGetUserPermissionsQuery(postgresRoleRepository, postgresAssignmentRepository, logger)
+	checkPermissionQuery := query5.NewCheckPermissionQuery(postgresRoleRepository, postgresAssignmentRepository, logger)
+	handler4 := v1_5.NewHandler(createRoleCommand, updateRoleCommand, deleteRoleCommand, assignRoleCommand, revokeRoleCommand, getRoleQuery, listRolesQuery, getUserPermissionsQuery, checkPermissionQuery, logger)
 	client := provider.ProvideFlagsClient(db, logger)
 	demoHandler := demo.NewHandler(client, logger)
-	postgresRepository3 := repository5.NewPostgresRepository(db)
+	postgresRepository3 := repository6.NewPostgresRepository(db)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository3, logger)
 	queue := ProvideJobQueue(db)
 	templateRepositoryAdapter := repository3.NewTemplateRepositoryAdapter(repositoryPostgresRepository)
@@ -171,6 +188,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		EmailHandler:                 handler2,
 		FlagsHandler:                 handler3,
 		FlagsAdminHandler:            adminHandler,
+		PermissionsHandler:           handler4,
 		DemoHandler:                  demoHandler,
 		FlagsClient:                  client,
 		AuditSubscriber:              eventSubscriber,

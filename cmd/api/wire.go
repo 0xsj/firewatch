@@ -15,6 +15,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/flags"
 	"github.com/0xsj/hexagonal-go/internal/identity"
 	"github.com/0xsj/hexagonal-go/internal/notifications"
+	"github.com/0xsj/hexagonal-go/internal/permissions"
 	"github.com/0xsj/hexagonal-go/internal/tenant"
 	"github.com/0xsj/hexagonal-go/pkg/cache"
 	"github.com/0xsj/hexagonal-go/pkg/database"
@@ -83,6 +84,9 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 
 		// Flags domain
 		flags.FlagsSet,
+
+		// Permissions domain
+		permissions.PermissionsSet,
 
 		// Demo handler
 		demo.NewHandler,

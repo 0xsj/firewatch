@@ -25,6 +25,9 @@
 // @tag.name email
 // @tag.description Email template management
 
+// @tag.name permissions
+// @tag.description Role-based access control and permission management
+
 // @tag.name system
 // @tag.description System endpoints (health checks, etc.)
 
@@ -141,6 +144,10 @@ func run() error {
 	// Mount flags routes
 	flagsRouter := flagsv1.NewRouter(app.FlagsHandler, app.JWTService, app.Logger, corsConfig)
 	root.Mount("/api/v1/flags", flagsRouter)
+
+	// Mount permissions routes
+	permissionsRouter := app.PermissionsHandler.Routes(app.Logger, corsConfig, app.JWTService)
+	root.Mount("", permissionsRouter)
 
 	// Mount demo routes
 	demoRouter := demo.NewRouter(app.DemoHandler, app.Logger)
@@ -276,6 +283,19 @@ func printEndpoints(port, metricsPort int) {
 	fmt.Printf("  POST %s/api/v1/flags/{id}/overrides\n", baseURL)
 	fmt.Printf("  DELETE %s/api/v1/flags/{id}/overrides\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/flags/{key}/evaluate\n", baseURL)
+	fmt.Println()
+	fmt.Println("Protected - Permissions (requires JWT):")
+	fmt.Printf("  GET  %s/api/v1/permissions/me\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/permissions/check?action=...&resource=...\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/roles\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/roles/{id}\n", baseURL)
+	fmt.Println()
+	fmt.Println("Protected - Permissions Admin (requires JWT + Admin):")
+	fmt.Printf("  POST %s/api/v1/roles\n", baseURL)
+	fmt.Printf("  PUT  %s/api/v1/roles/{id}\n", baseURL)
+	fmt.Printf("  DELETE %s/api/v1/roles/{id}\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/assignments\n", baseURL)
+	fmt.Printf("  POST %s/api/v1/assignments/revoke\n", baseURL)
 	fmt.Println()
 	fmt.Println("Admin Dashboard:")
 	fmt.Printf("  GET  %s/admin/flags\n", baseURL)
