@@ -46,8 +46,6 @@ func NewCheckPermissionQuery(
 
 // Handle checks if a user has a specific permission.
 func (q *CheckPermissionQuery) Handle(ctx context.Context, req CheckPermissionRequest) (*CheckPermissionResponse, error) {
-	const op = "CheckPermissionQuery.Handle"
-
 	// Parse the requested permission
 	permission, err := domain.NewPermission(domain.Action(req.Action), domain.Resource(req.Resource))
 	if err != nil {
@@ -126,4 +124,53 @@ func (q *CheckPermissionQuery) Handle(ctx context.Context, req CheckPermissionRe
 			Reason:     "no matching role or permission found",
 		},
 	}, nil
+}
+
+// HasPermission checks if a user has a specific permission.
+// Implements middleware.PermissionChecker interface.
+func (q *CheckPermissionQuery) HasPermission(ctx context.Context, userID, tenantID, identityRole, action, resource string) (bool, error) {
+	// Parse the permission
+	permission, err := domain.NewPermission(domain.Action(action), domain.Resource(resource))
+	if err != nil {
+		return false, nil
+	}
+
+	// 1. Check default permissions from identity role
+	defaultPerms := domain.GetDefaultPermissions(identityRole)
+	if defaultPerms.Contains(permission) {
+		return true, nil
+	}
+
+	// 2. Check explicit role assignments
+	uid, err := types.ParseID(userID)
+	if err != nil {
+		return false, nil
+	}
+
+	filters := &domain.AssignmentFilters{
+		TenantID:       tenantID,
+		IncludeExpired: false,
+	}
+
+	assignments, err := q.assignmentRepo.FindByUser(ctx, uid, filters)
+	if err != nil {
+		return false, err
+	}
+
+	for _, assignment := range assignments {
+		if !assignment.IsActive() {
+			continue
+		}
+
+		role, err := q.roleRepo.FindByID(ctx, assignment.RoleID())
+		if err != nil {
+			continue
+		}
+
+		if role.HasPermission(permission) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

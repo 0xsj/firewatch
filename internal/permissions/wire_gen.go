@@ -13,6 +13,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/permissions/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/permissions/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/database"
+	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 	"github.com/google/wire"
@@ -40,4 +41,4 @@ func ProvideModule(db database.DB, eventPublisher *messaging.DomainEventPublishe
 // provider.go:
 
 // PermissionsSet provides all dependencies for the Permissions domain.
-var PermissionsSet = wire.NewSet(repository.NewPostgresRoleRepository, wire.Bind(new(domain.RoleRepository), new(*repository.PostgresRoleRepository)), repository.NewPostgresAssignmentRepository, wire.Bind(new(domain.AssignmentRepository), new(*repository.PostgresAssignmentRepository)), command.NewCreateRoleCommand, command.NewUpdateRoleCommand, command.NewDeleteRoleCommand, command.NewAssignRoleCommand, command.NewRevokeRoleCommand, query.NewGetRoleQuery, query.NewListRolesQuery, query.NewGetUserPermissionsQuery, query.NewCheckPermissionQuery, v1.NewHandler)
+var PermissionsSet = wire.NewSet(repository.NewPostgresRoleRepository, wire.Bind(new(domain.RoleRepository), new(*repository.PostgresRoleRepository)), repository.NewPostgresAssignmentRepository, wire.Bind(new(domain.AssignmentRepository), new(*repository.PostgresAssignmentRepository)), command.NewCreateRoleCommand, command.NewUpdateRoleCommand, command.NewDeleteRoleCommand, command.NewAssignRoleCommand, command.NewRevokeRoleCommand, query.NewGetRoleQuery, query.NewListRolesQuery, query.NewGetUserPermissionsQuery, query.NewCheckPermissionQuery, wire.Bind(new(middleware.PermissionChecker), new(*query.CheckPermissionQuery)), v1.NewHandler)

@@ -197,6 +197,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		SendEmailJobHandler:          sendEmailHandler,
 		JWTService:                   service,
 		Cache:                        cache,
+		PermissionChecker:            checkPermissionQuery,
 		Storage:                      storage,
 		MetricsProvider:              metricsProvider,
 		TracingProvider:              tracingProvider,

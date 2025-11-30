@@ -12,6 +12,7 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/permissions/infrastructure/repository"
 	v1 "github.com/0xsj/hexagonal-go/internal/permissions/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/pkg/database"
+	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/messaging"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 )
@@ -38,6 +39,7 @@ var PermissionsSet = wire.NewSet(
 	query.NewListRolesQuery,
 	query.NewGetUserPermissionsQuery,
 	query.NewCheckPermissionQuery,
+	wire.Bind(new(middleware.PermissionChecker), new(*query.CheckPermissionQuery)),
 
 	// Interface - HTTP Handler
 	v1.NewHandler,

@@ -57,6 +57,9 @@ type App struct {
 	JWTService jwt.Service
 	Cache      cache.Cache
 
+	// Permissions
+	PermissionChecker middleware.PermissionChecker
+
 	// Storage
 	Storage storage.Storage
 
