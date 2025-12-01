@@ -1,10 +1,7 @@
+// internal/notifications/application/dto/notification.go
 package dto
 
-import (
-	"time"
-
-	"github.com/0xsj/hexagonal-go/internal/notifications/domain"
-)
+import "time"
 
 // SendEmailRequest is the input for sending an email notification.
 type SendEmailRequest struct {
@@ -34,24 +31,4 @@ type NotificationDTO struct {
 	EventType     string     `json:"event_type,omitempty"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
-}
-
-// NewNotificationDTO creates a DTO from a notification.
-func NewNotificationDTO(n *domain.Notification) *NotificationDTO {
-	return &NotificationDTO{
-		ID:            n.ID().String(),
-		TenantID:      n.TenantID(),
-		Channel:       n.Channel().String(),
-		Recipient:     n.Recipient(),
-		Subject:       n.Subject(),
-		Status:        n.Status().String(),
-		Attempts:      n.Attempts(),
-		LastError:     n.LastError(),
-		SentAt:        n.SentAt(),
-		UserID:        n.UserID(),
-		CorrelationID: n.CorrelationID(),
-		EventType:     n.EventType(),
-		CreatedAt:     n.CreatedAt(),
-		UpdatedAt:     n.UpdatedAt(),
-	}
 }
