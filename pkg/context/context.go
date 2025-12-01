@@ -37,7 +37,52 @@ const (
 
 	// userAgentKey stores the client's user agent.
 	userAgentKey contextKey = "user_agent"
+
+	// tenancyEnabledKey stores whether tenancy is enabled.
+	tenancyEnabledKey contextKey = "tenancy_enabled"
 )
+
+// ============================================================================
+// Tenancy Configuration
+// ============================================================================
+
+// DefaultTenantID is used when multi-tenancy is disabled.
+const DefaultTenantID = "default"
+
+// WithTenancyEnabled sets whether tenancy is enabled in the context.
+func WithTenancyEnabled(ctx context.Context, enabled bool) context.Context {
+	return context.WithValue(ctx, tenancyEnabledKey, enabled)
+}
+
+// IsTenancyEnabled returns whether tenancy is enabled.
+// Defaults to true if not set.
+func IsTenancyEnabled(ctx context.Context) bool {
+	if v := ctx.Value(tenancyEnabledKey); v != nil {
+		if enabled, ok := v.(bool); ok {
+			return enabled
+		}
+	}
+	return true // default to enabled for safety
+}
+
+// EffectiveTenantID returns the tenant ID to use.
+// If tenancy is disabled, returns DefaultTenantID.
+// If tenancy is enabled, returns the tenant ID from context.
+func EffectiveTenantID(ctx context.Context) string {
+	if !IsTenancyEnabled(ctx) {
+		return DefaultTenantID
+	}
+	return TenantID(ctx)
+}
+
+// RequireEffectiveTenantID returns the effective tenant ID or error if missing.
+func RequireEffectiveTenantID(ctx context.Context) (string, error) {
+	tenantID := EffectiveTenantID(ctx)
+	if tenantID == "" {
+		return "", fmt.Errorf("missing tenant context")
+	}
+	return tenantID, nil
+}
 
 // ============================================================================
 // Tenant Context (Multi-Tenancy)

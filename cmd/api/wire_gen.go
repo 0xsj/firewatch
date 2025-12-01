@@ -10,9 +10,10 @@ import (
 	"context"
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
+	query6 "github.com/0xsj/hexagonal-go/internal/audit/application/query"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
 	repository6 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
-	"github.com/0xsj/hexagonal-go/internal/demo"
+	v1_6 "github.com/0xsj/hexagonal-go/internal/audit/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/email"
 	command3 "github.com/0xsj/hexagonal-go/internal/email/application/command"
 	query3 "github.com/0xsj/hexagonal-go/internal/email/application/query"
@@ -151,9 +152,13 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	getUserPermissionsQuery := query5.NewGetUserPermissionsQuery(postgresRoleRepository, postgresAssignmentRepository, logger)
 	checkPermissionQuery := query5.NewCheckPermissionQuery(postgresRoleRepository, postgresAssignmentRepository, logger)
 	handler4 := v1_5.NewHandler(createRoleCommand, updateRoleCommand, deleteRoleCommand, assignRoleCommand, revokeRoleCommand, getRoleQuery, listRolesQuery, getUserPermissionsQuery, checkPermissionQuery, logger)
-	client := provider.ProvideFlagsClient(db, logger)
-	demoHandler := demo.NewHandler(client, logger)
 	postgresRepository3 := repository6.NewPostgresRepository(db)
+	getEntryQuery := query6.NewGetEntryQuery(postgresRepository3, logger)
+	listEntriesQuery := query6.NewListEntriesQuery(postgresRepository3, logger)
+	getResourceTrailQuery := query6.NewGetResourceTrailQuery(postgresRepository3, logger)
+	getActorActivityQuery := query6.NewGetActorActivityQuery(postgresRepository3, logger)
+	handler5 := v1_6.NewHandler(getEntryQuery, listEntriesQuery, getResourceTrailQuery, getActorActivityQuery, logger)
+	client := provider.ProvideFlagsClient(db, logger)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository3, logger)
 	queue := ProvideJobQueue(db)
 	templateRepositoryAdapter := repository3.NewTemplateRepositoryAdapter(repositoryPostgresRepository)
@@ -188,7 +193,7 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		FlagsHandler:                 handler3,
 		FlagsAdminHandler:            adminHandler,
 		PermissionsHandler:           handler4,
-		DemoHandler:                  demoHandler,
+		AuditHandler:                 handler5,
 		FlagsClient:                  client,
 		AuditSubscriber:              eventSubscriber,
 		UserNotificationSubscriber:   userEventSubscriber,

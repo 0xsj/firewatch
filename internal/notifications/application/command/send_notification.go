@@ -83,7 +83,7 @@ func (c *SendNotificationCommand) Handle(ctx context.Context, req dto.SendEmailR
 			logger.String("recipient", req.Recipient),
 			logger.Err(err),
 		)
-		return dto.NewNotificationDTO(notification), fmt.Errorf("%s: failed to send email: %w", op, err)
+		return dto.MapNotificationToDTO(notification), fmt.Errorf("%s: failed to send email: %w", op, err)
 	}
 
 	// Mark as sent
@@ -101,5 +101,5 @@ func (c *SendNotificationCommand) Handle(ctx context.Context, req dto.SendEmailR
 		logger.String("recipient", notification.Recipient()),
 	)
 
-	return dto.NewNotificationDTO(notification), nil
+	return dto.MapNotificationToDTO(notification), nil
 }

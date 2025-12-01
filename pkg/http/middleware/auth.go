@@ -18,9 +18,30 @@ const (
 	ContextKeyClaims AuthContextKey = "auth_claims"
 )
 
+// TenancyConfig holds tenancy configuration for middleware.
+type TenancyConfig struct {
+	Enabled         bool
+	DefaultTenantID string
+}
+
+// DefaultTenancyConfig returns default tenancy configuration (enabled).
+func DefaultTenancyConfig() TenancyConfig {
+	return TenancyConfig{
+		Enabled:         true,
+		DefaultTenantID: "default",
+	}
+}
+
 // RequireAuth is middleware that requires a valid JWT token.
 // Extracts claims and adds them to request context.
-func RequireAuth(jwtService jwt.Service, log logger.Logger) func(http.Handler) http.Handler {
+// TenancyConfig is optional - defaults to tenancy enabled if not provided.
+func RequireAuth(jwtService jwt.Service, log logger.Logger, tenancy ...TenancyConfig) func(http.Handler) http.Handler {
+	// Use default if not provided
+	cfg := DefaultTenancyConfig()
+	if len(tenancy) > 0 {
+		cfg = tenancy[0]
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Extract token from Authorization header
@@ -50,7 +71,7 @@ func RequireAuth(jwtService jwt.Service, log logger.Logger) func(http.Handler) h
 			ctx := context.WithValue(r.Context(), ContextKeyClaims, claims)
 
 			// Add individual claim values for convenience
-			ctx = addClaimsToContext(ctx, claims)
+			ctx = addClaimsToContext(ctx, claims, cfg)
 
 			// Continue with claims in context
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -76,7 +97,7 @@ func extractBearerToken(r *http.Request) string {
 }
 
 // addClaimsToContext adds individual claim values to context for easy access.
-func addClaimsToContext(ctx context.Context, claims jwt.Claims) context.Context {
+func addClaimsToContext(ctx context.Context, claims jwt.Claims, tenancy TenancyConfig) context.Context {
 	// Add standard claims
 	if subject := claims.Subject(); subject != "" {
 		ctx = context.WithValue(ctx, "user_id", subject)
@@ -87,9 +108,18 @@ func addClaimsToContext(ctx context.Context, claims jwt.Claims) context.Context 
 		ctx = context.WithValue(ctx, "user_id", userID)
 	}
 
-	if tenantID := claims.GetString("tenant_id"); tenantID != "" {
-		ctx = context.WithValue(ctx, "tenant_id", tenantID)
+	// Handle tenant ID based on tenancy configuration
+	if tenancy.Enabled {
+		if tenantID := claims.GetString("tenant_id"); tenantID != "" {
+			ctx = context.WithValue(ctx, "tenant_id", tenantID)
+		}
+	} else {
+		// Tenancy disabled - use default tenant
+		ctx = context.WithValue(ctx, "tenant_id", tenancy.DefaultTenantID)
 	}
+
+	// Store tenancy enabled flag in context
+	ctx = context.WithValue(ctx, "tenancy_enabled", tenancy.Enabled)
 
 	if sessionID := claims.GetString("session_id"); sessionID != "" {
 		ctx = context.WithValue(ctx, "session_id", sessionID)
@@ -150,4 +180,12 @@ func GetRole(ctx context.Context) string {
 		return role
 	}
 	return ""
+}
+
+// IsTenancyEnabled extracts tenancy enabled flag from request context.
+func IsTenancyEnabled(ctx context.Context) bool {
+	if enabled, ok := ctx.Value("tenancy_enabled").(bool); ok {
+		return enabled
+	}
+	return true // default to enabled
 }

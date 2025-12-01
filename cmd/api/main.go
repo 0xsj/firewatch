@@ -28,6 +28,9 @@
 // @tag.name permissions
 // @tag.description Role-based access control and permission management
 
+// @tag.name audit
+// @tag.description Audit trail and activity logging
+
 // @tag.name system
 // @tag.description System endpoints (health checks, etc.)
 
@@ -41,7 +44,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
-	"github.com/0xsj/hexagonal-go/internal/demo"
 	emailv1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/admin"
 	flagsv1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
@@ -149,9 +151,9 @@ func run() error {
 	permissionsRouter := app.PermissionsHandler.Routes(app.Logger, corsConfig, app.JWTService)
 	root.Mount("/api/v1/permissions", permissionsRouter)
 
-	// Mount demo routes
-	demoRouter := demo.NewRouter(app.DemoHandler, app.Logger)
-	root.Mount("/demo", demoRouter)
+	// Mount audit routes
+	auditRouter := app.AuditHandler.Routes(app.Logger, corsConfig, app.JWTService)
+	root.Mount("/api/v1/audit", auditRouter)
 
 	// Mount flags admin dashboard (public for development)
 	flagsAdminRouter := admin.NewPublicRouter(app.FlagsAdminHandler, app.Logger)
@@ -170,7 +172,7 @@ func run() error {
 	serverConfig.Host = cfg.Server.Host
 	serverConfig.Port = cfg.Server.Port
 
-	printEndpoints(serverConfig.Port, cfg.Metrics.Port)
+	PrintEndpoints(root, serverConfig.Port, cfg.Metrics.Port)
 
 	defer func() {
 		if err := app.TracingProvider.Shutdown(ctx); err != nil {
@@ -207,106 +209,4 @@ func registerSubscribers(app *App) error {
 	app.Logger.Info("registered tenant notification subscriber")
 
 	return nil
-}
-
-// printEndpoints prints available API endpoints on startup.
-func printEndpoints(port, metricsPort int) {
-	baseURL := fmt.Sprintf("http://localhost:%d", port)
-	metricsURL := fmt.Sprintf("http://localhost:%d", metricsPort)
-
-	fmt.Println()
-	fmt.Println("========================================")
-	fmt.Println("  Identity Service - Available Endpoints")
-	fmt.Println("========================================")
-	fmt.Println()
-	fmt.Println("Documentation:")
-	fmt.Printf("  GET  %s/swagger/index.html\n", baseURL)
-	fmt.Println()
-	fmt.Println("Health Check:")
-	fmt.Printf("  GET  %s/health\n", baseURL)
-	fmt.Println()
-	fmt.Println("Public - User Registration & Auth:")
-	fmt.Printf("  POST %s/api/v1/users/register\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/auth/login\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/auth/refresh\n", baseURL)
-	fmt.Println()
-	fmt.Println("Public - Email Verification:")
-	fmt.Printf("  GET  %s/api/v1/users/verify-email?token=...\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/users/verify-email\n", baseURL)
-	fmt.Println()
-	fmt.Println("Protected - Auth (requires JWT):")
-	fmt.Printf("  POST %s/api/v1/auth/logout\n", baseURL)
-	fmt.Println()
-	fmt.Println("Protected - User Queries (requires JWT):")
-	fmt.Printf("  GET  %s/api/v1/users/me\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/users/{id}\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/users\n", baseURL)
-	fmt.Println()
-	fmt.Println("Protected - Sessions (requires JWT):")
-	fmt.Printf("  GET  %s/api/v1/sessions\n", baseURL)
-	fmt.Println()
-	fmt.Println("Protected - Tenants (requires JWT + Admin):")
-	fmt.Printf("  GET  %s/api/v1/tenants\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/tenants\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/tenants/{id}\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/tenants/slug/{slug}\n", baseURL)
-	fmt.Printf("  PATCH %s/api/v1/tenants/{id}\n", baseURL)
-	fmt.Printf("  DELETE %s/api/v1/tenants/{id}\n", baseURL)
-	fmt.Printf("  PUT  %s/api/v1/tenants/{id}/settings\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/tenants/{id}/plan\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/tenants/{id}/suspend\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/tenants/{id}/reactivate\n", baseURL)
-	fmt.Println()
-	fmt.Println("Protected - Email Templates (requires JWT):")
-	fmt.Printf("  GET  %s/api/v1/email/templates\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/email/templates\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/email/templates/{id}\n", baseURL)
-	fmt.Printf("  PUT  %s/api/v1/email/templates/{id}\n", baseURL)
-	fmt.Printf("  DELETE %s/api/v1/email/templates/{id}\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/email/templates/{id}/activate\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/email/templates/{id}/archive\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/email/templates/{id}/preview\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/email/templates/by-slug?slug=...&locale=...\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/email/templates/preview-by-slug\n", baseURL)
-	fmt.Println()
-	fmt.Println("Protected - Feature Flags (requires JWT):")
-	fmt.Printf("  GET  %s/api/v1/flags\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/flags\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/flags/{id}\n", baseURL)
-	fmt.Printf("  PUT  %s/api/v1/flags/{id}\n", baseURL)
-	fmt.Printf("  DELETE %s/api/v1/flags/{id}\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/flags/{id}/enable\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/flags/{id}/disable\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/flags/by-key?key=...\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/flags/{id}/rules\n", baseURL)
-	fmt.Printf("  DELETE %s/api/v1/flags/{id}/rules/{ruleId}\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/flags/{id}/overrides\n", baseURL)
-	fmt.Printf("  DELETE %s/api/v1/flags/{id}/overrides\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/flags/{key}/evaluate\n", baseURL)
-	fmt.Println()
-	fmt.Println("Protected - Permissions (requires JWT):")
-	fmt.Printf("  GET  %s/api/v1/permissions/me\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/permissions/check?action=...&resource=...\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/roles\n", baseURL)
-	fmt.Printf("  GET  %s/api/v1/roles/{id}\n", baseURL)
-	fmt.Println()
-	fmt.Println("Protected - Permissions Admin (requires JWT + Admin):")
-	fmt.Printf("  POST %s/api/v1/roles\n", baseURL)
-	fmt.Printf("  PUT  %s/api/v1/roles/{id}\n", baseURL)
-	fmt.Printf("  DELETE %s/api/v1/roles/{id}\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/assignments\n", baseURL)
-	fmt.Printf("  POST %s/api/v1/assignments/revoke\n", baseURL)
-	fmt.Println()
-	fmt.Println("Admin Dashboard:")
-	fmt.Printf("  GET  %s/admin/flags\n", baseURL)
-	fmt.Printf("  GET  %s/admin/flags/new\n", baseURL)
-	fmt.Printf("  GET  %s/admin/flags/{id}\n", baseURL)
-	fmt.Printf("  GET  %s/admin/flags/{id}/edit\n", baseURL)
-	fmt.Println()
-	fmt.Println()
-	fmt.Println("Observability:")
-	fmt.Printf("  GET  %s/metrics\n", metricsURL)
-	fmt.Println()
-	fmt.Println("========================================")
-	fmt.Println()
 }
