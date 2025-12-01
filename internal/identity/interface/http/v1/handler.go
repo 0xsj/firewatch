@@ -97,6 +97,11 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tenantID := dtoReq.TenantID
+	if tenantID == "" {
+		tenantID = "default"
+	}
+
 	cmdReq := command.RegisterRequest{
 		TenantID: dtoReq.TenantID,
 		Email:    dtoReq.Email,

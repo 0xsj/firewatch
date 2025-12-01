@@ -11,9 +11,10 @@ import (
 // It starts with defaults and overrides with environment variables.
 //
 // Environment variable prefixes:
-//   - DB_*     for database settings
-//   - LOG_*    for logger settings
-//   - SERVER_* for HTTP server settings
+//   - DB_*       for database settings
+//   - LOG_*      for logger settings
+//   - SERVER_*   for HTTP server settings
+//   - TENANCY_*  for multi-tenancy settings
 func Load(ctx context.Context) (*AppConfig, error) {
 	// Start with defaults
 	cfg := DefaultAppConfig()
@@ -34,6 +35,12 @@ func Load(ctx context.Context) (*AppConfig, error) {
 	serverSource := pkgconfig.NewEnvSource("SERVER")
 	if err := serverSource.Load(ctx, &cfg.Server); err != nil {
 		return nil, fmt.Errorf("failed to load server config: %w", err)
+	}
+
+	// Load tenancy config from TENANCY_* env vars
+	tenancySource := pkgconfig.NewEnvSource("TENANCY")
+	if err := tenancySource.Load(ctx, &cfg.Tenancy); err != nil {
+		return nil, fmt.Errorf("failed to load tenancy config: %w", err)
 	}
 
 	return &cfg, nil

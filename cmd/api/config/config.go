@@ -21,11 +21,17 @@ type AppConfig struct {
 	JWT      jwt.Config
 	Cache    cache.Config
 	Storage  storage.Config
+	Tenancy  TenancyConfig
 }
 
 type ServerConfig struct {
 	Host string `env:"HOST"`
 	Port int    `env:"PORT"`
+}
+
+type TenancyConfig struct {
+	Enabled         bool   `env:"ENABLED"`
+	DefaultTenantID string `env:"DEFAULT_TENANT_ID"`
 }
 
 func DefaultAppConfig() AppConfig {
@@ -42,5 +48,9 @@ func DefaultAppConfig() AppConfig {
 		JWT:     jwt.DefaultConfig(),
 		Cache:   cache.DefaultConfig(),
 		Storage: storage.DefaultConfig(),
+		Tenancy: TenancyConfig{
+			Enabled:         true,
+			DefaultTenantID: "default",
+		},
 	}
 }
