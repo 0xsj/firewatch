@@ -28,6 +28,9 @@
 // @tag.name permissions
 // @tag.description Role-based access control and permission management
 
+// @tag.name audit
+// @tag.description Audit trail and activity logging
+
 // @tag.name system
 // @tag.description System endpoints (health checks, etc.)
 
@@ -148,6 +151,10 @@ func run() error {
 	// Mount permissions routes
 	permissionsRouter := app.PermissionsHandler.Routes(app.Logger, corsConfig, app.JWTService)
 	root.Mount("/api/v1/permissions", permissionsRouter)
+
+	// Mount audit routes
+	auditRouter := app.AuditHandler.Routes(app.Logger, corsConfig, app.JWTService)
+	root.Mount("/api/v1/audit", auditRouter)
 
 	// Mount demo routes
 	demoRouter := demo.NewRouter(app.DemoHandler, app.Logger)
@@ -296,6 +303,13 @@ func printEndpoints(port, metricsPort int) {
 	fmt.Printf("  DELETE %s/api/v1/roles/{id}\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/assignments\n", baseURL)
 	fmt.Printf("  POST %s/api/v1/assignments/revoke\n", baseURL)
+	fmt.Println()
+	fmt.Println("Protected - Audit (requires JWT):")
+	fmt.Printf("  GET  %s/api/v1/audit/health\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/audit/entries\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/audit/entries/{id}\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/audit/resources/{type}/{id}\n", baseURL)
+	fmt.Printf("  GET  %s/api/v1/audit/actors/{userID}\n", baseURL)
 	fmt.Println()
 	fmt.Println("Admin Dashboard:")
 	fmt.Printf("  GET  %s/admin/flags\n", baseURL)
