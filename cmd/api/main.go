@@ -44,7 +44,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/0xsj/hexagonal-go/cmd/api/config"
-	"github.com/0xsj/hexagonal-go/internal/demo"
 	emailv1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/admin"
 	flagsv1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
@@ -155,10 +154,6 @@ func run() error {
 	// Mount audit routes
 	auditRouter := app.AuditHandler.Routes(app.Logger, corsConfig, app.JWTService)
 	root.Mount("/api/v1/audit", auditRouter)
-
-	// Mount demo routes
-	demoRouter := demo.NewRouter(app.DemoHandler, app.Logger)
-	root.Mount("/demo", demoRouter)
 
 	// Mount flags admin dashboard (public for development)
 	flagsAdminRouter := admin.NewPublicRouter(app.FlagsAdminHandler, app.Logger)

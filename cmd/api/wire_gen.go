@@ -14,7 +14,6 @@ import (
 	"github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
 	repository6 "github.com/0xsj/hexagonal-go/internal/audit/infrastructure/repository"
 	v1_6 "github.com/0xsj/hexagonal-go/internal/audit/interface/http/v1"
-	"github.com/0xsj/hexagonal-go/internal/demo"
 	"github.com/0xsj/hexagonal-go/internal/email"
 	command3 "github.com/0xsj/hexagonal-go/internal/email/application/command"
 	query3 "github.com/0xsj/hexagonal-go/internal/email/application/query"
@@ -160,7 +159,6 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 	getActorActivityQuery := query6.NewGetActorActivityQuery(postgresRepository3, logger)
 	handler5 := v1_6.NewHandler(getEntryQuery, listEntriesQuery, getResourceTrailQuery, getActorActivityQuery, logger)
 	client := provider.ProvideFlagsClient(db, logger)
-	demoHandler := demo.NewHandler(client, logger)
 	eventSubscriber := subscriber.NewEventSubscriber(postgresRepository3, logger)
 	queue := ProvideJobQueue(db)
 	templateRepositoryAdapter := repository3.NewTemplateRepositoryAdapter(repositoryPostgresRepository)
@@ -196,7 +194,6 @@ func InitializeApp(ctx context.Context, cfg *config.AppConfig) (*App, func(), er
 		FlagsAdminHandler:            adminHandler,
 		PermissionsHandler:           handler4,
 		AuditHandler:                 handler5,
-		DemoHandler:                  demoHandler,
 		FlagsClient:                  client,
 		AuditSubscriber:              eventSubscriber,
 		UserNotificationSubscriber:   userEventSubscriber,

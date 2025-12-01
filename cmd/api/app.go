@@ -3,7 +3,6 @@ package main
 import (
 	auditsubscriber "github.com/0xsj/hexagonal-go/internal/audit/application/subscriber"
 	auditv1 "github.com/0xsj/hexagonal-go/internal/audit/interface/http/v1"
-	"github.com/0xsj/hexagonal-go/internal/demo"
 	emailv1 "github.com/0xsj/hexagonal-go/internal/email/interface/http/v1"
 	"github.com/0xsj/hexagonal-go/internal/flags/interface/http/admin"
 	flagsv1 "github.com/0xsj/hexagonal-go/internal/flags/interface/http/v1"
@@ -39,9 +38,6 @@ type App struct {
 	FlagsAdminHandler  *admin.Handler
 	PermissionsHandler *permissionsv1.Handler
 	AuditHandler       *auditv1.Handler
-
-	// Demo Handler
-	DemoHandler *demo.Handler
 
 	// Feature Flags Client (SDK)
 	FlagsClient flags.Client
