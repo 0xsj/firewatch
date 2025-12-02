@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/0xsj/hexagonal-go/internal/tenant/application/command"
+	_ "github.com/0xsj/hexagonal-go/internal/tenant/application/dto"
 	"github.com/0xsj/hexagonal-go/internal/tenant/application/query"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"

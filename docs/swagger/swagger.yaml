@@ -1,107 +1,104 @@
 basePath: /
 definitions:
-  dto.ChangePlanRequest:
+  github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntryDTO:
     properties:
-      plan:
-        type: string
-      reason:
-        type: string
-    type: object
-  dto.CreateTenantRequest:
-    properties:
-      name:
-        type: string
-      owner_id:
-        type: string
-      plan:
-        type: string
-      slug:
-        type: string
-    type: object
-  dto.DeleteTenantRequest:
-    properties:
-      reason:
-        type: string
-    type: object
-  dto.SuspendTenantRequest:
-    properties:
-      reason:
-        type: string
-    type: object
-  dto.TenantDTO:
-    properties:
-      billing_id:
+      correlation_id:
         type: string
       created_at:
         type: string
+      event_id:
+        type: string
+      event_type:
+        type: string
       id:
         type: string
-      name:
-        type: string
-      owner_id:
-        type: string
-      plan:
-        type: string
-      settings:
+      metadata:
         additionalProperties: {}
         type: object
-      slug:
+      payload:
+        additionalProperties: {}
+        type: object
+      source:
         type: string
-      status:
+      tenant_id:
         type: string
-      trial_ends_at:
+      timestamp:
         type: string
-      updated_at:
+      user_id:
         type: string
     type: object
-  dto.TenantListDTO:
+  github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntrySummaryDTO:
     properties:
+      correlation_id:
+        type: string
+      event_type:
+        type: string
+      id:
+        type: string
+      source:
+        type: string
+      tenant_id:
+        type: string
+      timestamp:
+        type: string
+      user_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetActorActivityResponse:
+    properties:
+      entries:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntrySummaryDTO'
+        type: array
       has_more:
         type: boolean
       limit:
         type: integer
       offset:
         type: integer
-      tenants:
+      total_count:
+        type: integer
+      user_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetEntryResponse:
+    properties:
+      entry:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntryDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetResourceTrailResponse:
+    properties:
+      entries:
         items:
-          $ref: '#/definitions/dto.TenantSummaryDTO'
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntrySummaryDTO'
         type: array
-      total:
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      resource_id:
+        type: string
+      resource_type:
+        type: string
+      total_count:
         type: integer
     type: object
-  dto.TenantSettingsDTO:
+  github_com_0xsj_hexagonal-go_internal_audit_application_dto.ListEntriesResponse:
     properties:
-      settings:
-        additionalProperties: {}
-        type: object
-      tenant_id:
-        type: string
-    type: object
-  dto.TenantSummaryDTO:
-    properties:
-      created_at:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      plan:
-        type: string
-      slug:
-        type: string
-      status:
-        type: string
-    type: object
-  dto.UpdateSettingsRequest:
-    properties:
-      settings:
-        additionalProperties: {}
-        type: object
-    type: object
-  dto.UpdateTenantRequest:
-    properties:
-      name:
-        type: string
+      entries:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntrySummaryDTO'
+        type: array
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total_count:
+        type: integer
     type: object
   github_com_0xsj_hexagonal-go_internal_email_application_dto.ActivateTemplateResponse:
     properties:
@@ -273,6 +270,282 @@ definitions:
         type: boolean
       type:
         type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.AddRuleRequest:
+    properties:
+      attribute:
+        type: string
+      operator:
+        type: string
+      percentage:
+        maximum: 100
+        minimum: 0
+        type: integer
+      priority:
+        minimum: 0
+        type: integer
+      type:
+        enum:
+        - tenant
+        - user
+        - percent
+        - attribute
+        type: string
+      values:
+        items:
+          type: string
+        type: array
+      variant_key:
+        type: string
+    required:
+    - type
+    - variant_key
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.AddRuleResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+      rule_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.CreateFlagRequest:
+    properties:
+      description:
+        maxLength: 1024
+        type: string
+      enabled:
+        type: boolean
+      key:
+        maxLength: 128
+        minLength: 1
+        type: string
+      name:
+        maxLength: 255
+        type: string
+    required:
+    - key
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.CreateFlagResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.DeleteFlagResponse:
+    properties:
+      id:
+        type: string
+      success:
+        type: boolean
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.DisableFlagResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.EnableFlagResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluateFlagRequest:
+    properties:
+      attributes:
+        additionalProperties:
+          type: string
+        type: object
+      tenant_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluateFlagResponse:
+    properties:
+      result:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluationResultDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluationResultDTO:
+    properties:
+      enabled:
+        type: boolean
+      flag_key:
+        type: string
+      reason:
+        type: string
+      variant_key:
+        type: string
+      variant_value:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO:
+    properties:
+      created_at:
+        type: string
+      default_variant:
+        type: string
+      description:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      overrides:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.OverrideDTO'
+        type: array
+      rules:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.RuleDTO'
+        type: array
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+      variants:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.VariantDTO'
+        type: array
+      version:
+        type: integer
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagSummaryDTO:
+    properties:
+      description:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      rule_count:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.GetFlagResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.ListFlagsResponse:
+    properties:
+      flags:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagSummaryDTO'
+        type: array
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.OverrideDTO:
+    properties:
+      target_id:
+        type: string
+      target_type:
+        type: string
+      variant_key:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveOverrideRequest:
+    properties:
+      target_id:
+        type: string
+      target_type:
+        enum:
+        - tenant
+        - user
+        type: string
+    required:
+    - target_id
+    - target_type
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveOverrideResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveRuleResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.RuleDTO:
+    properties:
+      attribute:
+        type: string
+      id:
+        type: string
+      operator:
+        type: string
+      percentage:
+        type: integer
+      priority:
+        type: integer
+      type:
+        type: string
+      values:
+        items:
+          type: string
+        type: array
+      variant_key:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.SetOverrideRequest:
+    properties:
+      target_id:
+        type: string
+      target_type:
+        enum:
+        - tenant
+        - user
+        type: string
+      variant_key:
+        type: string
+    required:
+    - target_id
+    - target_type
+    - variant_key
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.SetOverrideResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.UpdateFlagRequest:
+    properties:
+      description:
+        maxLength: 1024
+        type: string
+      name:
+        maxLength: 255
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.UpdateFlagResponse:
+    properties:
+      flag:
+        $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO'
+    type: object
+  github_com_0xsj_hexagonal-go_internal_flags_application_dto.VariantDTO:
+    properties:
+      description:
+        type: string
+      key:
+        type: string
+      value:
+        type: string
+      weight:
+        type: integer
     type: object
   github_com_0xsj_hexagonal-go_internal_identity_application_dto.ChangePasswordRequest:
     properties:
@@ -470,6 +743,199 @@ definitions:
     required:
     - token
     type: object
+  github_com_0xsj_hexagonal-go_internal_permissions_application_dto.AssignmentDTO:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      resource_id:
+        type: string
+      role_id:
+        type: string
+      role_name:
+        type: string
+      tenant_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_permissions_application_dto.PermissionCheckDTO:
+    properties:
+      allowed:
+        type: boolean
+      permission:
+        type: string
+      reason:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_permissions_application_dto.RoleDTO:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_system:
+        type: boolean
+      name:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_permissions_application_dto.UserPermissionsDTO:
+    properties:
+      permissions:
+        items:
+          type: string
+        type: array
+      roles:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.ChangePlanRequest:
+    properties:
+      plan:
+        type: string
+      reason:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.CreateTenantRequest:
+    properties:
+      name:
+        type: string
+      owner_email:
+        type: string
+      owner_id:
+        type: string
+      plan:
+        type: string
+      slug:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.DeleteTenantRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.SuspendTenantRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO:
+    properties:
+      billing_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      owner_email:
+        type: string
+      owner_id:
+        type: string
+      plan:
+        type: string
+      settings:
+        additionalProperties: {}
+        type: object
+      slug:
+        type: string
+      status:
+        type: string
+      trial_ends_at:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantListDTO:
+    properties:
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      tenants:
+        items:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantSummaryDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantSettingsDTO:
+    properties:
+      settings:
+        additionalProperties: {}
+        type: object
+      tenant_id:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantSummaryDTO:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      plan:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.UpdateSettingsRequest:
+    properties:
+      settings:
+        additionalProperties: {}
+        type: object
+    type: object
+  github_com_0xsj_hexagonal-go_internal_tenant_application_dto.UpdateTenantRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  internal_audit_interface_http_v1.ErrorResponse:
+    description: Error response returned by the API
+    properties:
+      code:
+        example: ENTRY_NOT_FOUND
+        type: string
+      message:
+        example: audit entry not found
+        type: string
+      meta:
+        additionalProperties: {}
+        type: object
+    type: object
+  internal_audit_interface_http_v1.MessageResponse:
+    description: Simple message response
+    properties:
+      message:
+        example: audit OK
+        type: string
+    type: object
   internal_email_interface_http_v1.ErrorResponse:
     description: Error response returned by the API
     properties:
@@ -478,6 +944,19 @@ definitions:
         type: string
       message:
         example: template not found
+        type: string
+      meta:
+        additionalProperties: {}
+        type: object
+    type: object
+  internal_flags_interface_http_v1.ErrorResponse:
+    description: Error response returned by the API
+    properties:
+      code:
+        example: FLAG_NOT_FOUND
+        type: string
+      message:
+        example: flag not found
         type: string
       meta:
         additionalProperties: {}
@@ -503,6 +982,89 @@ definitions:
         items:
           $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.SessionDTO'
         type: array
+    type: object
+  internal_permissions_interface_http_v1.AssignRoleRequest:
+    properties:
+      expires_at:
+        type: string
+      resource_id:
+        type: string
+      role_id:
+        type: string
+      tenant_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  internal_permissions_interface_http_v1.CreateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+    type: object
+  internal_permissions_interface_http_v1.ErrorResponse:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+      meta:
+        additionalProperties: {}
+        type: object
+    type: object
+  internal_permissions_interface_http_v1.ListRolesResponse:
+    properties:
+      roles:
+        items:
+          $ref: '#/definitions/internal_permissions_interface_http_v1.RoleSummary'
+        type: array
+      total:
+        type: integer
+    type: object
+  internal_permissions_interface_http_v1.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  internal_permissions_interface_http_v1.RevokeRoleRequest:
+    properties:
+      reason:
+        type: string
+      resource_id:
+        type: string
+      role_id:
+        type: string
+      tenant_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  internal_permissions_interface_http_v1.RoleSummary:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      is_system:
+        type: boolean
+      name:
+        type: string
+      permissions_count:
+        type: integer
+    type: object
+  internal_permissions_interface_http_v1.UpdateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
     type: object
   internal_tenant_interface_http_v1.ErrorResponse:
     description: Error response returned by the API
@@ -530,6 +1092,300 @@ info:
   title: Hexagonal Go API
   version: "1.0"
 paths:
+  /api/v1/assignments:
+    post:
+      consumes:
+      - application/json
+      description: Assigns a role to a user within a tenant
+      parameters:
+      - description: Role assignment request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_permissions_interface_http_v1.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Role assigned successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.AssignmentDTO'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "409":
+          description: Assignment already exists
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign role to user
+      tags:
+      - permissions
+  /api/v1/assignments/revoke:
+    post:
+      consumes:
+      - application/json
+      description: Revokes a role assignment from a user
+      parameters:
+      - description: Role revocation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_permissions_interface_http_v1.RevokeRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role revoked successfully
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.MessageResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "404":
+          description: Assignment not found
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke role from user
+      tags:
+      - permissions
+  /api/v1/audit/actors/{userID}:
+    get:
+      description: Retrieves all audit entries performed by a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      - description: Filter by tenant ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter by event type
+        in: query
+        name: event_type
+        type: string
+      - description: Filter by source domain
+        in: query
+        name: source
+        type: string
+      - description: Filter from timestamp (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: Filter to timestamp (RFC3339)
+        in: query
+        name: to
+        type: string
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Actor activity
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetActorActivityResponse'
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get actor activity
+      tags:
+      - audit
+  /api/v1/audit/entries:
+    get:
+      description: Retrieves audit entries with optional filtering and pagination
+      parameters:
+      - description: Filter by tenant ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter by user ID (actor)
+        in: query
+        name: user_id
+        type: string
+      - description: Filter by event type
+        in: query
+        name: event_type
+        type: string
+      - description: Filter by source domain
+        in: query
+        name: source
+        type: string
+      - description: Filter by correlation ID
+        in: query
+        name: correlation_id
+        type: string
+      - description: Filter from timestamp (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: Filter to timestamp (RFC3339)
+        in: query
+        name: to
+        type: string
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of audit entries
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.ListEntriesResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List audit entries
+      tags:
+      - audit
+  /api/v1/audit/entries/{id}:
+    get:
+      description: Retrieves a single audit entry by its ID
+      parameters:
+      - description: Audit entry ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Audit entry found
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetEntryResponse'
+        "400":
+          description: Invalid entry ID
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+        "404":
+          description: Entry not found
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get audit entry
+      tags:
+      - audit
+  /api/v1/audit/health:
+    get:
+      description: Returns OK if the audit service is healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.MessageResponse'
+      summary: Audit health check
+      tags:
+      - audit
+  /api/v1/audit/resources/{type}/{id}:
+    get:
+      description: Retrieves all audit entries for a specific resource
+      parameters:
+      - description: Resource type (e.g., user, tenant, flag)
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by tenant ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter from timestamp (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: Filter to timestamp (RFC3339)
+        in: query
+        name: to
+        type: string
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resource audit trail
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetResourceTrailResponse'
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_audit_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get resource audit trail
+      tags:
+      - audit
   /api/v1/auth/login:
     post:
       consumes:
@@ -1180,6 +2036,755 @@ paths:
       summary: Preview email template by slug
       tags:
       - email
+  /api/v1/flags:
+    get:
+      description: Retrieves a paginated list of feature flags
+      parameters:
+      - description: Filter by enabled status
+        in: query
+        name: enabled
+        type: boolean
+      - description: Search by key, name, or description
+        in: query
+        name: search
+        type: string
+      - default: 50
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of flags
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.ListFlagsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List feature flags
+      tags:
+      - flags
+    post:
+      consumes:
+      - application/json
+      description: Creates a new feature flag
+      parameters:
+      - description: Create flag request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.CreateFlagRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Flag created successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.CreateFlagResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "409":
+          description: Flag with key already exists
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create feature flag
+      tags:
+      - flags
+  /api/v1/flags/{id}:
+    delete:
+      description: Deletes a feature flag
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Flag deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.DeleteFlagResponse'
+        "400":
+          description: Invalid flag ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete feature flag
+      tags:
+      - flags
+    get:
+      description: Retrieves a feature flag by its unique identifier
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Flag found
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.GetFlagResponse'
+        "400":
+          description: Invalid flag ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get feature flag by ID
+      tags:
+      - flags
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing feature flag
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update flag request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.UpdateFlagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Flag updated successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.UpdateFlagResponse'
+        "400":
+          description: Invalid request body or flag ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update feature flag
+      tags:
+      - flags
+  /api/v1/flags/{id}/disable:
+    post:
+      description: Disables a feature flag
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Flag disabled successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.DisableFlagResponse'
+        "400":
+          description: Invalid flag ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disable feature flag
+      tags:
+      - flags
+  /api/v1/flags/{id}/enable:
+    post:
+      description: Enables a feature flag
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Flag enabled successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.EnableFlagResponse'
+        "400":
+          description: Invalid flag ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Enable feature flag
+      tags:
+      - flags
+  /api/v1/flags/{id}/overrides:
+    delete:
+      consumes:
+      - application/json
+      description: Removes an override for a specific target
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Remove override request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveOverrideRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Override removed successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveOverrideResponse'
+        "400":
+          description: Invalid request body or flag ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag or override not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove override
+      tags:
+      - flags
+    post:
+      consumes:
+      - application/json
+      description: Sets an override for a specific target (tenant or user)
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Set override request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.SetOverrideRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Override set successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.SetOverrideResponse'
+        "400":
+          description: Invalid request body or flag ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set override
+      tags:
+      - flags
+  /api/v1/flags/{id}/rules:
+    post:
+      consumes:
+      - application/json
+      description: Adds a targeting rule to a feature flag
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Add rule request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.AddRuleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Rule added successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.AddRuleResponse'
+        "400":
+          description: Invalid request body or flag ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add targeting rule
+      tags:
+      - flags
+  /api/v1/flags/{id}/rules/{ruleId}:
+    delete:
+      description: Removes a targeting rule from a feature flag
+      parameters:
+      - description: Flag ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rule ID
+        format: uuid
+        in: path
+        name: ruleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Rule removed successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveRuleResponse'
+        "400":
+          description: Invalid flag ID or rule ID
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag or rule not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove targeting rule
+      tags:
+      - flags
+  /api/v1/flags/{key}/evaluate:
+    post:
+      consumes:
+      - application/json
+      description: Evaluates a feature flag for the given context
+      parameters:
+      - description: Flag key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Evaluation context
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluateFlagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Evaluation result
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluateFlagResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Evaluate feature flag
+      tags:
+      - flags
+  /api/v1/flags/by-key:
+    get:
+      description: Retrieves a feature flag by its key
+      parameters:
+      - description: Flag key
+        in: query
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Flag found
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.GetFlagResponse'
+        "400":
+          description: Key is required
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+        "404":
+          description: Flag not found
+          schema:
+            $ref: '#/definitions/internal_flags_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get feature flag by key
+      tags:
+      - flags
+  /api/v1/permissions/check:
+    get:
+      description: Checks if the current user has a specific permission
+      parameters:
+      - description: Action (create, read, update, delete, manage)
+        in: query
+        name: action
+        required: true
+        type: string
+      - description: Resource (users, tenants, flags, roles, etc.)
+        in: query
+        name: resource
+        required: true
+        type: string
+      - description: Specific resource ID
+        in: query
+        name: resource_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission check result
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.PermissionCheckDTO'
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Check if user has permission
+      tags:
+      - permissions
+  /api/v1/permissions/health:
+    get:
+      description: Returns OK if the permissions service is healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.MessageResponse'
+      summary: Permissions health check
+      tags:
+      - permissions
+  /api/v1/permissions/me:
+    get:
+      description: Retrieves all effective permissions for the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User permissions
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.UserPermissionsDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user's permissions
+      tags:
+      - permissions
+  /api/v1/roles:
+    get:
+      description: Retrieves a paginated list of roles
+      parameters:
+      - description: Include system roles
+        in: query
+        name: include_system
+        type: boolean
+      - description: Search in name and description
+        in: query
+        name: search
+        type: string
+      - default: 50
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of roles
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ListRolesResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List roles
+      tags:
+      - permissions
+    post:
+      consumes:
+      - application/json
+      description: Creates a new role with specified permissions
+      parameters:
+      - description: Role creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_permissions_interface_http_v1.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Role created successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.RoleDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "409":
+          description: Role already exists
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new role
+      tags:
+      - permissions
+  /api/v1/roles/{id}:
+    delete:
+      description: Deletes a role and all its assignments
+      parameters:
+      - description: Role ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Role deleted successfully
+        "400":
+          description: Invalid role ID
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "403":
+          description: Cannot delete system role
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete role
+      tags:
+      - permissions
+    get:
+      description: Retrieves a role by its unique identifier
+      parameters:
+      - description: Role ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role found
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.RoleDTO'
+        "400":
+          description: Invalid role ID
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get role by ID
+      tags:
+      - permissions
+    put:
+      consumes:
+      - application/json
+      description: Updates a role's name and description
+      parameters:
+      - description: Role ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_permissions_interface_http_v1.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role updated successfully
+          schema:
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.RoleDTO'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "403":
+          description: Cannot modify system role
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/internal_permissions_interface_http_v1.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update role
+      tags:
+      - permissions
   /api/v1/sessions:
     get:
       description: Retrieves active sessions for the currently authenticated user
@@ -1250,7 +2855,7 @@ paths:
         "200":
           description: List of tenants
           schema:
-            $ref: '#/definitions/dto.TenantListDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantListDTO'
         "400":
           description: Invalid query parameters
           schema:
@@ -1275,14 +2880,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateTenantRequest'
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.CreateTenantRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Tenant created successfully
           schema:
-            $ref: '#/definitions/dto.TenantDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO'
         "400":
           description: Invalid request body or validation error
           schema:
@@ -1320,7 +2925,7 @@ paths:
         in: body
         name: request
         schema:
-          $ref: '#/definitions/dto.DeleteTenantRequest'
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.DeleteTenantRequest'
       produces:
       - application/json
       responses:
@@ -1366,7 +2971,7 @@ paths:
         "200":
           description: Tenant found
           schema:
-            $ref: '#/definitions/dto.TenantDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO'
         "400":
           description: Invalid tenant ID format
           schema:
@@ -1400,14 +3005,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.UpdateTenantRequest'
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.UpdateTenantRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Tenant updated successfully
           schema:
-            $ref: '#/definitions/dto.TenantDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO'
         "400":
           description: Invalid request
           schema:
@@ -1446,14 +3051,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.ChangePlanRequest'
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.ChangePlanRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Plan changed successfully
           schema:
-            $ref: '#/definitions/dto.TenantDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO'
         "400":
           description: Invalid plan
           schema:
@@ -1495,7 +3100,7 @@ paths:
         "200":
           description: Tenant reactivated successfully
           schema:
-            $ref: '#/definitions/dto.TenantDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO'
         "400":
           description: Invalid request
           schema:
@@ -1539,14 +3144,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.UpdateSettingsRequest'
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.UpdateSettingsRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Settings updated successfully
           schema:
-            $ref: '#/definitions/dto.TenantSettingsDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantSettingsDTO'
         "400":
           description: Invalid request
           schema:
@@ -1586,14 +3191,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.SuspendTenantRequest'
+          $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.SuspendTenantRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Tenant suspended successfully
           schema:
-            $ref: '#/definitions/dto.TenantDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO'
         "400":
           description: Invalid request
           schema:
@@ -1635,7 +3240,7 @@ paths:
         "200":
           description: Tenant found
           schema:
-            $ref: '#/definitions/dto.TenantDTO'
+            $ref: '#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO'
         "400":
           description: Invalid slug format
           schema:
@@ -2124,5 +3729,9 @@ tags:
   name: tenants
 - description: Email template management
   name: email
+- description: Role-based access control and permission management
+  name: permissions
+- description: Audit trail and activity logging
+  name: audit
 - description: System endpoints (health checks, etc.)
   name: system
