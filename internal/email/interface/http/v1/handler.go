@@ -9,6 +9,7 @@ import (
 
 	"github.com/0xsj/hexagonal-go/internal/email/application/command"
 	"github.com/0xsj/hexagonal-go/internal/email/application/dto"
+	_ "github.com/0xsj/hexagonal-go/internal/email/application/dto"
 	"github.com/0xsj/hexagonal-go/internal/email/application/query"
 	"github.com/0xsj/hexagonal-go/pkg/http/middleware"
 	"github.com/0xsj/hexagonal-go/pkg/http/response"

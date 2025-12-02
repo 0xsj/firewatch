@@ -4,6 +4,7 @@ package v1
 import (
 	"net/http"
 
+	_ "github.com/0xsj/hexagonal-go/internal/audit/application/dto"
 	"github.com/0xsj/hexagonal-go/internal/audit/application/query"
 	"github.com/0xsj/hexagonal-go/pkg/observability/logger"
 )

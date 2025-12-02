@@ -22,6 +22,463 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/assignments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Assigns a role to a user within a tenant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Assign role to user",
+                "parameters": [
+                    {
+                        "description": "Role assignment request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.AssignRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Role assigned successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.AssignmentDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Role not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Assignment already exists",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/assignments/revoke": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revokes a role assignment from a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Revoke role from user",
+                "parameters": [
+                    {
+                        "description": "Role revocation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.RevokeRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role revoked successfully",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Assignment not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit/actors/{userID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all audit entries performed by a specific user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "Get actor activity",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by tenant ID",
+                        "name": "tenant_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by event type",
+                        "name": "event_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source domain",
+                        "name": "source",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter from timestamp (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter to timestamp (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Actor activity",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetActorActivityResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit/entries": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves audit entries with optional filtering and pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "List audit entries",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by tenant ID",
+                        "name": "tenant_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by user ID (actor)",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by event type",
+                        "name": "event_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source domain",
+                        "name": "source",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by correlation ID",
+                        "name": "correlation_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter from timestamp (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter to timestamp (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of audit entries",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.ListEntriesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit/entries/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a single audit entry by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "Get audit entry",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Audit entry ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Audit entry found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetEntryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid entry ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Entry not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit/health": {
+            "get": {
+                "description": "Returns OK if the audit service is healthy",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "Audit health check",
+                "responses": {
+                    "200": {
+                        "description": "Service is healthy",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit/resources/{type}/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all audit entries for a specific resource",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "Get resource audit trail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Resource type (e.g., user, tenant, flag)",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by tenant ID",
+                        "name": "tenant_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter from timestamp (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter to timestamp (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resource audit trail",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetResourceTrailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_audit_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/login": {
             "post": {
                 "description": "Authenticates a user with email and password, returns JWT tokens",
@@ -1009,6 +1466,1169 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/flags": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a paginated list of feature flags",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "List feature flags",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Filter by enabled status",
+                        "name": "enabled",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by key, name, or description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of flags",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.ListFlagsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new feature flag",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Create feature flag",
+                "parameters": [
+                    {
+                        "description": "Create flag request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.CreateFlagRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Flag created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.CreateFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Flag with key already exists",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flags/by-key": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a feature flag by its key",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Get feature flag by key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Flag key",
+                        "name": "key",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flag found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.GetFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Key is required",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flags/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a feature flag by its unique identifier",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Get feature flag by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flag found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.GetFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid flag ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing feature flag",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Update feature flag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update flag request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.UpdateFlagRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flag updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.UpdateFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or flag ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a feature flag",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Delete feature flag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flag deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.DeleteFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid flag ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flags/{id}/disable": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Disables a feature flag",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Disable feature flag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flag disabled successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.DisableFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid flag ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flags/{id}/enable": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Enables a feature flag",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Enable feature flag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flag enabled successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.EnableFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid flag ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flags/{id}/overrides": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets an override for a specific target (tenant or user)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Set override",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Set override request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.SetOverrideRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Override set successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.SetOverrideResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or flag ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes an override for a specific target",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Remove override",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Remove override request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveOverrideRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Override removed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveOverrideResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or flag ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag or override not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flags/{id}/rules": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Adds a targeting rule to a feature flag",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Add targeting rule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Add rule request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.AddRuleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Rule added successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.AddRuleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or flag ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flags/{id}/rules/{ruleId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a targeting rule from a feature flag",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Remove targeting rule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Flag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Rule ID",
+                        "name": "ruleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rule removed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveRuleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid flag ID or rule ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag or rule not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flags/{key}/evaluate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Evaluates a feature flag for the given context",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Evaluate feature flag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Flag key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Evaluation context",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluateFlagRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Evaluation result",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluateFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Flag not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_flags_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/permissions/check": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Checks if the current user has a specific permission",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Check if user has permission",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Action (create, read, update, delete, manage)",
+                        "name": "action",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource (users, tenants, flags, roles, etc.)",
+                        "name": "resource",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Specific resource ID",
+                        "name": "resource_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Permission check result",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.PermissionCheckDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/permissions/health": {
+            "get": {
+                "description": "Returns OK if the permissions service is healthy",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Permissions health check",
+                "responses": {
+                    "200": {
+                        "description": "Service is healthy",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/permissions/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all effective permissions for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Get current user's permissions",
+                "responses": {
+                    "200": {
+                        "description": "User permissions",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.UserPermissionsDTO"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/roles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a paginated list of roles",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "List roles",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Include system roles",
+                        "name": "include_system",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search in name and description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of roles",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ListRolesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new role with specified permissions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Create a new role",
+                "parameters": [
+                    {
+                        "description": "Role creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.CreateRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Role created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.RoleDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Role already exists",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/roles/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a role by its unique identifier",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Get role by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.RoleDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid role ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Role not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates a role's name and description",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Update role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Role update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.UpdateRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_permissions_application_dto.RoleDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Cannot modify system role",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Role not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a role and all its assignments",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Delete role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Role deleted successfully"
+                    },
+                    "400": {
+                        "description": "Invalid role ID",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Cannot delete system role",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Role not found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_permissions_interface_http_v1.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/sessions": {
             "get": {
                 "security": [
@@ -1116,7 +2736,7 @@ const docTemplate = `{
                     "200": {
                         "description": "List of tenants",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantListDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantListDTO"
                         }
                     },
                     "400": {
@@ -1157,7 +2777,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateTenantRequest"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.CreateTenantRequest"
                         }
                     }
                 ],
@@ -1165,7 +2785,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Tenant created successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO"
                         }
                     },
                     "400": {
@@ -1224,7 +2844,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Tenant found",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO"
                         }
                     },
                     "400": {
@@ -1277,7 +2897,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Tenant found",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO"
                         }
                     },
                     "400": {
@@ -1331,7 +2951,7 @@ const docTemplate = `{
                         "name": "request",
                         "in": "body",
                         "schema": {
-                            "$ref": "#/definitions/dto.DeleteTenantRequest"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.DeleteTenantRequest"
                         }
                     }
                 ],
@@ -1403,7 +3023,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateTenantRequest"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.UpdateTenantRequest"
                         }
                     }
                 ],
@@ -1411,7 +3031,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Tenant updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO"
                         }
                     },
                     "400": {
@@ -1474,7 +3094,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ChangePlanRequest"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.ChangePlanRequest"
                         }
                     }
                 ],
@@ -1482,7 +3102,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Plan changed successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO"
                         }
                     },
                     "400": {
@@ -1547,7 +3167,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Tenant reactivated successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO"
                         }
                     },
                     "400": {
@@ -1616,7 +3236,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateSettingsRequest"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.UpdateSettingsRequest"
                         }
                     }
                 ],
@@ -1624,7 +3244,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Settings updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantSettingsDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantSettingsDTO"
                         }
                     },
                     "400": {
@@ -1687,7 +3307,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.SuspendTenantRequest"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.SuspendTenantRequest"
                         }
                     }
                 ],
@@ -1695,7 +3315,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Tenant suspended successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.TenantDTO"
+                            "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO"
                         }
                     },
                     "400": {
@@ -2432,92 +4052,81 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.ChangePlanRequest": {
+        "github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntryDTO": {
             "type": "object",
             "properties": {
-                "plan": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.CreateTenantRequest": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "owner_id": {
-                    "type": "string"
-                },
-                "plan": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.DeleteTenantRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.SuspendTenantRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.TenantDTO": {
-            "type": "object",
-            "properties": {
-                "billing_id": {
+                "correlation_id": {
                     "type": "string"
                 },
                 "created_at": {
                     "type": "string"
                 },
+                "event_id": {
+                    "type": "string"
+                },
+                "event_type": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
-                "name": {
-                    "type": "string"
-                },
-                "owner_id": {
-                    "type": "string"
-                },
-                "plan": {
-                    "type": "string"
-                },
-                "settings": {
+                "metadata": {
                     "type": "object",
                     "additionalProperties": {}
                 },
-                "slug": {
+                "payload": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "source": {
                     "type": "string"
                 },
-                "status": {
+                "tenant_id": {
                     "type": "string"
                 },
-                "trial_ends_at": {
+                "timestamp": {
                     "type": "string"
                 },
-                "updated_at": {
+                "user_id": {
                     "type": "string"
                 }
             }
         },
-        "dto.TenantListDTO": {
+        "github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntrySummaryDTO": {
             "type": "object",
             "properties": {
+                "correlation_id": {
+                    "type": "string"
+                },
+                "event_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetActorActivityResponse": {
+            "type": "object",
+            "properties": {
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntrySummaryDTO"
+                    }
+                },
                 "has_more": {
                     "type": "boolean"
                 },
@@ -2527,66 +4136,71 @@ const docTemplate = `{
                 "offset": {
                     "type": "integer"
                 },
-                "tenants": {
+                "total_count": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetEntryResponse": {
+            "type": "object",
+            "properties": {
+                "entry": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntryDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_audit_application_dto.GetResourceTrailResponse": {
+            "type": "object",
+            "properties": {
+                "entries": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.TenantSummaryDTO"
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntrySummaryDTO"
                     }
                 },
-                "total": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "resource_type": {
+                    "type": "string"
+                },
+                "total_count": {
                     "type": "integer"
                 }
             }
         },
-        "dto.TenantSettingsDTO": {
+        "github_com_0xsj_hexagonal-go_internal_audit_application_dto.ListEntriesResponse": {
             "type": "object",
             "properties": {
-                "settings": {
-                    "type": "object",
-                    "additionalProperties": {}
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_audit_application_dto.AuditEntrySummaryDTO"
+                    }
                 },
-                "tenant_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.TenantSummaryDTO": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
+                "has_more": {
+                    "type": "boolean"
                 },
-                "id": {
-                    "type": "string"
+                "limit": {
+                    "type": "integer"
                 },
-                "name": {
-                    "type": "string"
+                "offset": {
+                    "type": "integer"
                 },
-                "plan": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.UpdateSettingsRequest": {
-            "type": "object",
-            "properties": {
-                "settings": {
-                    "type": "object",
-                    "additionalProperties": {}
-                }
-            }
-        },
-        "dto.UpdateTenantRequest": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
+                "total_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -2850,6 +4464,423 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.AddRuleRequest": {
+            "type": "object",
+            "required": [
+                "type",
+                "variant_key"
+            ],
+            "properties": {
+                "attribute": {
+                    "type": "string"
+                },
+                "operator": {
+                    "type": "string"
+                },
+                "percentage": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "priority": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "tenant",
+                        "user",
+                        "percent",
+                        "attribute"
+                    ]
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "variant_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.AddRuleResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                },
+                "rule_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.CreateFlagRequest": {
+            "type": "object",
+            "required": [
+                "key"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "key": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.CreateFlagResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.DeleteFlagResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.DisableFlagResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.EnableFlagResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluateFlagRequest": {
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluateFlagResponse": {
+            "type": "object",
+            "properties": {
+                "result": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluationResultDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.EvaluationResultDTO": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "flag_key": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "variant_key": {
+                    "type": "string"
+                },
+                "variant_value": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "default_variant": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "overrides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.OverrideDTO"
+                    }
+                },
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.RuleDTO"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.VariantDTO"
+                    }
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rule_count": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.GetFlagResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.ListFlagsResponse": {
+            "type": "object",
+            "properties": {
+                "flags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagSummaryDTO"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.OverrideDTO": {
+            "type": "object",
+            "properties": {
+                "target_id": {
+                    "type": "string"
+                },
+                "target_type": {
+                    "type": "string"
+                },
+                "variant_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveOverrideRequest": {
+            "type": "object",
+            "required": [
+                "target_id",
+                "target_type"
+            ],
+            "properties": {
+                "target_id": {
+                    "type": "string"
+                },
+                "target_type": {
+                    "type": "string",
+                    "enum": [
+                        "tenant",
+                        "user"
+                    ]
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveOverrideResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.RemoveRuleResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.RuleDTO": {
+            "type": "object",
+            "properties": {
+                "attribute": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "operator": {
+                    "type": "string"
+                },
+                "percentage": {
+                    "type": "integer"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "variant_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.SetOverrideRequest": {
+            "type": "object",
+            "required": [
+                "target_id",
+                "target_type",
+                "variant_key"
+            ],
+            "properties": {
+                "target_id": {
+                    "type": "string"
+                },
+                "target_type": {
+                    "type": "string",
+                    "enum": [
+                        "tenant",
+                        "user"
+                    ]
+                },
+                "variant_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.SetOverrideResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.UpdateFlagRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.UpdateFlagResponse": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_flags_application_dto.FlagDTO"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_flags_application_dto.VariantDTO": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "integer"
                 }
             }
         },
@@ -3147,6 +5178,299 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_0xsj_hexagonal-go_internal_permissions_application_dto.AssignmentDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "string"
+                },
+                "role_name": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_permissions_application_dto.PermissionCheckDTO": {
+            "type": "object",
+            "properties": {
+                "allowed": {
+                    "type": "boolean"
+                },
+                "permission": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_permissions_application_dto.RoleDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_permissions_application_dto.UserPermissionsDTO": {
+            "type": "object",
+            "properties": {
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.ChangePlanRequest": {
+            "type": "object",
+            "properties": {
+                "plan": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.CreateTenantRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "owner_email": {
+                    "type": "string"
+                },
+                "owner_id": {
+                    "type": "string"
+                },
+                "plan": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.DeleteTenantRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.SuspendTenantRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantDTO": {
+            "type": "object",
+            "properties": {
+                "billing_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owner_email": {
+                    "type": "string"
+                },
+                "owner_id": {
+                    "type": "string"
+                },
+                "plan": {
+                    "type": "string"
+                },
+                "settings": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "trial_ends_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantListDTO": {
+            "type": "object",
+            "properties": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "tenants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantSummaryDTO"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantSettingsDTO": {
+            "type": "object",
+            "properties": {
+                "settings": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.TenantSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "plan": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.UpdateSettingsRequest": {
+            "type": "object",
+            "properties": {
+                "settings": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "github_com_0xsj_hexagonal-go_internal_tenant_application_dto.UpdateTenantRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_audit_interface_http_v1.ErrorResponse": {
+            "description": "Error response returned by the API",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "ENTRY_NOT_FOUND"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "audit entry not found"
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "internal_audit_interface_http_v1.MessageResponse": {
+            "description": "Simple message response",
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "audit OK"
+                }
+            }
+        },
         "internal_email_interface_http_v1.ErrorResponse": {
             "description": "Error response returned by the API",
             "type": "object",
@@ -3158,6 +5482,24 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "template not found"
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "internal_flags_interface_http_v1.ErrorResponse": {
+            "description": "Error response returned by the API",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "FLAG_NOT_FOUND"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "flag not found"
                 },
                 "meta": {
                     "type": "object",
@@ -3192,6 +5534,134 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/github_com_0xsj_hexagonal-go_internal_identity_application_dto.SessionDTO"
                     }
+                }
+            }
+        },
+        "internal_permissions_interface_http_v1.AssignRoleRequest": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_permissions_interface_http_v1.CreateRoleRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_permissions_interface_http_v1.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "internal_permissions_interface_http_v1.ListRolesResponse": {
+            "type": "object",
+            "properties": {
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_permissions_interface_http_v1.RoleSummary"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_permissions_interface_http_v1.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_permissions_interface_http_v1.RevokeRoleRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_permissions_interface_http_v1.RoleSummary": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_permissions_interface_http_v1.UpdateRoleRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
@@ -3234,6 +5704,14 @@ const docTemplate = `{
         {
             "description": "Email template management",
             "name": "email"
+        },
+        {
+            "description": "Role-based access control and permission management",
+            "name": "permissions"
+        },
+        {
+            "description": "Audit trail and activity logging",
+            "name": "audit"
         },
         {
             "description": "System endpoints (health checks, etc.)",
