@@ -1,0 +1,111 @@
+# Firewatch — Honeypot Server Configuration
+# Copy this file and adjust settings for your deployment.
+
+server:
+  # Domain the honeypot will appear to serve. Used in TLS certs
+  # and response headers to look authentic.
+  domain: "localhost"
+  port: 8080
+
+  tls:
+    enabled: false
+    # cert: "/etc/firewatch/tls/cert.pem"
+    # key:  "/etc/firewatch/tls/key.pem"
+
+# ---------------------------------------------------------------------------
+# Honeypot Modules
+# Enable only the modules relevant to your threat model. Each module
+# emulates a different attack surface and captures different attacker
+# behaviors. All modules are disabled by default.
+# ---------------------------------------------------------------------------
+modules:
+  nextjs:
+    enabled: true
+    endpoints:
+      - "/"
+      - "/_next/server/pages"
+      - "/_rsc"
+
+  wordpress:
+    enabled: true
+    fake_version: "6.4.2"
+
+  exposure:
+    enabled: true
+    # Content returned when attackers request .env, .git/config, etc.
+    fake_env: |
+      DB_HOST=localhost
+      DB_USER=root
+      DB_PASS=changeme
+      SECRET_KEY=fake_secret_key_do_not_use
+
+  api:
+    enabled: true
+
+  cloud:
+    enabled: true
+
+  admin:
+    enabled: false
+
+  cve:
+    enabled: false
+    # cves:
+    #   - "CVE-2023-34362"
+    #   - "CVE-2024-3400"
+
+# ---------------------------------------------------------------------------
+# Fingerprinting
+# JA3/JA4 require TLS to be enabled. GeoIP requires a MaxMind database.
+# ---------------------------------------------------------------------------
+fingerprinting:
+  ja3: true
+  ja4: true
+  geoip: false
+  reverse_dns: false
+
+# ---------------------------------------------------------------------------
+# Alerts
+# Configure one or more channels. Only events at or above min_severity
+# will be dispatched. Severity levels: critical, high, medium, low, info
+# ---------------------------------------------------------------------------
+alerts:
+  slack:
+    # webhook_url: "https://hooks.slack.com/services/T00/B00/xxx"
+    min_severity: "medium"
+
+  discord:
+    # webhook_url: "https://discord.com/api/webhooks/000/xxx"
+    min_severity: "medium"
+
+  webhook:
+    # url: "https://your-siem.example.com/api/ingest"
+    # headers:
+    #   Authorization: "Bearer token"
+    min_severity: "medium"
+
+# ---------------------------------------------------------------------------
+# Storage
+# ---------------------------------------------------------------------------
+storage:
+  type: "sqlite"
+  path: "./firewatch.db"
+
+# ---------------------------------------------------------------------------
+# Deception
+# Extra techniques to make the honeypot more convincing and to plant
+# trackable breadcrumbs in attacker tooling.
+# ---------------------------------------------------------------------------
+deception:
+  honey_tokens: true
+  breadcrumbs: true
+  fake_errors: true
+
+# ---------------------------------------------------------------------------
+# Logging
+# level: debug | info | warn | error
+# format: json | text
+# ---------------------------------------------------------------------------
+logging:
+  level: "info"
+  format: "json"

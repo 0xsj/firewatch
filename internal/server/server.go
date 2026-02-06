@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/0xsj/firewatch/internal/config"
+	"github.com/0xsj/firewatch/internal/detection"
+	"github.com/0xsj/firewatch/internal/fingerprint"
 	"github.com/0xsj/firewatch/internal/middleware"
 	"github.com/0xsj/firewatch/internal/storage"
 	"github.com/0xsj/firewatch/pkg/errors"
@@ -26,7 +28,9 @@ type Server struct {
 }
 
 // New creates a Server with the given config, store, and logger.
-func New(cfg *config.Config, store storage.Store, logger *slog.Logger) *Server {
+// Optional components (fpEngine, detector) are included in the
+// middleware chain when non-nil.
+func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, detector *detection.Detector, logger *slog.Logger) *Server {
 	s := &Server{
 		cfg:    cfg,
 		store:  store,
@@ -35,10 +39,17 @@ func New(cfg *config.Config, store storage.Store, logger *slog.Logger) *Server {
 	}
 
 	// Build the middleware chain.
-	chain := middleware.Chain(
+	mws := []middleware.Middleware{
 		middleware.Correlation,
 		middleware.Logging(logger),
-	)
+	}
+	if fpEngine != nil {
+		mws = append(mws, middleware.Fingerprint(fpEngine, logger))
+	}
+	if detector != nil {
+		mws = append(mws, middleware.Detection(detector, store, logger))
+	}
+	chain := middleware.Chain(mws...)
 
 	s.http = &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -98,4 +109,10 @@ func (s *Server) Router() *Router {
 // Store returns the server's storage backend.
 func (s *Server) Store() storage.Store {
 	return s.store
+}
+
+// HTTPServer returns the underlying http.Server for advanced
+// configuration (e.g., wiring JA3 capture into TLS).
+func (s *Server) HTTPServer() *http.Server {
+	return s.http
 }
