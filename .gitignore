@@ -1,0 +1,31 @@
+# Claude
+CLAUDE.md
+.claude/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+canarydrop
+
+# Vendor
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config overrides
+configs/local.json
+*.env
