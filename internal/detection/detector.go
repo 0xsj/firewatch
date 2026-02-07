@@ -3,25 +3,24 @@ package detection
 import (
 	"log/slog"
 	"net/http"
-	"sync"
 
 	"github.com/0xsj/firewatch/internal/fingerprint"
 )
 
-// DetectionResult holds everything the detector found for a request.
-type DetectionResult struct {
+// Result holds everything the detector found for a request.
+type Result struct {
 	Signatures []*Signature // Matched signatures
 	Patterns   []*Pattern   // Matched patterns
 	Severity   string       // Highest severity across all matches
 }
 
 // Matched reports whether any signatures or patterns matched.
-func (r *DetectionResult) Matched() bool {
+func (r *Result) Matched() bool {
 	return len(r.Signatures) > 0 || len(r.Patterns) > 0
 }
 
 // SignatureIDs returns the IDs of all matched signatures.
-func (r *DetectionResult) SignatureIDs() []string {
+func (r *Result) SignatureIDs() []string {
 	ids := make([]string, len(r.Signatures))
 	for i, s := range r.Signatures {
 		ids[i] = s.ID
@@ -33,13 +32,8 @@ func (r *DetectionResult) SignatureIDs() []string {
 type Detector struct {
 	signatures []*Signature
 	patterns   []*Pattern
-	compiled   map[string]*compiledRegex
-	mu         sync.RWMutex
 	logger     *slog.Logger
 }
-
-// compiledRegex caches compiled regexps for signature/pattern matchers.
-type compiledRegex struct{}
 
 // New creates a Detector with the given signatures and patterns.
 func New(sigs []*Signature, pats []*Pattern, logger *slog.Logger) *Detector {
@@ -58,8 +52,8 @@ func NewDefault(logger *slog.Logger) *Detector {
 
 // Detect evaluates all signatures and patterns against the request
 // and returns the combined result.
-func (d *Detector) Detect(r *http.Request, body string) *DetectionResult {
-	result := &DetectionResult{}
+func (d *Detector) Detect(r *http.Request, body string) *Result {
+	result := &Result{}
 	fields := d.extractFields(r, body)
 
 	// Evaluate signatures (all matchers must match)

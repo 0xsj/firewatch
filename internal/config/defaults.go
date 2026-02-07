@@ -37,6 +37,7 @@ func Default() *Config {
 			JA3:        true,
 			JA4:        true,
 			GeoIP:      false,
+			GeoIPDB:    "",
 			ReverseDNS: false,
 		},
 		Alerts: AlertsConfig{

@@ -1,4 +1,4 @@
-.PHONY: fmt vet test build clean
+.PHONY: fmt vet lint test coverage build docker-build clean ci
 
 fmt:
 	gofmt -w -s .
@@ -6,13 +6,23 @@ fmt:
 vet:
 	go vet ./...
 
+lint:
+	golangci-lint run
+
 test:
-	go test ./...
+	go test -race ./...
+
+coverage:
+	go test -race -coverprofile=coverage.out -covermode=atomic ./...
+	go tool cover -func=coverage.out | tail -1
 
 build:
-	go build -o canarydrop ./cmd/canarydrop
+	go build -trimpath -ldflags="-s -w" -o firewatch ./cmd/firewatch
+
+docker-build:
+	docker build -t firewatch:local .
 
 clean:
-	rm -f canarydrop
+	rm -f firewatch coverage.out
 
-
+ci: lint vet test build

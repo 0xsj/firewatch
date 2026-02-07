@@ -84,10 +84,11 @@ type CVEModuleConfig struct {
 
 // FingerprintConfig controls request fingerprinting.
 type FingerprintConfig struct {
-	JA3        bool `yaml:"ja3"`
-	JA4        bool `yaml:"ja4"`
-	GeoIP      bool `yaml:"geoip"`
-	ReverseDNS bool `yaml:"reverse_dns"`
+	JA3        bool   `yaml:"ja3"`
+	JA4        bool   `yaml:"ja4"`
+	GeoIP      bool   `yaml:"geoip"`
+	GeoIPDB    string `yaml:"geoip_db"`
+	ReverseDNS bool   `yaml:"reverse_dns"`
 }
 
 // AlertsConfig controls alert dispatch.

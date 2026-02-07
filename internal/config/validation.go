@@ -66,6 +66,13 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// GeoIP — require database path when enabled
+	if c.Fingerprinting.GeoIP {
+		if err := validate.NonEmpty("fingerprinting.geoip_db", c.Fingerprinting.GeoIPDB); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	if len(errs) > 0 {
 		return errors.E(op, errors.KindValidation, errors.CodeConfigInvalid, errors.Join(errs...))
 	}

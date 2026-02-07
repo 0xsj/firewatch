@@ -11,7 +11,7 @@ import (
 	"github.com/0xsj/firewatch/internal/storage/models"
 	"github.com/0xsj/firewatch/pkg/errors"
 
-	_ "modernc.org/sqlite"
+	_ "modernc.org/sqlite" // sqlite driver
 )
 
 const op = errors.Op("storage.sqlite")
@@ -476,16 +476,16 @@ func scanEvent(s scanner) (*models.Event, error) {
 	}
 
 	if headers.Valid {
-		json.Unmarshal([]byte(headers.String), &e.Headers)
+		_ = json.Unmarshal([]byte(headers.String), &e.Headers)
 	}
 	if sigs.Valid {
-		json.Unmarshal([]byte(sigs.String), &e.Signatures)
+		_ = json.Unmarshal([]byte(sigs.String), &e.Signatures)
 	}
 	if fp.Valid {
-		json.Unmarshal([]byte(fp.String), &e.Fingerprint)
+		_ = json.Unmarshal([]byte(fp.String), &e.Fingerprint)
 	}
 	if geoip.Valid {
-		json.Unmarshal([]byte(geoip.String), &e.GeoIP)
+		_ = json.Unmarshal([]byte(geoip.String), &e.GeoIP)
 	}
 
 	return &e, nil
@@ -508,22 +508,22 @@ func scanAttacker(s scanner) (*models.Attacker, error) {
 	}
 
 	if geoip.Valid {
-		json.Unmarshal([]byte(geoip.String), &a.GeoIP)
+		_ = json.Unmarshal([]byte(geoip.String), &a.GeoIP)
 	}
 	if userAgents.Valid {
-		json.Unmarshal([]byte(userAgents.String), &a.UserAgents)
+		_ = json.Unmarshal([]byte(userAgents.String), &a.UserAgents)
 	}
 	if modules.Valid {
-		json.Unmarshal([]byte(modules.String), &a.ModulesTargeted)
+		_ = json.Unmarshal([]byte(modules.String), &a.ModulesTargeted)
 	}
 	if paths.Valid {
-		json.Unmarshal([]byte(paths.String), &a.PathsProbed)
+		_ = json.Unmarshal([]byte(paths.String), &a.PathsProbed)
 	}
 	if ja3.Valid {
-		json.Unmarshal([]byte(ja3.String), &a.JA3Hashes)
+		_ = json.Unmarshal([]byte(ja3.String), &a.JA3Hashes)
 	}
 	if tags.Valid {
-		json.Unmarshal([]byte(tags.String), &a.Tags)
+		_ = json.Unmarshal([]byte(tags.String), &a.Tags)
 	}
 
 	return &a, nil
@@ -545,13 +545,13 @@ func scanCampaign(s scanner) (*models.Campaign, error) {
 	}
 
 	if ips.Valid {
-		json.Unmarshal([]byte(ips.String), &c.AttackerIPs)
+		_ = json.Unmarshal([]byte(ips.String), &c.AttackerIPs)
 	}
 	if modules.Valid {
-		json.Unmarshal([]byte(modules.String), &c.ModulesTargeted)
+		_ = json.Unmarshal([]byte(modules.String), &c.ModulesTargeted)
 	}
 	if tags.Valid {
-		json.Unmarshal([]byte(tags.String), &c.Tags)
+		_ = json.Unmarshal([]byte(tags.String), &c.Tags)
 	}
 
 	return &c, nil
@@ -575,10 +575,10 @@ func scanIOC(s scanner) (*models.IOC, error) {
 
 	ioc.Type = models.IOCType(iocType)
 	if geoip.Valid {
-		json.Unmarshal([]byte(geoip.String), &ioc.GeoIP)
+		_ = json.Unmarshal([]byte(geoip.String), &ioc.GeoIP)
 	}
 	if tags.Valid {
-		json.Unmarshal([]byte(tags.String), &ioc.Tags)
+		_ = json.Unmarshal([]byte(tags.String), &ioc.Tags)
 	}
 
 	return &ioc, nil

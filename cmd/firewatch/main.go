@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,8 +9,11 @@ import (
 	"github.com/0xsj/firewatch/internal/config"
 	"github.com/0xsj/firewatch/internal/detection"
 	"github.com/0xsj/firewatch/internal/fingerprint"
+	"github.com/0xsj/firewatch/internal/geoip"
+	adminmod "github.com/0xsj/firewatch/internal/handlers/admin"
 	apimod "github.com/0xsj/firewatch/internal/handlers/api"
 	cloudmod "github.com/0xsj/firewatch/internal/handlers/cloud"
+	cvemod "github.com/0xsj/firewatch/internal/handlers/cve"
 	exposuremod "github.com/0xsj/firewatch/internal/handlers/exposure"
 	nextjsmod "github.com/0xsj/firewatch/internal/handlers/nextjs"
 	wpmod "github.com/0xsj/firewatch/internal/handlers/wordpress"
@@ -22,16 +24,85 @@ import (
 var version = "dev"
 
 func main() {
-	configPath := flag.String("config", "firewatch.yaml", "path to config file")
-	showVersion := flag.Bool("version", false, "print version and exit")
-	flag.Parse()
-
-	if *showVersion {
-		fmt.Println("firewatch", version)
+	if len(os.Args) < 2 {
+		runServe(os.Args[1:])
 		return
 	}
 
-	cfg, err := config.LoadOrDefault(*configPath)
+	switch os.Args[1] {
+	case "serve":
+		runServe(os.Args[2:])
+	case "events":
+		runEvents(os.Args[2:])
+	case "export":
+		runExport(os.Args[2:])
+	case "stats":
+		runStats(os.Args[2:])
+	case "version", "--version", "-v":
+		fmt.Println("firewatch", version)
+	case "help", "--help", "-h":
+		printUsage()
+	default:
+		// Treat unknown args as flags for serve (backwards compat).
+		runServe(os.Args[1:])
+	}
+}
+
+func printUsage() {
+	fmt.Fprintf(os.Stderr, `Usage: firewatch <command> [flags]
+
+Commands:
+  serve     Start the honeypot server (default)
+  events    Query stored events
+  export    Export threat intelligence (STIX, MISP, CSV)
+  stats     Show summary statistics
+  version   Print version and exit
+
+Run 'firewatch <command> --help' for command-specific flags.
+`)
+}
+
+// openStorage loads config and opens the SQLite store.
+func openStorage(configPath string) (*config.Config, storage.Store, error) {
+	cfg, err := config.LoadOrDefault(configPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("loading config: %w", err)
+	}
+	store, err := storage.NewSQLite(cfg.Storage.Path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("opening storage: %w", err)
+	}
+	return cfg, store, nil
+}
+
+// openGeoIP opens the GeoIP reader if configured. Returns nil
+// reader (not an error) when GeoIP is disabled or DB is missing.
+func openGeoIP(cfg *config.Config, logger *slog.Logger) *geoip.Reader {
+	if !cfg.Fingerprinting.GeoIP || cfg.Fingerprinting.GeoIPDB == "" {
+		return nil
+	}
+	reader, err := geoip.Open(cfg.Fingerprinting.GeoIPDB)
+	if err != nil {
+		logger.Warn("geoip database not available, continuing without geolocation",
+			"path", cfg.Fingerprinting.GeoIPDB,
+			"error", err,
+		)
+		return nil
+	}
+	logger.Info("geoip database loaded", "path", cfg.Fingerprinting.GeoIPDB)
+	return reader
+}
+
+func runServe(args []string) {
+	configPath := "firewatch.yaml"
+	for i, arg := range args {
+		if (arg == "--config" || arg == "-config") && i+1 < len(args) {
+			configPath = args[i+1]
+			break
+		}
+	}
+
+	cfg, err := config.LoadOrDefault(configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -46,6 +117,12 @@ func main() {
 		os.Exit(1)
 	}
 	defer sqliteStore.Close()
+
+	// GeoIP.
+	geoReader := openGeoIP(cfg, logger)
+	if geoReader != nil {
+		defer geoReader.Close()
+	}
 
 	// Alerting — set up before modules so AlertingStore can wrap the store.
 	alertMgr := alerts.NewManager(logger)
@@ -75,8 +152,8 @@ func main() {
 	// Detection engine.
 	detector := detection.NewDefault(logger)
 
-	// Server — includes correlation, logging, fingerprint, and detection middleware.
-	srv := server.New(cfg, store, fpEngine, detector, logger)
+	// Server — includes correlation, logging, geoip, fingerprint, and detection middleware.
+	srv := server.New(cfg, store, fpEngine, detector, geoReader, logger)
 
 	// Wire JA3 capture into TLS handshake.
 	if ja3Store != nil {
@@ -119,6 +196,18 @@ func main() {
 	})
 	mountModule("cloud", cfg.Modules.Cloud.Enabled, func() {
 		mod := cloudmod.New(cfg.Modules.Cloud, store, logger)
+		for _, route := range mod.Routes() {
+			srv.Router().HandleFunc(route.Pattern, route.Handler)
+		}
+	})
+	mountModule("admin", cfg.Modules.Admin.Enabled, func() {
+		mod := adminmod.New(cfg.Modules.Admin, store, logger)
+		for _, route := range mod.Routes() {
+			srv.Router().HandleFunc(route.Pattern, route.Handler)
+		}
+	})
+	mountModule("cve", cfg.Modules.CVE.Enabled, func() {
+		mod := cvemod.New(cfg.Modules.CVE, store, logger)
 		for _, route := range mod.Routes() {
 			srv.Router().HandleFunc(route.Pattern, route.Handler)
 		}

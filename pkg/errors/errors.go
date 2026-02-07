@@ -57,7 +57,7 @@ func E(args ...any) *Error {
 			e.Err = a
 		}
 	}
-	e.stack = capture(3)
+	e.stack = capture()
 	return e
 }
 
@@ -65,7 +65,7 @@ func E(args ...any) *Error {
 func New(message string) *Error {
 	return &Error{
 		Message: message,
-		stack:   capture(3),
+		stack:   capture(),
 	}
 }
 
@@ -73,7 +73,7 @@ func New(message string) *Error {
 func Newf(format string, args ...any) *Error {
 	return &Error{
 		Message: fmt.Sprintf(format, args...),
-		stack:   capture(3),
+		stack:   capture(),
 	}
 }
 
@@ -85,7 +85,7 @@ func Wrap(err error, op Op) *Error {
 	return &Error{
 		Op:    op,
 		Err:   err,
-		stack: capture(3),
+		stack: capture(),
 	}
 }
 
@@ -97,7 +97,7 @@ func Wrapf(err error, format string, args ...any) *Error {
 	return &Error{
 		Message: fmt.Sprintf(format, args...),
 		Err:     err,
-		stack:   capture(3),
+		stack:   capture(),
 	}
 }
 

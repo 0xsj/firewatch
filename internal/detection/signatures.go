@@ -206,6 +206,110 @@ func DefaultSignatures() []*Signature {
 			},
 		},
 
+		// --- Admin ---
+		{
+			ID:          "admin-phpmyadmin-001",
+			Name:        "phpMyAdmin Probe",
+			Description: "Access to phpMyAdmin login page",
+			Module:      "admin",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpRegex, Value: `(?i)^/(phpmyadmin|pma)/`},
+			},
+		},
+		{
+			ID:          "admin-adminer-001",
+			Name:        "Adminer Probe",
+			Description: "Access to Adminer database manager",
+			Module:      "admin",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpRegex, Value: `(?i)^/adminer`},
+			},
+		},
+		{
+			ID:          "admin-cpanel-001",
+			Name:        "cPanel Probe",
+			Description: "Access to cPanel login page",
+			Module:      "admin",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpPrefix, Value: "/cpanel"},
+			},
+		},
+		{
+			ID:          "admin-generic-001",
+			Name:        "Generic Admin Panel Probe",
+			Description: "Access to common admin panel paths",
+			Module:      "admin",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpRegex, Value: `^/(admin|administrator|manager)(/|$)`},
+			},
+		},
+
+		// --- CVE ---
+		{
+			ID:          "cve-log4shell-001",
+			Name:        "Solr/Log4j Endpoint Probe",
+			Description: "Access to Apache Solr admin endpoint, often targeted for Log4Shell",
+			Module:      "cve",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpPrefix, Value: "/solr/admin"},
+			},
+		},
+		{
+			ID:          "cve-spring4shell-001",
+			Name:        "Spring Actuator Probe",
+			Description: "Access to Spring Boot actuator endpoint",
+			Module:      "cve",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpPrefix, Value: "/actuator"},
+			},
+		},
+		{
+			ID:          "cve-moveit-001",
+			Name:        "MOVEit Transfer Probe",
+			Description: "Access to MOVEit Transfer endpoints",
+			Module:      "cve",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpRegex, Value: `(?i)\.(aspx|dll)$`},
+			},
+		},
+		{
+			ID:          "cve-panos-001",
+			Name:        "PAN-OS GlobalProtect Probe",
+			Description: "Access to PAN-OS GlobalProtect or SSL-VPN endpoints",
+			Module:      "cve",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpRegex, Value: `^/(global-protect|ssl-vpn)/`},
+			},
+		},
+		{
+			ID:          "cve-struts2-001",
+			Name:        "Struts2 Endpoint Probe",
+			Description: "Access to Apache Struts2 showcase application",
+			Module:      "cve",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpPrefix, Value: "/struts2-showcase"},
+			},
+		},
+		{
+			ID:          "cve-confluence-001",
+			Name:        "Confluence Admin Probe",
+			Description: "Access to Confluence admin or setup endpoints",
+			Module:      "cve",
+			Severity:    "medium",
+			Matchers: []Matcher{
+				{Field: FieldPath, Operator: OpRegex, Value: `^/(wiki/|server-info\.action|setup/)`},
+			},
+		},
+
 		// --- Generic ---
 		{
 			ID:          "generic-scanner-001",

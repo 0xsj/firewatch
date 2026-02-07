@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/0xsj/firewatch/internal/geoip"
 	"github.com/0xsj/firewatch/internal/middleware"
 	"github.com/0xsj/firewatch/internal/storage"
 	"github.com/0xsj/firewatch/internal/storage/models"
@@ -29,6 +30,7 @@ func RecordEvent(store storage.Store, logger *slog.Logger, r *http.Request, modu
 		UserAgent:  r.UserAgent(),
 		Severity:   severity,
 		Signatures: signatures,
+		GeoIP:      geoip.FromContext(r.Context()),
 	}
 
 	if err := store.SaveEvent(r.Context(), event); err != nil {

@@ -3,36 +3,36 @@ package enrichment
 import (
 	"context"
 
+	"github.com/0xsj/firewatch/internal/geoip"
 	"github.com/0xsj/firewatch/internal/storage/models"
 )
 
-// GeoIP enriches IP-type IOCs with geolocation data.
-// This is a placeholder — a real implementation would use
-// MaxMind GeoLite2 or a similar database.
-type GeoIP struct{}
+// GeoIP enriches IP-type IOCs with geolocation data using a
+// MaxMind GeoIP2 database.
+type GeoIP struct {
+	reader *geoip.Reader
+}
 
-func NewGeoIP() *GeoIP { return &GeoIP{} }
+// NewGeoIP creates a GeoIP enricher. If reader is nil, Enrich
+// is a no-op (graceful degradation when no DB is available).
+func NewGeoIP(reader *geoip.Reader) *GeoIP {
+	return &GeoIP{reader: reader}
+}
 
 func (g *GeoIP) Name() string { return "geoip" }
 
 func (g *GeoIP) Enrich(_ context.Context, ioc *models.IOC) error {
+	if g.reader == nil {
+		return nil
+	}
 	if ioc.Type != models.IOCTypeIP {
 		return nil
 	}
 
-	// Placeholder: a real implementation would look up the IP
-	// in a GeoIP database (MaxMind, IP2Location, etc.).
-	// For now, we leave GeoIP nil — callers should check for nil.
-	//
-	// Example with MaxMind:
-	//   record, err := db.City(net.ParseIP(ioc.Value))
-	//   ioc.GeoIP = &models.GeoIPInfo{
-	//       Country:     record.Country.Names["en"],
-	//       CountryCode: record.Country.IsoCode,
-	//       City:        record.City.Names["en"],
-	//       ASN:         record.Traits.AutonomousSystemNumber,
-	//       ...
-	//   }
-
+	info, err := g.reader.Lookup(ioc.Value)
+	if err != nil {
+		return err
+	}
+	ioc.GeoIP = info
 	return nil
 }

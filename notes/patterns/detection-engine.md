@@ -46,7 +46,7 @@ Any of these paths triggers the pattern. Patterns cast a wider net.
 Request → Detector
            ├── Check all Signatures (AND within each)
            ├── Check all Patterns (OR across rules, AND within each rule)
-           └── Combine → DetectionResult
+           └── Combine → Result
                            ├── matched signatures
                            ├── matched patterns
                            └── highest severity

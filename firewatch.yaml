@@ -50,9 +50,14 @@ modules:
 
   cve:
     enabled: false
+    # Filter to specific CVEs (empty = all enabled):
     # cves:
-    #   - "CVE-2023-34362"
-    #   - "CVE-2024-3400"
+    #   - "CVE-2021-44228"   # Log4Shell
+    #   - "CVE-2022-22965"   # Spring4Shell
+    #   - "CVE-2023-34362"   # MOVEit Transfer
+    #   - "CVE-2024-3400"    # PAN-OS GlobalProtect
+    #   - "CVE-2017-5638"    # Apache Struts2
+    #   - "CVE-2023-22515"   # Confluence
 
 # ---------------------------------------------------------------------------
 # Fingerprinting
@@ -62,6 +67,7 @@ fingerprinting:
   ja3: true
   ja4: true
   geoip: false
+  # geoip_db: "/path/to/GeoLite2-City.mmdb"
   reverse_dns: false
 
 # ---------------------------------------------------------------------------

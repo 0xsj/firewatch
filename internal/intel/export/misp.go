@@ -33,7 +33,7 @@ type mispAttribute struct {
 	Type     string `json:"type"`
 	Category string `json:"category"`
 	Value    string `json:"value"`
-	ToIDS    bool   `json:"to_ids"`
+	ToIDs    bool   `json:"to_ids"`
 	Comment  string `json:"comment,omitempty"`
 }
 
@@ -48,7 +48,7 @@ func (m *MISP) ExportIOCs(iocs []*models.IOC) ([]byte, error) {
 			Type:     mispType,
 			Category: category,
 			Value:    ioc.Value,
-			ToIDS:    ioc.Severity == "high" || ioc.Severity == "critical",
+			ToIDs:    ioc.Severity == "high" || ioc.Severity == "critical",
 			Comment:  fmt.Sprintf("Source: firewatch, Severity: %s", ioc.Severity),
 		})
 	}
@@ -76,7 +76,7 @@ func (m *MISP) ExportCampaigns(campaigns []*models.Campaign) ([]byte, error) {
 				Type:     "ip-src",
 				Category: "Network activity",
 				Value:    ip,
-				ToIDS:    true,
+				ToIDs:    true,
 				Comment:  fmt.Sprintf("Campaign: %s", campaign.Name),
 			})
 		}

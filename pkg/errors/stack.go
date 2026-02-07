@@ -11,11 +11,11 @@ const maxFrames = 32
 // stack holds program counters captured at error creation time.
 type stack []uintptr
 
-// capture records the call stack, skipping the specified number of
-// frames (runtime.Callers itself, capture, and the errors constructor).
-func capture(skip int) *stack {
+// capture records the call stack, skipping 3 frames
+// (runtime.Callers itself, capture, and the errors constructor).
+func capture() *stack {
 	var pcs [maxFrames]uintptr
-	n := runtime.Callers(skip, pcs[:])
+	n := runtime.Callers(3, pcs[:])
 	s := stack(pcs[:n])
 	return &s
 }

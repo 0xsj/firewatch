@@ -37,7 +37,8 @@ func (cd *CampaignDetector) DetectCampaigns(events []*models.Event) []*models.Ca
 	// Strategy 2: Group by coordinated multi-IP attacks on same modules
 	coordCampaigns := cd.groupByCoordination(events)
 
-	campaigns := append(sigCampaigns, coordCampaigns...)
+	campaigns := sigCampaigns
+	campaigns = append(campaigns, coordCampaigns...)
 
 	cd.logger.Info("campaign detection complete",
 		"events", len(events),
@@ -72,7 +73,7 @@ func (cd *CampaignDetector) groupBySignatures(events []*models.Event) []*models.
 		c.ips[event.SourceIP] = struct{}{}
 	}
 
-	var campaigns []*models.Campaign
+	campaigns := make([]*models.Campaign, 0, len(clusters))
 	for sigKey, c := range clusters {
 		// Only flag as campaign if multiple IPs share the same sigs
 		if len(c.ips) < 2 {
@@ -137,7 +138,7 @@ func (cd *CampaignDetector) groupByCoordination(events []*models.Event) []*model
 		g.events = append(g.events, ipEvents[ip]...)
 	}
 
-	var campaigns []*models.Campaign
+	campaigns := make([]*models.Campaign, 0, len(groups))
 	for moduleKey, g := range groups {
 		if len(g.ips) < 2 {
 			continue
@@ -228,10 +229,10 @@ func highestEventSeverity(events []*models.Event) string {
 	return highest
 }
 
-// truncate shortens a string with ellipsis if it exceeds max length.
-func truncate(s string, max int) string {
-	if len(s) <= max {
+// truncate shortens a string with ellipsis if it exceeds maxLen length.
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
 		return s
 	}
-	return s[:max-3] + "..."
+	return s[:maxLen-3] + "..."
 }

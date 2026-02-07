@@ -23,14 +23,14 @@ func (e *Exposure) handleGit(w http.ResponseWriter, r *http.Request) {
 		e.logger.Info("git config probe", "ip", httputil.ClientIP(r))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n[remote \"origin\"]\n\turl = git@github.com:example/app.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n"))
+		_, _ = w.Write([]byte("[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n[remote \"origin\"]\n\turl = git@github.com:example/app.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n"))
 
 	case "/.git/HEAD":
 		sigs = append(sigs, sigGitHEAD)
 		e.logger.Info("git HEAD probe", "ip", httputil.ClientIP(r))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ref: refs/heads/main\n"))
+		_, _ = w.Write([]byte("ref: refs/heads/main\n"))
 
 	default:
 		e.logger.Info("git directory probe",

@@ -24,7 +24,7 @@ func (c *Cloud) handleMetadata(w http.ResponseWriter, r *http.Request) {
 	// Return fake AWS-style metadata
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ami-id\nami-launch-index\nami-manifest-path\nhostname\ninstance-action\ninstance-id\ninstance-life-cycle\ninstance-type\nlocal-hostname\nlocal-ipv4\nmac\nnetwork\nplacement\nprofile\npublic-hostname\npublic-ipv4\npublic-keys\nsecurity-groups\nservices\n"))
+	_, _ = w.Write([]byte("ami-id\nami-launch-index\nami-manifest-path\nhostname\ninstance-action\ninstance-id\ninstance-life-cycle\ninstance-type\nlocal-hostname\nlocal-ipv4\nmac\nnetwork\nplacement\nprofile\npublic-hostname\npublic-ipv4\npublic-keys\nsecurity-groups\nservices\n"))
 }
 
 func (c *Cloud) handleIAM(w http.ResponseWriter, r *http.Request) {
@@ -58,5 +58,5 @@ func (c *Cloud) handleIMDSv2(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("X-Aws-Ec2-Metadata-Token-Ttl-Seconds", "21600")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("AQAAANjCpMCZjg_fake_imds_token_do_not_use"))
+	_, _ = w.Write([]byte("AQAAANjCpMCZjg_fake_imds_token_do_not_use"))
 }

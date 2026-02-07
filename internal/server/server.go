@@ -9,6 +9,7 @@ import (
 	"github.com/0xsj/firewatch/internal/config"
 	"github.com/0xsj/firewatch/internal/detection"
 	"github.com/0xsj/firewatch/internal/fingerprint"
+	"github.com/0xsj/firewatch/internal/geoip"
 	"github.com/0xsj/firewatch/internal/middleware"
 	"github.com/0xsj/firewatch/internal/storage"
 	"github.com/0xsj/firewatch/pkg/errors"
@@ -28,9 +29,9 @@ type Server struct {
 }
 
 // New creates a Server with the given config, store, and logger.
-// Optional components (fpEngine, detector) are included in the
-// middleware chain when non-nil.
-func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, detector *detection.Detector, logger *slog.Logger) *Server {
+// Optional components (fpEngine, detector, geoReader) are included
+// in the middleware chain when non-nil.
+func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, detector *detection.Detector, geoReader *geoip.Reader, logger *slog.Logger) *Server {
 	s := &Server{
 		cfg:    cfg,
 		store:  store,
@@ -42,6 +43,9 @@ func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, 
 	mws := []middleware.Middleware{
 		middleware.Correlation,
 		middleware.Logging(logger),
+	}
+	if geoReader != nil {
+		mws = append(mws, middleware.GeoIP(geoReader, logger))
 	}
 	if fpEngine != nil {
 		mws = append(mws, middleware.Fingerprint(fpEngine, logger))

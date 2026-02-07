@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/0xsj/firewatch/internal/detection"
+	"github.com/0xsj/firewatch/internal/geoip"
 	"github.com/0xsj/firewatch/internal/storage"
 	"github.com/0xsj/firewatch/internal/storage/models"
 	"github.com/0xsj/firewatch/pkg/crypto"
@@ -60,6 +61,7 @@ func Detection(det *detection.Detector, store storage.Store, logger *slog.Logger
 					UserAgent:  r.UserAgent(),
 					Severity:   result.Severity,
 					Signatures: result.SignatureIDs(),
+					GeoIP:      geoip.FromContext(r.Context()),
 				}
 
 				if err := store.SaveEvent(r.Context(), event); err != nil {

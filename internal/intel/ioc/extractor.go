@@ -123,11 +123,9 @@ func (x *Extractor) FromEvents(events []*models.Event) []*models.IOC {
 
 // tagsForEvent generates classification tags based on event data.
 func tagsForEvent(event *models.Event) []string {
-	var tags []string
+	tags := make([]string, 0, 1+len(event.Signatures))
 	tags = append(tags, event.Module)
-	for _, sig := range event.Signatures {
-		tags = append(tags, sig)
-	}
+	tags = append(tags, event.Signatures...)
 	return tags
 }
 

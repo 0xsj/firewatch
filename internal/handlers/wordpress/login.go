@@ -24,11 +24,11 @@ func (wp *WordPress) handleLoginGet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Powered-By", "PHP/8.1.0")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(deception.WordPressLoginPage(wp.cfg.FakeVersion)))
+	_, _ = w.Write([]byte(deception.WordPressLoginPage(wp.cfg.FakeVersion)))
 }
 
 func (wp *WordPress) handleLoginPost(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	_ = r.ParseForm()
 	username := r.FormValue("log")
 	password := r.FormValue("pwd")
 
@@ -48,5 +48,5 @@ func (wp *WordPress) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Powered-By", "PHP/8.1.0")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(deception.WordPressLoginPage(wp.cfg.FakeVersion)))
+	_, _ = w.Write([]byte(deception.WordPressLoginPage(wp.cfg.FakeVersion)))
 }

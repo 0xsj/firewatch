@@ -16,22 +16,22 @@ func Chain(mws ...Middleware) Middleware {
 	}
 }
 
-// responseWriter wraps http.ResponseWriter to capture the status
+// ResponseWriter wraps http.ResponseWriter to capture the status
 // code and response size for logging.
-type responseWriter struct {
+type ResponseWriter struct {
 	http.ResponseWriter
 	status  int
 	size    int
 	written bool
 }
 
-// WrapResponseWriter creates a responseWriter that captures
+// WrapResponseWriter creates a ResponseWriter that captures
 // status code and bytes written.
-func WrapResponseWriter(w http.ResponseWriter) *responseWriter {
-	return &responseWriter{ResponseWriter: w, status: http.StatusOK}
+func WrapResponseWriter(w http.ResponseWriter) *ResponseWriter {
+	return &ResponseWriter{ResponseWriter: w, status: http.StatusOK}
 }
 
-func (w *responseWriter) WriteHeader(code int) {
+func (w *ResponseWriter) WriteHeader(code int) {
 	if !w.written {
 		w.status = code
 		w.written = true
@@ -39,7 +39,7 @@ func (w *responseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
-func (w *responseWriter) Write(b []byte) (int, error) {
+func (w *ResponseWriter) Write(b []byte) (int, error) {
 	if !w.written {
 		w.written = true
 	}
@@ -49,17 +49,17 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 }
 
 // Status returns the HTTP status code written to the response.
-func (w *responseWriter) Status() int {
+func (w *ResponseWriter) Status() int {
 	return w.status
 }
 
 // Size returns the total bytes written to the response body.
-func (w *responseWriter) Size() int {
+func (w *ResponseWriter) Size() int {
 	return w.size
 }
 
 // Flush implements http.Flusher if the underlying writer supports it.
-func (w *responseWriter) Flush() {
+func (w *ResponseWriter) Flush() {
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}

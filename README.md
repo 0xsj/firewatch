@@ -1,210 +1,158 @@
+[![CI](https://github.com/0xsj/firewatch/actions/workflows/ci.yml/badge.svg)](https://github.com/0xsj/firewatch/actions/workflows/ci.yml)
+
 # Firewatch
 
-Honeypot server for detecting and analyzing web application scanners. Deploys fake vulnerable endpoints, captures attacker behavior, and generates threat intelligence.
+Honeypot server that masquerades as vulnerable web applications to detect, fingerprint, and analyze attackers. Deploys fake endpoints across 7 modules, captures scanner behavior, and generates exportable threat intelligence.
 
 ## Features
 
-- **Multi-Framework Honeypots** — Next.js, WordPress, APIs, cloud metadata
-- **CVE Emulation** — Fake vulnerable endpoints for specific CVEs
-- **Request Fingerprinting** — JA3/JA4, User-Agent, header analysis
-- **Threat Intelligence** — IOC extraction, attacker profiling, campaign detection
-- **Deception Tokens** — Embedded honey tokens that track further access
-- **Real-time Alerts** — Slack, Discord, webhook, email notifications
-- **Rich Dashboard** — Visualize attacks, patterns, and attacker profiles
+- **7 Honeypot Modules** — Next.js, WordPress, API, Exposure, Admin Panels, Cloud Metadata, CVE Emulation
+- **CVE Emulation** — Log4Shell, Spring4Shell, MOVEit, PAN-OS, Struts2, Confluence
+- **Request Fingerprinting** — JA3/JA4 TLS fingerprints, header ordering analysis, anomaly detection
+- **Detection Engine** — Signature and pattern matching with severity ranking
+- **Threat Intelligence** — IOC extraction, campaign correlation, STIX/MISP/CSV export
+- **Real-time Alerts** — Slack, Discord, generic webhook with per-channel severity thresholds
+- **Deception Responses** — Realistic fake login pages, API responses, config files, and honey tokens
+
+## Requirements
+
+- Go 1.21+
+- SQLite (bundled via `modernc.org/sqlite`, no CGO required)
+- MaxMind GeoIP database (optional, for geolocation enrichment)
 
 ## Installation
 
-```bash
-go install github.com/yourusername/firewatch@latest
-```
-
-Or build from source:
+Build from source:
 
 ```bash
-git clone https://github.com/yourusername/firewatch
+git clone https://github.com/0xsj/firewatch
 cd firewatch
 make build
+```
+
+Or directly with Go:
+
+```bash
+go build -o firewatch ./cmd/firewatch
 ```
 
 ## Quick Start
 
 ```bash
-# Start with default honeypots
-firewatch serve --domain honeypot.example.com
+# Start with default config (creates firewatch.yaml if missing)
+./firewatch
 
-# Enable specific honeypot modules
-firewatch serve --modules nextjs,wordpress,api,exposure
+# Start with a specific config file
+./firewatch -config /path/to/firewatch.yaml
 
-# Start with alerting
-firewatch serve --alert-slack https://hooks.slack.com/xxx
-
-# View captured events
-firewatch events --last 1h
-
-# Export threat intelligence
-firewatch export --format stix -o iocs.json
+# Print version
+./firewatch -version
 ```
 
-## Usage
-
-```bash
-firewatch <command> [options]
-
-Commands:
-  serve       Start the honeypot server
-  events      View captured events
-  attackers   View attacker profiles
-  campaigns   View detected campaigns
-  export      Export threat intelligence
-  stats       Show statistics
-
-Serve Options:
-  -d, --domain <domain>     Domain name for the honeypot
-  -p, --port <port>         Listen port (default: 8080)
-  --tls                     Enable TLS
-  --cert <file>             TLS certificate
-  --key <file>              TLS private key
-  --modules <list>          Honeypot modules to enable
-  --alert-slack <url>       Slack webhook for alerts
-  --alert-discord <url>     Discord webhook for alerts
-  --alert-webhook <url>     Generic webhook for alerts
-  --db <path>               Database path (default: ./firewatch.db)
-  -v, --verbose             Verbose logging
-
-Events Options:
-  --last <duration>         Show events from last duration
-  --attacker <ip>           Filter by attacker IP
-  --module <name>           Filter by honeypot module
-  --severity <level>        Filter by severity
-  -n, --limit <n>           Limit results
-
-Export Options:
-  --format <fmt>            Export format: stix, csv, json, misp
-  --last <duration>         Export events from last duration
-  -o, --output <file>       Output file
-```
-
-## Honeypot Modules
-
-| Module      | Endpoints                                   | Detects                             |
-| ----------- | ------------------------------------------- | ----------------------------------- |
-| `nextjs`    | `/_next/*`, `next-action` header            | CVE-2025-55182 scanners, RSC probes |
-| `wordpress` | `/wp-admin`, `/wp-login.php`, `/xmlrpc.php` | WordPress scanners, brute force     |
-| `api`       | `/api/*`, `/graphql`, `/swagger`            | API enumeration, auth probes        |
-| `exposure`  | `/.env`, `/.git`, `/config.php`             | Sensitive file scanners             |
-| `admin`     | `/admin`, `/phpmyadmin`, `/adminer`         | Admin panel scanners                |
-| `cloud`     | `/latest/meta-data`                         | SSRF, cloud metadata attacks        |
-| `cve`       | Various CVE-specific endpoints              | Exploit scanners                    |
-
-## Example Output
-
-```
-$ firewatch serve --modules nextjs,wordpress,exposure
-
-  🔥 Firewatch v1.0.0
-  ─────────────────────────────────────────────────────
-  Honeypot:  honeypot.example.com:8080
-  Modules:   nextjs, wordpress, exposure
-  Database:  ./firewatch.db
-  ─────────────────────────────────────────────────────
-
-  [14:32:01] [nextjs] POST / next-action:"x"
-            IP: 45.33.32.156 (Linode, US)
-            JA3: e7d705a3286e19ea42f587b344ee6865
-            → Known scanner: next-action-probe-v1
-
-  [14:32:15] [wordpress] POST /wp-login.php
-            IP: 192.168.1.50 (Internal)
-            Credentials: admin:password123
-            → Brute force attempt (47th try)
-
-  [14:33:02] [exposure] GET /.env
-            IP: 103.21.244.0 (Cloudflare)
-            → Sensitive file probe
-
-  [14:33:45] [ALERT] Campaign detected
-            IPs: 45.33.32.0/24 (156 hosts)
-            Pattern: Coordinated Next.js scanning
-            First seen: 2 hours ago
-```
+The server reads `firewatch.yaml` for all configuration. Enable or disable modules, configure alerts, and tune fingerprinting from that file.
 
 ## Configuration
 
 ```yaml
-# ~/.firewatch/config.yaml
 server:
-  domain: honeypot.example.com
+  domain: "localhost"
   port: 8080
   tls:
     enabled: false
-    cert: /path/to/cert.pem
-    key: /path/to/key.pem
+    # cert: "/etc/firewatch/tls/cert.pem"
+    # key:  "/etc/firewatch/tls/key.pem"
 
 modules:
   nextjs:
     enabled: true
-    endpoints:
-      - "/"
-      - "/_next/server/pages"
-      - "/_rsc"
+    endpoints: ["/", "/_next/server/pages", "/_rsc"]
   wordpress:
     enabled: true
     fake_version: "6.4.2"
   exposure:
     enabled: true
-    fake_env: |
-      DB_HOST=localhost
-      DB_PASS=fake_password_123
   api:
     enabled: true
   cloud:
+    enabled: true
+  admin:
     enabled: false
+  cve:
+    enabled: false
+    # cves:                    # Empty = all 6 CVEs enabled
+    #   - "CVE-2021-44228"    # Log4Shell
+    #   - "CVE-2022-22965"    # Spring4Shell
+    #   - "CVE-2023-34362"    # MOVEit Transfer
+    #   - "CVE-2024-3400"     # PAN-OS GlobalProtect
+    #   - "CVE-2017-5638"     # Apache Struts2
+    #   - "CVE-2023-22515"    # Confluence
+
+alerts:
+  slack:
+    # webhook_url: "https://hooks.slack.com/services/T00/B00/xxx"
+    min_severity: "medium"
+  discord:
+    # webhook_url: "https://discord.com/api/webhooks/000/xxx"
+    min_severity: "medium"
+  webhook:
+    # url: "https://your-siem.example.com/api/ingest"
+    # headers:
+    #   Authorization: "Bearer token"
+    min_severity: "medium"
 
 fingerprinting:
   ja3: true
   ja4: true
-  geoip: true
-  reverse_dns: true
-
-alerts:
-  slack:
-    webhook_url: https://hooks.slack.com/xxx
-    min_severity: medium
-  discord:
-    webhook_url: https://discord.com/api/webhooks/xxx
-  webhook:
-    url: https://siem.example.com/api/alerts
+  geoip: false
+  reverse_dns: false
 
 storage:
-  type: sqlite
-  path: ./firewatch.db
+  type: "sqlite"
+  path: "./firewatch.db"
 
 deception:
   honey_tokens: true
   breadcrumbs: true
   fake_errors: true
+
+logging:
+  level: "info"     # debug, info, warn, error
+  format: "json"    # json, text
 ```
+
+## Honeypot Modules
+
+| Module     | Endpoints                                          | Detects                                  |
+|------------|----------------------------------------------------|------------------------------------------|
+| `nextjs`   | `/_next/*`, RSC headers, server actions            | Next.js scanners, RSC probes             |
+| `wordpress`| `/wp-login.php`, `/wp-admin/`, `/xmlrpc.php`       | WordPress scanners, brute force, XML-RPC |
+| `api`      | `/api/*`, `/graphql`, `/swagger/`                  | API enumeration, auth probes, GraphQL    |
+| `exposure` | `/.env`, `/.git/`, config files                    | Sensitive file scanners                  |
+| `admin`    | `/phpmyadmin/`, `/adminer.php`, `/cpanel`, `/admin`| Admin panel scanners, brute force        |
+| `cloud`    | `/latest/meta-data/`, `/metadata/v1/`              | SSRF, cloud credential theft             |
+| `cve`      | Solr, Actuator, MOVEit, GlobalProtect, Struts, Confluence | CVE exploit scanners              |
 
 ## Deployment
 
+### Docker
+
 ```bash
-# Docker
-docker run -p 8080:8080 yourusername/firewatch
-
-# Docker Compose
-docker-compose up -d
-
-# Kubernetes
-kubectl apply -f deployments/kubernetes/
-
-# Alongside real applications
-# Run on a subdomain or separate port to catch scanners
+docker build -t firewatch .
+docker run -p 8080:8080 -v ./firewatch.yaml:/etc/firewatch/firewatch.yaml firewatch
 ```
 
-## Requirements
+### Binary
 
-- Go 1.21+
-- MaxMind GeoIP database (optional, for geolocation)
+```bash
+make build
+./firewatch -config firewatch.yaml
+```
+
+## Architecture
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design and component diagrams.
+
+See [docs/TREE.md](docs/TREE.md) for the full project structure.
 
 ## License
 

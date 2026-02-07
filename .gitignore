@@ -10,7 +10,9 @@ CLAUDE.md
 *.dylib
 *.test
 *.out
-canarydrop
+firewatch
+*.db
+coverage.out
 
 # Vendor
 vendor/
