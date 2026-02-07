@@ -13,6 +13,7 @@ CLAUDE.md
 
 # Vendor
 vendor/
+firewatch.db
 
 # IDE
 .idea/
