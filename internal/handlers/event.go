@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/0xsj/firewatch/internal/fingerprint"
 	"github.com/0xsj/firewatch/internal/geoip"
 	"github.com/0xsj/firewatch/internal/middleware"
 	"github.com/0xsj/firewatch/internal/storage"
@@ -17,6 +18,9 @@ import (
 // current request. This is shared across all honeypot modules
 // to avoid duplicating event construction logic.
 func RecordEvent(store storage.Store, logger *slog.Logger, r *http.Request, module, severity string, signatures []string) {
+	// Extract fingerprint data from middleware
+	fp := fingerprint.GetResult(r.Context())
+
 	event := &models.Event{
 		ID:         crypto.UUID4(),
 		Timestamp:  timeutil.FormatRFC3339(timeutil.NowUTC()),
@@ -31,6 +35,12 @@ func RecordEvent(store storage.Store, logger *slog.Logger, r *http.Request, modu
 		Severity:   severity,
 		Signatures: signatures,
 		GeoIP:      geoip.FromContext(r.Context()),
+		Fingerprint: models.Fingerprint{
+			JA3:         fp.JA3Raw,
+			JA3Hash:     fp.JA3Hash,
+			JA4:         fp.JA4,
+			HeaderOrder: fp.HeaderKeys,
+		},
 	}
 
 	if err := store.SaveEvent(r.Context(), event); err != nil {

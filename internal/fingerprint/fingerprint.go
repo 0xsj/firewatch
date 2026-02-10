@@ -15,6 +15,9 @@ type Result struct {
 	JA3Raw  string `json:"ja3_raw,omitempty"`
 	JA3Hash string `json:"ja3_hash,omitempty"`
 
+	// JA4 fingerprint (populated when TLS is active)
+	JA4 string `json:"ja4,omitempty"`
+
 	// Header analysis
 	HeaderOrderHash string   `json:"header_order_hash"`
 	HeaderKeys      []string `json:"header_keys"`
@@ -40,10 +43,17 @@ func NewEngine(ja3Store *JA3Store) *Engine {
 func (e *Engine) Analyze(r *http.Request) Result {
 	result := Result{}
 
-	// JA3 — only available when TLS is active and the store has data
+	// JA3 & JA4 — only available when TLS is active and the store has data
 	if e.ja3Store != nil {
 		if hello := e.ja3Store.Take(r.RemoteAddr); hello != nil {
 			result.JA3Raw, result.JA3Hash = JA3(hello)
+
+			// Compute JA4 using the same hello data
+			serverName := ""
+			if r.TLS != nil {
+				serverName = r.TLS.ServerName
+			}
+			result.JA4 = JA4(hello, serverName, r.RemoteAddr)
 		}
 	}
 

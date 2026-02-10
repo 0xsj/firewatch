@@ -23,6 +23,6 @@ docker-build:
 	docker build -t firewatch:local .
 
 clean:
-	rm -f firewatch coverage.out
+	rm -f firewatch cmd/firewatch/firewatch coverage.out
 
 ci: lint vet test build

@@ -61,6 +61,102 @@ is a strong signal.
 
 ---
 
+## JA4 — Modern TLS Fingerprinting
+
+### Evolution from JA3
+
+JA4 (2024) improves on JA3's design with:
+- Human-readable metadata section
+- Better handling of GREASE values
+- Standardized hash lengths
+- Support for QUIC and DTLS
+
+### Format
+
+JA4 produces a 36-character fingerprint:
+
+```
+t13d0308h2_a1b2c3d4e5f6_123456789abc
+└─┬─┘│││││├─────────────┤└───────────┘
+  │  ││││││ cipher hash   extension hash
+  │  │││││└ ALPN (h2 = HTTP/2)
+  │  ││││└ extension count (08)
+  │  │││└ cipher count (03)
+  │  ││└ SNI indicator (d=domain, i=IP)
+  │  │└ TLS version (13 = 1.3)
+  │  └ protocol (t=TLS/TCP, q=QUIC, d=DTLS)
+```
+
+**Metadata (10 chars):** Protocol + Version + SNI + Counts + ALPN
+**Cipher hash (12 chars):** SHA256 of sorted ciphers (truncated)
+**Extension hash (12 chars):** SHA256 of sorted extensions (truncated)
+
+### GREASE Filtering
+
+GREASE (Generate Random Extensions And Sustain Extensibility) values
+are placeholder values inserted by clients to prevent middleboxes from
+breaking when new extensions are added.
+
+**GREASE pattern:** Both bytes identical and ending in `0xA`
+
+```
+0x0A0A, 0x1A1A, 0x2A2A, 0x3A3A, ..., 0xFAFA
+```
+
+These are filtered out before hashing to create stable fingerprints
+across connections from the same client.
+
+```go
+func isGREASE(val uint16) bool {
+    highByte := (val >> 8) & 0xFF
+    lowByte := val & 0xFF
+    return highByte == lowByte && (lowByte&0x0F) == 0x0A
+}
+```
+
+### Advantages
+
+| Feature              | JA3                    | JA4                    |
+|----------------------|------------------------|------------------------|
+| Format               | Opaque MD5 hash        | Readable metadata      |
+| GREASE handling      | Included in hash       | Filtered out           |
+| Hash length          | 32 chars (full MD5)    | 12 chars (truncated)   |
+| Sortability          | No                     | Yes (by version, SNI)  |
+| Protocol support     | TLS only               | TLS, QUIC, DTLS        |
+
+JA4 fingerprints can be sorted and filtered by protocol, version, or
+SNI without needing to reprocess raw ClientHello data.
+
+### Limitations in Go
+
+Go's `tls.ClientHelloInfo` doesn't expose:
+- Raw extension list → we estimate extension count
+- ALPN values → defaults to "00"
+- Signature algorithms → not included in hash
+
+**Workaround:** We use supported curves as a proxy for the extension
+hash. This provides a fingerprinting signal but isn't fully compliant
+with the JA4 spec.
+
+**Full JA4 requires:** Packet capture at TLS layer (raw sockets, eBPF)
+
+### Example Comparison
+
+**Same client, JA3 vs JA4:**
+
+```
+JA3:  cd08e31494f9531f560d64c695473da9
+JA4:  t13d1516h2_8daaf6152771_e5627efa2ab1
+```
+
+The JA4 immediately tells you: TLS 1.3, domain SNI, 15 ciphers,
+16 extensions, HTTP/2 ALPN. The JA3 hash reveals none of this without
+looking up the original ClientHello.
+
+**Used in:** `internal/fingerprint/ja4.go`
+
+---
+
 ## Header Analysis
 
 ### Header order
@@ -131,7 +227,9 @@ all available data:
 
 ```go
 type Result struct {
-    JA3Hash         string   // TLS implementation
+    JA3Raw          string   // TLS raw string
+    JA3Hash         string   // TLS implementation (MD5)
+    JA4             string   // Modern TLS fingerprint
     HeaderOrderHash string   // HTTP client behavior
     UserAgent       string   // Claimed identity
     KnownClient     string   // Matched scanner pattern
@@ -140,10 +238,13 @@ type Result struct {
 ```
 
 Strongest signals (hardest to spoof):
-1. **JA3** — requires changing TLS implementation
+1. **JA4/JA3** — requires changing TLS implementation
 2. **Header anomalies** — requires knowing what browsers send
 3. **Header order hash** — requires matching browser internals
 4. **Known client UA** — trivial to spoof
+
+**Pro tip:** JA4's readable metadata makes it easier to write detection
+rules. Example: block all `t10i*` (TLS 1.0 with IP-only, often scanners).
 
 The detection engine (Phase 5) will combine these signals with
 request patterns to classify threats.

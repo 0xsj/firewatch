@@ -10,6 +10,8 @@ CLAUDE.md
 *.dylib
 *.test
 *.out
+firewatch
+cmd/firewatch/firewatch
 
 # Vendor
 vendor/

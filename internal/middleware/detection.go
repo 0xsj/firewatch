@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/0xsj/firewatch/internal/detection"
+	"github.com/0xsj/firewatch/internal/fingerprint"
 	"github.com/0xsj/firewatch/internal/geoip"
 	"github.com/0xsj/firewatch/internal/storage"
 	"github.com/0xsj/firewatch/internal/storage/models"
@@ -48,6 +49,9 @@ func Detection(det *detection.Detector, store storage.Store, logger *slog.Logger
 
 				// Record a detection event directly to avoid an
 				// import cycle with the handlers package.
+				// Extract fingerprint data from middleware
+				fp := fingerprint.GetResult(r.Context())
+
 				event := &models.Event{
 					ID:         crypto.UUID4(),
 					Timestamp:  timeutil.FormatRFC3339(timeutil.NowUTC()),
@@ -62,6 +66,12 @@ func Detection(det *detection.Detector, store storage.Store, logger *slog.Logger
 					Severity:   result.Severity,
 					Signatures: result.SignatureIDs(),
 					GeoIP:      geoip.FromContext(r.Context()),
+					Fingerprint: models.Fingerprint{
+						JA3:         fp.JA3Raw,
+						JA3Hash:     fp.JA3Hash,
+						JA4:         fp.JA4,
+						HeaderOrder: fp.HeaderKeys,
+					},
 				}
 
 				if err := store.SaveEvent(r.Context(), event); err != nil {
