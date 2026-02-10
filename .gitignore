@@ -13,9 +13,17 @@ CLAUDE.md
 firewatch
 cmd/firewatch/firewatch
 
-# Vendor
+# Testing
+coverage.out
+coverage.html
+*.prof
+
+# Vendor & Runtime
 vendor/
 firewatch.db
+*.db
+*.db-shm
+*.db-wal
 
 # IDE
 .idea/
@@ -31,3 +39,13 @@ Thumbs.db
 # Config overrides
 configs/local.json
 *.env
+*.local
+
+# Session files
+*session*
+*progress*
+*.scratch
+*.tmp
+
+# MaxMind GeoIP databases (large binary files)
+*.mmdb

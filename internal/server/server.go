@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/0xsj/firewatch/internal/config"
 	"github.com/0xsj/firewatch/internal/detection"
@@ -21,11 +22,12 @@ const op = errors.Op("server")
 // modules through a middleware pipeline and records captured
 // interactions to the store.
 type Server struct {
-	cfg    *config.Config
-	store  storage.Store
-	router *Router
-	logger *slog.Logger
-	http   *http.Server
+	cfg         *config.Config
+	store       storage.Store
+	router      *Router
+	logger      *slog.Logger
+	http        *http.Server
+	rateLimiter *middleware.RateLimiter
 }
 
 // New creates a Server with the given config, store, and logger.
@@ -42,8 +44,20 @@ func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, 
 	// Build the middleware chain.
 	mws := []middleware.Middleware{
 		middleware.Correlation,
-		middleware.Logging(logger),
 	}
+
+	// Rate limiting (if enabled)
+	if cfg.RateLimit.Enabled {
+		rlCfg := middleware.RateLimiterConfig{
+			RequestsPerSecond: float64(cfg.RateLimit.RequestsPerSecond),
+			Burst:             cfg.RateLimit.Burst,
+			CleanupInterval:   time.Duration(cfg.RateLimit.CleanupMinutes) * time.Minute,
+		}
+		s.rateLimiter = middleware.NewRateLimiter(rlCfg, store, logger)
+		mws = append(mws, middleware.RateLimit(s.rateLimiter))
+	}
+
+	mws = append(mws, middleware.Logging(logger))
 	if geoReader != nil {
 		mws = append(mws, middleware.GeoIP(geoReader, logger))
 	}
@@ -99,6 +113,12 @@ func (s *Server) Start() error {
 // connections to finish within the context deadline.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("shutting down server")
+
+	// Stop rate limiter cleanup goroutine
+	if s.rateLimiter != nil {
+		s.rateLimiter.Stop()
+	}
+
 	if err := s.http.Shutdown(ctx); err != nil {
 		return errors.E(op, errors.KindInternal, errors.CodeServerShutdown, err)
 	}

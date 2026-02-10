@@ -10,6 +10,7 @@ import (
 // Config is the root configuration for Firewatch.
 type Config struct {
 	Server         ServerConfig      `yaml:"server"`
+	RateLimit      RateLimitConfig   `yaml:"rate_limit"`
 	Modules        ModulesConfig     `yaml:"modules"`
 	Fingerprinting FingerprintConfig `yaml:"fingerprinting"`
 	Alerts         AlertsConfig      `yaml:"alerts"`
@@ -30,6 +31,14 @@ type TLSConfig struct {
 	Enabled bool   `yaml:"enabled"`
 	Cert    string `yaml:"cert"`
 	Key     string `yaml:"key"`
+}
+
+// RateLimitConfig controls per-IP rate limiting.
+type RateLimitConfig struct {
+	Enabled           bool `yaml:"enabled"`
+	RequestsPerSecond int  `yaml:"requests_per_second"`
+	Burst             int  `yaml:"burst"`
+	CleanupMinutes    int  `yaml:"cleanup_minutes"`
 }
 
 // ModulesConfig controls which honeypot modules are active.

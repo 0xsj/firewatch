@@ -10,6 +10,7 @@ Honeypot server that masquerades as vulnerable web applications to detect, finge
 - **CVE Emulation** — Log4Shell, Spring4Shell, MOVEit, PAN-OS, Struts2, Confluence
 - **Request Fingerprinting** — JA3/JA4 TLS fingerprints, header ordering analysis, anomaly detection
 - **Detection Engine** — Signature and pattern matching with severity ranking
+- **Rate Limiting** — Per-IP token bucket rate limiting to detect and slow down scanners
 - **Threat Intelligence** — IOC extraction, campaign correlation, STIX/MISP/CSV export
 - **Real-time Alerts** — Slack, Discord, generic webhook with per-channel severity thresholds
 - **Deception Responses** — Realistic fake login pages, API responses, config files, and honey tokens
@@ -61,6 +62,12 @@ server:
     enabled: false
     # cert: "/etc/firewatch/tls/cert.pem"
     # key:  "/etc/firewatch/tls/key.pem"
+
+rate_limit:
+  enabled: true
+  requests_per_second: 10  # Sustained rate (600/min)
+  burst: 20                # Burst allowance
+  cleanup_minutes: 5       # Cleanup interval
 
 modules:
   nextjs:

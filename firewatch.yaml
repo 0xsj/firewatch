@@ -13,6 +13,17 @@ server:
     # key:  "/etc/firewatch/tls/key.pem"
 
 # ---------------------------------------------------------------------------
+# Rate Limiting
+# Per-IP rate limiting to detect and slow down scanners.
+# Enforces token bucket algorithm: sustained rate + burst allowance.
+# ---------------------------------------------------------------------------
+rate_limit:
+  enabled: true
+  requests_per_second: 10  # Sustained rate (10 req/sec = 600/min)
+  burst: 20                # Burst allowance (allows temporary spikes)
+  cleanup_minutes: 5       # Clean up stale limiters every N minutes
+
+# ---------------------------------------------------------------------------
 # Honeypot Modules
 # Enable only the modules relevant to your threat model. Each module
 # emulates a different attack surface and captures different attacker

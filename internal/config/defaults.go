@@ -11,6 +11,12 @@ func Default() *Config {
 				Enabled: false,
 			},
 		},
+		RateLimit: RateLimitConfig{
+			Enabled:           true,
+			RequestsPerSecond: 10,
+			Burst:             20,
+			CleanupMinutes:    5,
+		},
 		Modules: ModulesConfig{
 			NextJS: NextJSModuleConfig{
 				Enabled: false,
