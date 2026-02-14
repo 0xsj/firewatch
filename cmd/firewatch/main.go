@@ -136,10 +136,11 @@ func runServe(args []string) {
 		alertMgr.Register(alerts.NewWebhook(url, cfg.Alerts.Webhook.Headers), cfg.Alerts.Webhook.MinSeverity)
 	}
 
-	// Wrap the store so every SaveEvent dispatches alerts automatically.
+	// Wrap the store: SQLite → Profiling → Alerting
 	var store storage.Store = sqliteStore
+	store = storage.NewProfilingStore(store, logger)
 	if alertMgr.Count() > 0 {
-		store = storage.NewAlertingStore(sqliteStore, alertMgr)
+		store = storage.NewAlertingStore(store, alertMgr)
 	}
 
 	// Fingerprint engine — JA3 capture requires TLS.
@@ -149,8 +150,46 @@ func runServe(args []string) {
 	}
 	fpEngine := fingerprint.NewEngine(ja3Store)
 
-	// Detection engine.
-	detector := detection.NewDefault(logger)
+	// Detection engine — load custom signatures if configured.
+	var detector *detection.Detector
+	if cfg.Detection.SignaturesFile != "" || cfg.Detection.SignaturesDir != "" {
+		var customSigs []*detection.Signature
+		var customPats []*detection.Pattern
+
+		if cfg.Detection.SignaturesFile != "" {
+			sigs, pats, err := detection.LoadSignatures(cfg.Detection.SignaturesFile)
+			if err != nil {
+				logger.Error("failed to load custom signatures file", "error", err)
+				os.Exit(1)
+			}
+			customSigs = append(customSigs, sigs...)
+			customPats = append(customPats, pats...)
+			logger.Info("loaded custom signatures file",
+				"path", cfg.Detection.SignaturesFile,
+				"signatures", len(sigs),
+				"patterns", len(pats),
+			)
+		}
+
+		if cfg.Detection.SignaturesDir != "" {
+			sigs, pats, err := detection.LoadSignaturesDir(cfg.Detection.SignaturesDir)
+			if err != nil {
+				logger.Error("failed to load custom signatures directory", "error", err)
+				os.Exit(1)
+			}
+			customSigs = append(customSigs, sigs...)
+			customPats = append(customPats, pats...)
+			logger.Info("loaded custom signatures directory",
+				"path", cfg.Detection.SignaturesDir,
+				"signatures", len(sigs),
+				"patterns", len(pats),
+			)
+		}
+
+		detector = detection.NewWithCustom(customSigs, customPats, logger)
+	} else {
+		detector = detection.NewDefault(logger)
+	}
 
 	// Server — includes correlation, logging, geoip, fingerprint, and detection middleware.
 	srv := server.New(cfg, store, fpEngine, detector, geoReader, logger)

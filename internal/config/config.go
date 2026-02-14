@@ -10,13 +10,48 @@ import (
 // Config is the root configuration for Firewatch.
 type Config struct {
 	Server         ServerConfig      `yaml:"server"`
+	IPFilter       IPFilterConfig    `yaml:"ip_filter"`
 	RateLimit      RateLimitConfig   `yaml:"rate_limit"`
 	Modules        ModulesConfig     `yaml:"modules"`
 	Fingerprinting FingerprintConfig `yaml:"fingerprinting"`
+	Detection      DetectionConfig   `yaml:"detection"`
 	Alerts         AlertsConfig      `yaml:"alerts"`
 	Storage        StorageConfig     `yaml:"storage"`
 	Deception      DeceptionConfig   `yaml:"deception"`
 	Logging        LoggingConfig     `yaml:"logging"`
+}
+
+// IPFilterConfig controls IP allowlist/blocklist filtering.
+type IPFilterConfig struct {
+	Allowlist     []string `yaml:"allowlist"`
+	AllowlistFile string   `yaml:"allowlist_file"`
+	Blocklist     []string `yaml:"blocklist"`
+	BlocklistFile string   `yaml:"blocklist_file"`
+}
+
+// DetectionConfig controls the detection engine.
+type DetectionConfig struct {
+	SignaturesFile string         `yaml:"signatures_file"`
+	SignaturesDir  string         `yaml:"signatures_dir"`
+	Behavior       BehaviorConfig `yaml:"behavior"`
+	Campaign       CampaignConfig `yaml:"campaign"`
+}
+
+// CampaignConfig controls background campaign auto-correlation.
+type CampaignConfig struct {
+	Enabled       bool `yaml:"enabled"`
+	WindowMinutes int  `yaml:"window_minutes"`
+	TickSeconds   int  `yaml:"tick_seconds"`
+}
+
+// BehaviorConfig controls behavioral fingerprinting.
+type BehaviorConfig struct {
+	Enabled         bool `yaml:"enabled"`
+	WindowMinutes   int  `yaml:"window_minutes"`
+	SweepThreshold  int  `yaml:"sweep_threshold"`
+	BruteThreshold  int  `yaml:"brute_threshold"`
+	ModuleThreshold int  `yaml:"module_threshold"`
+	CleanupMinutes  int  `yaml:"cleanup_minutes"`
 }
 
 // ServerConfig controls the HTTP/HTTPS server.

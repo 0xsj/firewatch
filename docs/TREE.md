@@ -23,10 +23,17 @@ firewatch/
 │   ├── middleware/
 │   │   ├── middleware.go                     # Middleware type, Chain(), responseWriter
 │   │   ├── correlation.go                   # Request ID generation, context storage
+│   │   ├── ipfilter.go                      # IP allowlist/blocklist filtering (CIDR)
+│   │   ├── ipfilter_test.go                 # IP filter tests (8 tests)
+│   │   ├── ratelimit.go                     # Per-IP token bucket rate limiting
+│   │   ├── ratelimit_test.go                # Rate limit tests (7 tests)
 │   │   ├── logging.go                       # Structured request logging (slog)
+│   │   ├── geoip.go                         # GeoIP MaxMind lookup middleware
 │   │   ├── fingerprint.go                   # Fingerprint engine middleware
 │   │   ├── detection.go                     # Detection engine middleware
-│   │   └── detection_test.go                # Detection middleware tests
+│   │   ├── detection_test.go                # Detection middleware tests
+│   │   ├── behavior.go                      # Behavioral fingerprinting middleware
+│   │   └── behavior_test.go                 # Behavior middleware tests (5 tests)
 │   │
 │   ├── handlers/
 │   │   ├── handler.go                       # Module interface, Route type
@@ -85,7 +92,13 @@ firewatch/
 │   │   ├── detector.go                      # Detector engine, field extraction
 │   │   ├── signatures.go                    # Signature type, 26 built-in sigs
 │   │   ├── patterns.go                      # Pattern type, 5 built-in patterns
-│   │   ├── campaign.go                      # Campaign clustering detection
+│   │   ├── campaign.go                      # Campaign clustering + coordination detection
+│   │   ├── correlator.go                    # Background campaign auto-correlator
+│   │   ├── correlator_test.go               # Correlator tests (7 tests)
+│   │   ├── behavior.go                      # Per-IP behavioral fingerprinting tracker
+│   │   ├── behavior_test.go                 # Behavior tracker tests (9 tests)
+│   │   ├── loader.go                        # YAML signature/pattern file loader
+│   │   ├── loader_test.go                   # Loader tests (8 tests)
 │   │   ├── detector_test.go                 # Detector tests
 │   │   └── signatures_test.go               # Signature matching tests
 │   │
@@ -125,6 +138,8 @@ firewatch/
 │   └── storage/
 │       ├── storage.go                       # Store interface, filter types
 │       ├── sqlite.go                        # SQLite implementation (WAL)
+│       ├── profiling.go                     # ProfilingStore — auto attacker profiling
+│       ├── profiling_test.go                # Profiling tests (7 tests)
 │       ├── alerting.go                      # AlertingStore decorator
 │       ├── alerting_test.go                 # AlertingStore tests
 │       ├── sqlite_test.go                   # SQLite CRUD tests
@@ -160,7 +175,7 @@ firewatch/
 │
 ├── notes/                                   # Learning notes (Obsidian-compatible)
 │   ├── go/                                  # 21 Go concept notes
-│   ├── patterns/                            # 8 design pattern notes
+│   ├── patterns/                            # 9 design pattern notes
 │   └── security/                            # 4 security domain notes
 │
 ├── docs/
@@ -261,12 +276,19 @@ firewatch/
 | `internal/fingerprint`      | `fingerprint_test.go` | 3     | Engine, header analysis                |
 | `internal/detection`        | `detector_test.go`    | 4     | Signature/pattern evaluation           |
 | `internal/detection`        | `signatures_test.go`  | 5     | Matcher logic, built-in sigs           |
+| `internal/detection`        | `loader_test.go`      | 8     | Custom YAML signature loading          |
+| `internal/detection`        | `behavior_test.go`    | 9     | Behavioral fingerprinting tracker      |
+| `internal/detection`        | `correlator_test.go`  | 7     | Campaign auto-correlation              |
 | `internal/middleware`       | `detection_test.go`   | 3     | Detection middleware integration       |
+| `internal/middleware`       | `ipfilter_test.go`    | 8     | IP allowlist/blocklist filtering       |
+| `internal/middleware`       | `ratelimit_test.go`   | 7     | Per-IP token bucket rate limiting      |
+| `internal/middleware`       | `behavior_test.go`    | 5     | Behavioral fingerprinting middleware   |
 | `internal/handlers/nextjs`  | `nextjs_test.go`      | 6     | Next.js handler responses/events       |
 | `internal/handlers/admin`   | `admin_test.go`       | 8     | Admin panel handler responses/events   |
 | `internal/handlers/cve`     | `cve_test.go`         | 18    | All CVE handlers, route filtering      |
 | `internal/alerts`           | `alerts_test.go`      | 3     | Alert dispatch, severity gating        |
 | `internal/storage`          | `sqlite_test.go`      | 5     | SQLite CRUD operations                 |
 | `internal/storage`          | `alerting_test.go`    | 3     | AlertingStore decorator                |
+| `internal/storage`          | `profiling_test.go`   | 7     | Attacker auto-profiling                |
 | `internal/intel/ioc`        | `extractor_test.go`   | 4     | IOC extraction, dedup                  |
 | `internal/intel/export`     | `export_test.go`      | 4     | STIX, MISP, CSV formatting             |

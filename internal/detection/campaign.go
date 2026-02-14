@@ -27,30 +27,47 @@ func NewCampaignDetector(logger *slog.Logger) *CampaignDetector {
 // DetectCampaigns analyzes events and returns detected campaigns.
 // Events should be pre-sorted by timestamp ascending.
 func (cd *CampaignDetector) DetectCampaigns(events []*models.Event) []*models.Campaign {
+	matches := cd.DetectCampaignsWithEvents(events)
+	campaigns := make([]*models.Campaign, len(matches))
+	for i, m := range matches {
+		campaigns[i] = m.Campaign
+	}
+	return campaigns
+}
+
+// CampaignMatch pairs a detected campaign with the event IDs that belong to it.
+type CampaignMatch struct {
+	Campaign *models.Campaign
+	EventIDs []string
+}
+
+// DetectCampaignsWithEvents analyzes events and returns detected campaigns
+// along with the IDs of the events that belong to each campaign.
+func (cd *CampaignDetector) DetectCampaignsWithEvents(events []*models.Event) []*CampaignMatch {
 	if len(events) == 0 {
 		return nil
 	}
 
 	// Strategy 1: Group by shared signature sets
-	sigCampaigns := cd.groupBySignatures(events)
+	sigMatches := cd.groupBySignaturesWithEvents(events)
 
 	// Strategy 2: Group by coordinated multi-IP attacks on same modules
-	coordCampaigns := cd.groupByCoordination(events)
+	coordMatches := cd.groupByCoordinationWithEvents(events)
 
-	campaigns := sigCampaigns
-	campaigns = append(campaigns, coordCampaigns...)
+	matches := sigMatches
+	matches = append(matches, coordMatches...)
 
 	cd.logger.Info("campaign detection complete",
 		"events", len(events),
-		"campaigns", len(campaigns),
+		"campaigns", len(matches),
 	)
 
-	return campaigns
+	return matches
 }
 
-// groupBySignatures clusters events that share the same signature
+// groupBySignaturesWithEvents clusters events that share the same signature
 // combination from multiple IPs, which suggests automated scanning.
-func (cd *CampaignDetector) groupBySignatures(events []*models.Event) []*models.Campaign {
+func (cd *CampaignDetector) groupBySignaturesWithEvents(events []*models.Event) []*CampaignMatch {
 	// Key: sorted signature set → events
 	type cluster struct {
 		events []*models.Event
@@ -73,7 +90,7 @@ func (cd *CampaignDetector) groupBySignatures(events []*models.Event) []*models.
 		c.ips[event.SourceIP] = struct{}{}
 	}
 
-	campaigns := make([]*models.Campaign, 0, len(clusters))
+	matches := make([]*CampaignMatch, 0, len(clusters))
 	for sigKey, c := range clusters {
 		// Only flag as campaign if multiple IPs share the same sigs
 		if len(c.ips) < 2 {
@@ -84,27 +101,35 @@ func (cd *CampaignDetector) groupBySignatures(events []*models.Event) []*models.
 		modules := uniqueModules(c.events)
 		first, last := timeRange(c.events)
 
-		campaigns = append(campaigns, &models.Campaign{
-			ID:              crypto.UUID4(),
-			Name:            fmt.Sprintf("sig-cluster:%s", truncate(sigKey, 40)),
-			FirstSeen:       first,
-			LastSeen:        last,
-			AttackerIPs:     ips,
-			AttackerCount:   len(ips),
-			EventCount:      len(c.events),
-			ModulesTargeted: modules,
-			Pattern:         fmt.Sprintf("shared signatures: %s", sigKey),
-			Severity:        highestEventSeverity(c.events),
-			Tags:            []string{"automated", "signature-cluster"},
+		eventIDs := make([]string, len(c.events))
+		for i, e := range c.events {
+			eventIDs[i] = e.ID
+		}
+
+		matches = append(matches, &CampaignMatch{
+			Campaign: &models.Campaign{
+				ID:              crypto.UUID4(),
+				Name:            fmt.Sprintf("sig-cluster:%s", truncate(sigKey, 40)),
+				FirstSeen:       first,
+				LastSeen:        last,
+				AttackerIPs:     ips,
+				AttackerCount:   len(ips),
+				EventCount:      len(c.events),
+				ModulesTargeted: modules,
+				Pattern:         fmt.Sprintf("shared signatures: %s", sigKey),
+				Severity:        highestEventSeverity(c.events),
+				Tags:            []string{"automated", "signature-cluster"},
+			},
+			EventIDs: eventIDs,
 		})
 	}
 
-	return campaigns
+	return matches
 }
 
-// groupByCoordination detects multiple IPs hitting the same set
+// groupByCoordinationWithEvents detects multiple IPs hitting the same set
 // of modules in a similar timeframe, suggesting coordinated scanning.
-func (cd *CampaignDetector) groupByCoordination(events []*models.Event) []*models.Campaign {
+func (cd *CampaignDetector) groupByCoordinationWithEvents(events []*models.Event) []*CampaignMatch {
 	// Key: IP → set of modules targeted
 	ipModules := make(map[string]map[string]struct{})
 	ipEvents := make(map[string][]*models.Event)
@@ -138,7 +163,7 @@ func (cd *CampaignDetector) groupByCoordination(events []*models.Event) []*model
 		g.events = append(g.events, ipEvents[ip]...)
 	}
 
-	campaigns := make([]*models.Campaign, 0, len(groups))
+	matches := make([]*CampaignMatch, 0, len(groups))
 	for moduleKey, g := range groups {
 		if len(g.ips) < 2 {
 			continue
@@ -147,22 +172,30 @@ func (cd *CampaignDetector) groupByCoordination(events []*models.Event) []*model
 		first, last := timeRange(g.events)
 		modules := strings.Split(moduleKey, ",")
 
-		campaigns = append(campaigns, &models.Campaign{
-			ID:              crypto.UUID4(),
-			Name:            fmt.Sprintf("coordinated:%s", truncate(moduleKey, 40)),
-			FirstSeen:       first,
-			LastSeen:        last,
-			AttackerIPs:     g.ips,
-			AttackerCount:   len(g.ips),
-			EventCount:      len(g.events),
-			ModulesTargeted: modules,
-			Pattern:         fmt.Sprintf("coordinated scanning of: %s", moduleKey),
-			Severity:        highestEventSeverity(g.events),
-			Tags:            []string{"coordinated", "multi-module"},
+		eventIDs := make([]string, len(g.events))
+		for i, e := range g.events {
+			eventIDs[i] = e.ID
+		}
+
+		matches = append(matches, &CampaignMatch{
+			Campaign: &models.Campaign{
+				ID:              crypto.UUID4(),
+				Name:            fmt.Sprintf("coordinated:%s", truncate(moduleKey, 40)),
+				FirstSeen:       first,
+				LastSeen:        last,
+				AttackerIPs:     g.ips,
+				AttackerCount:   len(g.ips),
+				EventCount:      len(g.events),
+				ModulesTargeted: modules,
+				Pattern:         fmt.Sprintf("coordinated scanning of: %s", moduleKey),
+				Severity:        highestEventSeverity(g.events),
+				Tags:            []string{"coordinated", "multi-module"},
+			},
+			EventIDs: eventIDs,
 		})
 	}
 
-	return campaigns
+	return matches
 }
 
 // signatureKey produces a stable key from a signature set.

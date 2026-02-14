@@ -78,6 +78,10 @@ func (m *mockRateLimitStore) ListIOCs(_ context.Context, _ storage.IOCFilter) ([
 	return nil, nil
 }
 
+func (m *mockRateLimitStore) UpdateEventLinks(_ context.Context, _, _, _ string) error {
+	return nil
+}
+
 func (m *mockRateLimitStore) Close() error {
 	return nil
 }
@@ -105,7 +109,7 @@ func TestRateLimit_AllowsUnderLimit(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.1:1234"
-		req = req.WithContext(withRequestID(req.Context(),fmt.Sprintf("req-%d", i)))
+		req = req.WithContext(withRequestID(req.Context(), fmt.Sprintf("req-%d", i)))
 
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
@@ -124,8 +128,8 @@ func TestRateLimit_AllowsUnderLimit(t *testing.T) {
 func TestRateLimit_BlocksOverLimit(t *testing.T) {
 	store := &mockRateLimitStore{}
 	cfg := RateLimiterConfig{
-		RequestsPerSecond: 1,  // Very low rate
-		Burst:             2,  // Small burst
+		RequestsPerSecond: 1, // Very low rate
+		Burst:             2, // Small burst
 		CleanupInterval:   1 * time.Minute,
 	}
 	limiter := NewRateLimiter(cfg, store, testLogger())
@@ -139,7 +143,7 @@ func TestRateLimit_BlocksOverLimit(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.1:1234"
-		req = req.WithContext(withRequestID(req.Context(),fmt.Sprintf("req-%d", i)))
+		req = req.WithContext(withRequestID(req.Context(), fmt.Sprintf("req-%d", i)))
 
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
@@ -257,7 +261,7 @@ func TestRateLimit_Refill(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.1:1234"
-		req = req.WithContext(withRequestID(req.Context(),fmt.Sprintf("req-burst-%d", i)))
+		req = req.WithContext(withRequestID(req.Context(), fmt.Sprintf("req-burst-%d", i)))
 
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
@@ -285,7 +289,7 @@ func TestRateLimit_Refill(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.1:1234"
-		req = req.WithContext(withRequestID(req.Context(),fmt.Sprintf("req-refill-%d", i)))
+		req = req.WithContext(withRequestID(req.Context(), fmt.Sprintf("req-refill-%d", i)))
 
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
@@ -314,7 +318,7 @@ func TestRateLimit_CleanupStale(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = fmt.Sprintf("192.168.1.%d:1234", i)
-		req = req.WithContext(withRequestID(req.Context(),fmt.Sprintf("req-%d", i)))
+		req = req.WithContext(withRequestID(req.Context(), fmt.Sprintf("req-%d", i)))
 
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)

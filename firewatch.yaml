@@ -13,6 +13,24 @@ server:
     # key:  "/etc/firewatch/tls/key.pem"
 
 # ---------------------------------------------------------------------------
+# IP Filtering
+# Block known-bad IPs and skip processing for known-good IPs.
+# Supports individual IPs and CIDR ranges. Allowlist takes precedence.
+# ---------------------------------------------------------------------------
+ip_filter:
+  # Inline lists:
+  # allowlist:
+  #   - "10.0.0.0/8"        # Internal network
+  #   - "192.168.1.100"     # Monitoring server
+  # blocklist:
+  #   - "203.0.113.0/24"    # Known bad range
+  #   - "198.51.100.50"     # Known scanner
+
+  # File-based lists (one IP/CIDR per line, # comments):
+  # allowlist_file: "/etc/firewatch/allowlist.txt"
+  # blocklist_file: "/etc/firewatch/blocklist.txt"
+
+# ---------------------------------------------------------------------------
 # Rate Limiting
 # Per-IP rate limiting to detect and slow down scanners.
 # Enforces token bucket algorithm: sustained rate + burst allowance.
@@ -80,6 +98,30 @@ fingerprinting:
   geoip: false
   # geoip_db: "/path/to/GeoLite2-City.mmdb"
   reverse_dns: false
+
+# ---------------------------------------------------------------------------
+# Detection
+# Custom signatures extend the built-in detection engine.
+# Same-ID signatures override built-in ones.
+# ---------------------------------------------------------------------------
+detection:
+  # signatures_file: "/etc/firewatch/custom-signatures.yaml"
+  # signatures_dir: "/etc/firewatch/signatures.d/"
+
+  # Campaign auto-correlation — background detection of coordinated attacks
+  campaign:
+    enabled: false
+    window_minutes: 30    # Look-back window for correlation
+    tick_seconds: 60      # How often to run correlation
+
+  # Behavioral fingerprinting — per-IP temporal pattern analysis
+  behavior:
+    enabled: false
+    window_minutes: 5       # Analysis window
+    sweep_threshold: 20     # Unique paths to trigger scan sweep
+    brute_threshold: 10     # Same-path hits to trigger brute force
+    module_threshold: 3     # Unique modules to trigger module hopping
+    cleanup_minutes: 2      # Clean up stale histories
 
 # ---------------------------------------------------------------------------
 # Alerts

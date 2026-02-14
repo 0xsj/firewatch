@@ -22,12 +22,14 @@ const op = errors.Op("server")
 // modules through a middleware pipeline and records captured
 // interactions to the store.
 type Server struct {
-	cfg         *config.Config
-	store       storage.Store
-	router      *Router
-	logger      *slog.Logger
-	http        *http.Server
-	rateLimiter *middleware.RateLimiter
+	cfg                *config.Config
+	store              storage.Store
+	router             *Router
+	logger             *slog.Logger
+	http               *http.Server
+	rateLimiter        *middleware.RateLimiter
+	behaviorTracker    *detection.BehaviorTracker
+	campaignCorrelator *detection.CampaignCorrelator
 }
 
 // New creates a Server with the given config, store, and logger.
@@ -44,6 +46,21 @@ func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, 
 	// Build the middleware chain.
 	mws := []middleware.Middleware{
 		middleware.Correlation,
+	}
+
+	// IP filtering (if configured)
+	if len(cfg.IPFilter.Allowlist) > 0 || len(cfg.IPFilter.Blocklist) > 0 ||
+		cfg.IPFilter.AllowlistFile != "" || cfg.IPFilter.BlocklistFile != "" {
+		ipCfg, err := buildIPFilter(cfg, logger)
+		if err != nil {
+			logger.Error("failed to parse IP filter config, skipping", "error", err)
+		} else if ipCfg != nil {
+			mws = append(mws, middleware.IPFilter(ipCfg, store, logger))
+			logger.Info("IP filter loaded",
+				"allowlist", len(ipCfg.Allowlist),
+				"blocklist", len(ipCfg.Blocklist),
+			)
+		}
 	}
 
 	// Rate limiting (if enabled)
@@ -67,6 +84,38 @@ func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, 
 	if detector != nil {
 		mws = append(mws, middleware.Detection(detector, store, logger))
 	}
+
+	// Behavioral fingerprinting (if enabled)
+	if cfg.Detection.Behavior.Enabled {
+		btCfg := detection.BehaviorTrackerConfig{
+			Window:          time.Duration(cfg.Detection.Behavior.WindowMinutes) * time.Minute,
+			SweepThreshold:  cfg.Detection.Behavior.SweepThreshold,
+			BruteThreshold:  cfg.Detection.Behavior.BruteThreshold,
+			ModuleThreshold: cfg.Detection.Behavior.ModuleThreshold,
+			CleanupInterval: time.Duration(cfg.Detection.Behavior.CleanupMinutes) * time.Minute,
+		}
+		s.behaviorTracker = detection.NewBehaviorTracker(btCfg)
+		mws = append(mws, middleware.Behavior(s.behaviorTracker, store, logger))
+		logger.Info("behavioral fingerprinting enabled",
+			"window", cfg.Detection.Behavior.WindowMinutes,
+			"sweep_threshold", cfg.Detection.Behavior.SweepThreshold,
+			"brute_threshold", cfg.Detection.Behavior.BruteThreshold,
+		)
+	}
+
+	// Campaign auto-correlation (background process, not middleware)
+	if cfg.Detection.Campaign.Enabled {
+		ccCfg := detection.CorrelatorConfig{
+			Window:       time.Duration(cfg.Detection.Campaign.WindowMinutes) * time.Minute,
+			TickInterval: time.Duration(cfg.Detection.Campaign.TickSeconds) * time.Second,
+		}
+		s.campaignCorrelator = detection.NewCampaignCorrelator(ccCfg, store, logger)
+		logger.Info("campaign correlation enabled",
+			"window", cfg.Detection.Campaign.WindowMinutes,
+			"tick", cfg.Detection.Campaign.TickSeconds,
+		)
+	}
+
 	chain := middleware.Chain(mws...)
 
 	s.http = &http.Server{
@@ -119,6 +168,16 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.rateLimiter.Stop()
 	}
 
+	// Stop behavioral tracker cleanup goroutine
+	if s.behaviorTracker != nil {
+		s.behaviorTracker.Stop()
+	}
+
+	// Stop campaign correlator
+	if s.campaignCorrelator != nil {
+		s.campaignCorrelator.Stop()
+	}
+
 	if err := s.http.Shutdown(ctx); err != nil {
 		return errors.E(op, errors.KindInternal, errors.CodeServerShutdown, err)
 	}
@@ -139,4 +198,34 @@ func (s *Server) Store() storage.Store {
 // configuration (e.g., wiring JA3 capture into TLS).
 func (s *Server) HTTPServer() *http.Server {
 	return s.http
+}
+
+// buildIPFilter merges inline config and file entries into an IPFilterConfig.
+func buildIPFilter(cfg *config.Config, logger *slog.Logger) (*middleware.IPFilterConfig, error) {
+	allowlist := append([]string{}, cfg.IPFilter.Allowlist...)
+	blocklist := append([]string{}, cfg.IPFilter.Blocklist...)
+
+	if cfg.IPFilter.AllowlistFile != "" {
+		entries, err := middleware.LoadIPListFile(cfg.IPFilter.AllowlistFile)
+		if err != nil {
+			return nil, fmt.Errorf("loading allowlist file: %w", err)
+		}
+		allowlist = append(allowlist, entries...)
+		logger.Info("loaded allowlist file", "path", cfg.IPFilter.AllowlistFile, "entries", len(entries))
+	}
+
+	if cfg.IPFilter.BlocklistFile != "" {
+		entries, err := middleware.LoadIPListFile(cfg.IPFilter.BlocklistFile)
+		if err != nil {
+			return nil, fmt.Errorf("loading blocklist file: %w", err)
+		}
+		blocklist = append(blocklist, entries...)
+		logger.Info("loaded blocklist file", "path", cfg.IPFilter.BlocklistFile, "entries", len(entries))
+	}
+
+	if len(allowlist) == 0 && len(blocklist) == 0 {
+		return nil, nil
+	}
+
+	return middleware.ParseIPFilter(allowlist, blocklist)
 }

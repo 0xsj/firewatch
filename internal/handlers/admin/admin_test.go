@@ -50,7 +50,8 @@ func (m *mockStore) SaveIOC(context.Context, *models.IOC) error { return nil }
 func (m *mockStore) ListIOCs(context.Context, storage.IOCFilter) ([]*models.IOC, error) {
 	return nil, nil
 }
-func (m *mockStore) Close() error { return nil }
+func (m *mockStore) UpdateEventLinks(context.Context, string, string, string) error { return nil }
+func (m *mockStore) Close() error                                                   { return nil }
 
 func newTestModule() (*Admin, *mockStore) {
 	store := &mockStore{}

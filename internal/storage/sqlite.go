@@ -195,6 +195,22 @@ func (s *SQLiteStore) CountEvents(ctx context.Context, f EventFilter) (int64, er
 	return count, nil
 }
 
+// --- Event Links ---
+
+func (s *SQLiteStore) UpdateEventLinks(ctx context.Context, eventID, attackerID, campaignID string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE events SET
+			attacker_id = CASE WHEN ?1 != '' THEN ?1 ELSE attacker_id END,
+			campaign_id = CASE WHEN ?2 != '' THEN ?2 ELSE campaign_id END
+		WHERE id = ?3`,
+		attackerID, campaignID, eventID,
+	)
+	if err != nil {
+		return errors.E(errors.Op("storage.sqlite.UpdateEventLinks"), errors.KindInternal, errors.CodeStorageQuery, err)
+	}
+	return nil
+}
+
 // --- Attackers ---
 
 func (s *SQLiteStore) SaveAttacker(ctx context.Context, a *models.Attacker) error {

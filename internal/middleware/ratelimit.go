@@ -26,10 +26,10 @@ type RateLimiterConfig struct {
 
 // RateLimiter manages per-IP rate limiters using token bucket algorithm.
 type RateLimiter struct {
-	cfg     RateLimiterConfig
-	store   storage.Store
-	logger  *slog.Logger
-	mu      sync.RWMutex
+	cfg      RateLimiterConfig
+	store    storage.Store
+	logger   *slog.Logger
+	mu       sync.RWMutex
 	limiters map[string]*limiterEntry
 	stopCh   chan struct{}
 }

@@ -16,6 +16,9 @@ type Store interface {
 	ListEvents(ctx context.Context, f EventFilter) ([]*models.Event, error)
 	CountEvents(ctx context.Context, f EventFilter) (int64, error)
 
+	// Event links
+	UpdateEventLinks(ctx context.Context, eventID, attackerID, campaignID string) error
+
 	// Attackers
 	SaveAttacker(ctx context.Context, attacker *models.Attacker) error
 	GetAttacker(ctx context.Context, id string) (*models.Attacker, error)

@@ -9,8 +9,12 @@ Honeypot server that masquerades as vulnerable web applications to detect, finge
 - **7 Honeypot Modules** — Next.js, WordPress, API, Exposure, Admin Panels, Cloud Metadata, CVE Emulation
 - **CVE Emulation** — Log4Shell, Spring4Shell, MOVEit, PAN-OS, Struts2, Confluence
 - **Request Fingerprinting** — JA3/JA4 TLS fingerprints, header ordering analysis, anomaly detection
-- **Detection Engine** — Signature and pattern matching with severity ranking
+- **Detection Engine** — Signature and pattern matching with severity ranking, custom YAML signatures
+- **IP Filtering** — Allowlist/blocklist with CIDR support, file-based lists
 - **Rate Limiting** — Per-IP token bucket rate limiting to detect and slow down scanners
+- **Attacker Profiling** — Automatic per-IP attacker records with severity escalation and auto-tagging
+- **Behavioral Analysis** — Per-IP temporal patterns: scan sweeps, brute force, module hopping, recon escalation
+- **Campaign Correlation** — Background detection of coordinated multi-IP attacks via signature clustering
 - **Threat Intelligence** — IOC extraction, campaign correlation, STIX/MISP/CSV export
 - **Real-time Alerts** — Slack, Discord, generic webhook with per-channel severity thresholds
 - **Deception Responses** — Realistic fake login pages, API responses, config files, and honey tokens
@@ -112,6 +116,17 @@ fingerprinting:
   ja4: true
   geoip: false
   reverse_dns: false
+
+detection:
+  # signatures_file: "/etc/firewatch/custom-signatures.yaml"
+  # signatures_dir: "/etc/firewatch/signatures.d/"
+  behavior:
+    enabled: false
+    window_minutes: 5
+  campaign:
+    enabled: false
+    window_minutes: 30
+    tick_seconds: 60
 
 storage:
   type: "sqlite"

@@ -4,6 +4,7 @@ package config
 // Modules are disabled by default — the user opts in.
 func Default() *Config {
 	return &Config{
+		IPFilter: IPFilterConfig{},
 		Server: ServerConfig{
 			Domain: "localhost",
 			Port:   8080,
@@ -45,6 +46,21 @@ func Default() *Config {
 			GeoIP:      false,
 			GeoIPDB:    "",
 			ReverseDNS: false,
+		},
+		Detection: DetectionConfig{
+			Behavior: BehaviorConfig{
+				Enabled:         false,
+				WindowMinutes:   5,
+				SweepThreshold:  20,
+				BruteThreshold:  10,
+				ModuleThreshold: 3,
+				CleanupMinutes:  2,
+			},
+			Campaign: CampaignConfig{
+				Enabled:       false,
+				WindowMinutes: 30,
+				TickSeconds:   60,
+			},
 		},
 		Alerts: AlertsConfig{
 			Slack:   SlackAlertConfig{MinSeverity: "medium"},
