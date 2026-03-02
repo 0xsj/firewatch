@@ -34,8 +34,10 @@ type Server struct {
 
 // New creates a Server with the given config, store, and logger.
 // Optional components (fpEngine, detector, geoReader) are included
-// in the middleware chain when non-nil.
-func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, detector *detection.Detector, geoReader *geoip.Reader, logger *slog.Logger) *Server {
+// in the middleware chain when non-nil. When apiHandler is non-nil,
+// an APIGuard middleware is inserted to route /api/v1/* requests
+// to it before the honeypot-specific pipeline.
+func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, detector *detection.Detector, geoReader *geoip.Reader, apiHandler http.Handler, logger *slog.Logger) *Server {
 	s := &Server{
 		cfg:    cfg,
 		store:  store,
@@ -77,6 +79,9 @@ func New(cfg *config.Config, store storage.Store, fpEngine *fingerprint.Engine, 
 	mws = append(mws, middleware.Logging(logger))
 	if geoReader != nil {
 		mws = append(mws, middleware.GeoIP(geoReader, logger))
+	}
+	if apiHandler != nil {
+		mws = append(mws, middleware.APIGuard("/api/v1/", apiHandler))
 	}
 	if fpEngine != nil {
 		mws = append(mws, middleware.Fingerprint(fpEngine, logger))

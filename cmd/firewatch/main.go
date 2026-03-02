@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/0xsj/firewatch/internal/alerts"
+	queryapi "github.com/0xsj/firewatch/internal/api"
 	"github.com/0xsj/firewatch/internal/config"
 	"github.com/0xsj/firewatch/internal/detection"
 	"github.com/0xsj/firewatch/internal/fingerprint"
@@ -208,8 +210,15 @@ func runServe(args []string) {
 		detector = detection.NewDefault(logger)
 	}
 
+	// Query API — optional JSON API served on the same port.
+	var apiHandler http.Handler
+	if cfg.QueryAPI.Enabled {
+		queryAPI := queryapi.New(store, logger)
+		apiHandler = queryapi.APIKeyAuth(cfg.QueryAPI.APIKey)(queryAPI)
+	}
+
 	// Server — includes correlation, logging, geoip, fingerprint, and detection middleware.
-	srv := server.New(cfg, store, fpEngine, detector, geoReader, logger)
+	srv := server.New(cfg, store, fpEngine, detector, geoReader, apiHandler, logger)
 
 	// Wire JA3 capture into TLS handshake.
 	if ja3Store != nil {

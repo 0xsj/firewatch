@@ -18,6 +18,7 @@ type Config struct {
 	Alerts         AlertsConfig      `yaml:"alerts"`
 	Storage        StorageConfig     `yaml:"storage"`
 	Deception      DeceptionConfig   `yaml:"deception"`
+	QueryAPI       QueryAPIConfig    `yaml:"query_api"`
 	Logging        LoggingConfig     `yaml:"logging"`
 }
 
@@ -179,6 +180,12 @@ type DeceptionConfig struct {
 	HoneyTokens bool `yaml:"honey_tokens"`
 	Breadcrumbs bool `yaml:"breadcrumbs"`
 	FakeErrors  bool `yaml:"fake_errors"`
+}
+
+// QueryAPIConfig controls the JSON query API served on the same port.
+type QueryAPIConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	APIKey  string `yaml:"api_key"`
 }
 
 // LoggingConfig controls structured logging.

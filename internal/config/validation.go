@@ -66,6 +66,13 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Query API — require API key when enabled
+	if c.QueryAPI.Enabled {
+		if err := validate.NonEmpty("query_api.api_key", c.QueryAPI.APIKey); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	// GeoIP — require database path when enabled
 	if c.Fingerprinting.GeoIP {
 		if err := validate.NonEmpty("fingerprinting.geoip_db", c.Fingerprinting.GeoIPDB); err != nil {

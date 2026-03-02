@@ -75,6 +75,7 @@ func Default() *Config {
 			Type: "sqlite",
 			Path: "./firewatch.db",
 		},
+		QueryAPI: QueryAPIConfig{Enabled: false},
 		Deception: DeceptionConfig{
 			HoneyTokens: true,
 			Breadcrumbs: true,

@@ -61,7 +61,7 @@ func setupServer(t *testing.T, modules ...string) (*httptest.Server, storage.Sto
 	fpEngine := fingerprint.NewEngine(nil)
 	detector := detection.NewDefault(logger)
 
-	srv := server.New(cfg, store, fpEngine, detector, nil, logger)
+	srv := server.New(cfg, store, fpEngine, detector, nil, nil, logger)
 
 	// Mount enabled modules — mirrors cmd/firewatch/main.go wiring.
 	for _, mod := range modules {
