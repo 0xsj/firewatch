@@ -128,6 +128,19 @@ CREATE TABLE IF NOT EXISTS iocs (
 
 CREATE INDEX IF NOT EXISTS idx_iocs_type ON iocs(type);
 CREATE INDEX IF NOT EXISTS idx_iocs_value ON iocs(value);
+
+CREATE TABLE IF NOT EXISTS honey_tokens (
+	id         TEXT PRIMARY KEY,
+	kind       TEXT NOT NULL,
+	value      TEXT NOT NULL,
+	issued_at  TEXT NOT NULL,
+	source_ip  TEXT NOT NULL,
+	module     TEXT NOT NULL,
+	path       TEXT NOT NULL,
+	request_id TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_honey_tokens_value ON honey_tokens(value);
 `
 
 // --- Events ---
@@ -458,6 +471,90 @@ func (s *SQLiteStore) ListIOCs(ctx context.Context, f IOCFilter) ([]*models.IOC,
 		iocs = append(iocs, ioc)
 	}
 	return iocs, rows.Err()
+}
+
+// --- Honey Tokens ---
+
+func (s *SQLiteStore) SaveHoneyToken(ctx context.Context, token *models.HoneyToken) error {
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO honey_tokens (id, kind, value, issued_at, source_ip, module, path, request_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		token.ID, token.Kind, token.Value, token.IssuedAt,
+		token.SourceIP, token.Module, token.Path, token.RequestID,
+	)
+	if err != nil {
+		return errors.E(errors.Op("storage.sqlite.SaveHoneyToken"), errors.KindInternal, errors.CodeStorageQuery, err)
+	}
+	return nil
+}
+
+func (s *SQLiteStore) GetHoneyTokenByValue(ctx context.Context, value string) (*models.HoneyToken, error) {
+	row := s.db.QueryRowContext(ctx, `SELECT id, kind, value, issued_at, source_ip, module, path, request_id
+		FROM honey_tokens WHERE value = ?`, value)
+
+	var t models.HoneyToken
+	err := row.Scan(&t.ID, &t.Kind, &t.Value, &t.IssuedAt, &t.SourceIP, &t.Module, &t.Path, &t.RequestID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.E(errors.Op("storage.sqlite.GetHoneyTokenByValue"), errors.KindNotFound, "honey token not found")
+		}
+		return nil, errors.E(errors.Op("storage.sqlite.GetHoneyTokenByValue"), errors.KindInternal, errors.CodeStorageQuery, err)
+	}
+	return &t, nil
+}
+
+func (s *SQLiteStore) ListHoneyTokens(ctx context.Context, f HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	var where []string
+	var args []any
+
+	if !f.Since.IsZero() {
+		where = append(where, "issued_at >= ?")
+		args = append(args, f.Since.Format(time.RFC3339))
+	}
+	if !f.Until.IsZero() {
+		where = append(where, "issued_at <= ?")
+		args = append(args, f.Until.Format(time.RFC3339))
+	}
+	if f.Kind != "" {
+		where = append(where, "kind = ?")
+		args = append(args, f.Kind)
+	}
+	if f.SourceIP != "" {
+		where = append(where, "source_ip = ?")
+		args = append(args, f.SourceIP)
+	}
+	if f.Module != "" {
+		where = append(where, "module = ?")
+		args = append(args, f.Module)
+	}
+
+	query := "SELECT id, kind, value, issued_at, source_ip, module, path, request_id FROM honey_tokens"
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
+	}
+	query += " ORDER BY issued_at DESC"
+	if f.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT %d", f.Limit)
+	}
+	if f.Offset > 0 {
+		query += fmt.Sprintf(" OFFSET %d", f.Offset)
+	}
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.E(errors.Op("storage.sqlite.ListHoneyTokens"), errors.KindInternal, errors.CodeStorageQuery, err)
+	}
+	defer rows.Close()
+
+	var tokens []*models.HoneyToken
+	for rows.Next() {
+		var t models.HoneyToken
+		if err := rows.Scan(&t.ID, &t.Kind, &t.Value, &t.IssuedAt, &t.SourceIP, &t.Module, &t.Path, &t.RequestID); err != nil {
+			return nil, errors.E(errors.Op("storage.sqlite.ListHoneyTokens"), errors.KindInternal, errors.CodeStorageQuery, err)
+		}
+		tokens = append(tokens, &t)
+	}
+	return tokens, rows.Err()
 }
 
 // --- Lifecycle ---

@@ -15,17 +15,19 @@ const moduleName = "nextjs"
 // to detect and fingerprint scanners probing for Next.js-specific
 // vulnerabilities and endpoints.
 type NextJS struct {
-	cfg    config.NextJSModuleConfig
-	store  storage.Store
-	logger *slog.Logger
+	cfg       config.NextJSModuleConfig
+	deception config.DeceptionConfig
+	store     storage.Store
+	logger    *slog.Logger
 }
 
 // New creates a NextJS honeypot module.
-func New(cfg config.NextJSModuleConfig, store storage.Store, logger *slog.Logger) *NextJS {
+func New(cfg config.NextJSModuleConfig, deception config.DeceptionConfig, store storage.Store, logger *slog.Logger) *NextJS {
 	return &NextJS{
-		cfg:    cfg,
-		store:  store,
-		logger: logger.With("module", moduleName),
+		cfg:       cfg,
+		deception: deception,
+		store:     store,
+		logger:    logger.With("module", moduleName),
 	}
 }
 

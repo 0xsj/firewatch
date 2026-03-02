@@ -34,6 +34,11 @@ type Store interface {
 	SaveIOC(ctx context.Context, ioc *models.IOC) error
 	ListIOCs(ctx context.Context, f IOCFilter) ([]*models.IOC, error)
 
+	// Honey tokens
+	SaveHoneyToken(ctx context.Context, token *models.HoneyToken) error
+	GetHoneyTokenByValue(ctx context.Context, value string) (*models.HoneyToken, error)
+	ListHoneyTokens(ctx context.Context, f HoneyTokenFilter) ([]*models.HoneyToken, error)
+
 	// Lifecycle
 	Close() error
 }
@@ -74,6 +79,17 @@ type IOCFilter struct {
 	Until    time.Time
 	Type     models.IOCType
 	Severity string
+	Limit    int
+	Offset   int
+}
+
+// HoneyTokenFilter controls which honey tokens are returned.
+type HoneyTokenFilter struct {
+	Since    time.Time
+	Until    time.Time
+	Kind     string // filter by token kind
+	SourceIP string
+	Module   string
 	Limit    int
 	Offset   int
 }

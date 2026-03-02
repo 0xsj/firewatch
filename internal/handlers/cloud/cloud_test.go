@@ -15,7 +15,8 @@ import (
 )
 
 type mockStore struct {
-	events []*models.Event
+	events      []*models.Event
+	honeyTokens []*models.HoneyToken
 }
 
 func (m *mockStore) SaveEvent(_ context.Context, e *models.Event) error {
@@ -50,12 +51,23 @@ func (m *mockStore) ListIOCs(context.Context, storage.IOCFilter) ([]*models.IOC,
 	return nil, nil
 }
 func (m *mockStore) UpdateEventLinks(context.Context, string, string, string) error { return nil }
-func (m *mockStore) Close() error                                                   { return nil }
+func (m *mockStore) SaveHoneyToken(_ context.Context, token *models.HoneyToken) error {
+	m.honeyTokens = append(m.honeyTokens, token)
+	return nil
+}
+func (m *mockStore) GetHoneyTokenByValue(context.Context, string) (*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockStore) ListHoneyTokens(context.Context, storage.HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockStore) Close() error { return nil }
 
 func newTestModule() (*Cloud, *mockStore) {
 	store := &mockStore{}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
-	mod := New(config.CloudModuleConfig{Enabled: true}, store, logger)
+	deception := config.DeceptionConfig{HoneyTokens: true, Breadcrumbs: true, FakeErrors: true}
+	mod := New(config.CloudModuleConfig{Enabled: true}, deception, store, logger)
 	return mod, store
 }
 
@@ -168,20 +180,24 @@ func TestCloud_IAM(t *testing.T) {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "AKIAIOSFODNN7EXAMPLE") {
-		t.Error("response body missing fake access key")
+	if !strings.Contains(body, "AKIA") {
+		t.Error("response body missing AKIA-prefixed access key")
 	}
-	if !strings.Contains(body, "wJalrXUtnFEMI") {
-		t.Error("response body missing fake secret key")
+	if !strings.Contains(body, "AccessKeyId") {
+		t.Error("response body missing AccessKeyId field")
 	}
-	if !strings.Contains(body, "Honey+Token") {
-		t.Error("response body missing honey token marker")
+	if !strings.Contains(body, "SecretAccessKey") {
+		t.Error("response body missing SecretAccessKey field")
 	}
 	if len(store.events) != 1 {
 		t.Fatalf("events = %d, want 1", len(store.events))
 	}
 	if store.events[0].Severity != "critical" {
 		t.Errorf("severity = %q, want critical", store.events[0].Severity)
+	}
+	// Verify honey tokens were saved (access key, secret key, session token)
+	if len(store.honeyTokens) != 3 {
+		t.Errorf("honeyTokens = %d, want 3", len(store.honeyTokens))
 	}
 }
 
@@ -215,8 +231,8 @@ func TestCloud_IMDSv2(t *testing.T) {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "fake_imds_token") {
-		t.Error("response body missing fake IMDS token")
+	if !strings.Contains(body, "AQAAANjCpMCZjg_") {
+		t.Error("response body missing IMDS token prefix")
 	}
 	ttl := rec.Header().Get("X-Aws-Ec2-Metadata-Token-Ttl-Seconds")
 	if ttl != "21600" {

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/0xsj/firewatch/internal/config"
+	"github.com/0xsj/firewatch/internal/deception"
 	"github.com/0xsj/firewatch/internal/handlers"
 	"github.com/0xsj/firewatch/internal/storage"
 )
@@ -14,17 +15,19 @@ const moduleName = "cve"
 // well-known CVEs (Log4Shell, Spring4Shell, MOVEit, PAN-OS, Struts2,
 // Confluence) to detect scanners probing for these vulnerabilities.
 type CVE struct {
-	cfg    config.CVEModuleConfig
-	store  storage.Store
-	logger *slog.Logger
+	cfg       config.CVEModuleConfig
+	deception config.DeceptionConfig
+	store     storage.Store
+	logger    *slog.Logger
 }
 
 // New creates a CVE honeypot module.
-func New(cfg config.CVEModuleConfig, store storage.Store, logger *slog.Logger) *CVE {
+func New(cfg config.CVEModuleConfig, deception config.DeceptionConfig, store storage.Store, logger *slog.Logger) *CVE {
 	return &CVE{
-		cfg:    cfg,
-		store:  store,
-		logger: logger.With("module", moduleName),
+		cfg:       cfg,
+		deception: deception,
+		store:     store,
+		logger:    logger.With("module", moduleName),
 	}
 }
 
@@ -42,6 +45,13 @@ func (c *CVE) cveEnabled(id string) bool {
 		}
 	}
 	return false
+}
+
+func (c *CVE) breadcrumbCfg() deception.BreadcrumbConfig {
+	return deception.BreadcrumbConfig{
+		Domain:         "",
+		EnabledModules: []string{"admin", "api", "cloud", "cve", "exposure", "nextjs", "wordpress"},
+	}
 }
 
 func (c *CVE) Routes() []handlers.Route {

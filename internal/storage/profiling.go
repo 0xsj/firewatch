@@ -111,6 +111,20 @@ func (s *ProfilingStore) updateAttacker(event *models.Event) {
 	}
 }
 
+// --- Honey Token forwarding ---
+
+func (s *ProfilingStore) SaveHoneyToken(ctx context.Context, token *models.HoneyToken) error {
+	return s.Store.SaveHoneyToken(ctx, token)
+}
+
+func (s *ProfilingStore) GetHoneyTokenByValue(ctx context.Context, value string) (*models.HoneyToken, error) {
+	return s.Store.GetHoneyTokenByValue(ctx, value)
+}
+
+func (s *ProfilingStore) ListHoneyTokens(ctx context.Context, f HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	return s.Store.ListHoneyTokens(ctx, f)
+}
+
 // uniqueAppend appends a value to a slice only if not already present.
 func uniqueAppend(slice []string, val string) []string {
 	for _, s := range slice {

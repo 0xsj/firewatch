@@ -15,7 +15,8 @@ import (
 )
 
 type mockStore struct {
-	events []*models.Event
+	events      []*models.Event
+	honeyTokens []*models.HoneyToken
 }
 
 func (m *mockStore) SaveEvent(_ context.Context, e *models.Event) error {
@@ -50,19 +51,31 @@ func (m *mockStore) ListIOCs(context.Context, storage.IOCFilter) ([]*models.IOC,
 	return nil, nil
 }
 func (m *mockStore) UpdateEventLinks(context.Context, string, string, string) error { return nil }
-func (m *mockStore) Close() error                                                   { return nil }
+func (m *mockStore) SaveHoneyToken(_ context.Context, token *models.HoneyToken) error {
+	m.honeyTokens = append(m.honeyTokens, token)
+	return nil
+}
+func (m *mockStore) GetHoneyTokenByValue(context.Context, string) (*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockStore) ListHoneyTokens(context.Context, storage.HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockStore) Close() error { return nil }
 
 func newTestModule() (*Exposure, *mockStore) {
 	store := &mockStore{}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
-	mod := New(config.ExposureModuleConfig{Enabled: true}, store, logger)
+	deception := config.DeceptionConfig{HoneyTokens: true, Breadcrumbs: true, FakeErrors: true}
+	mod := New(config.ExposureModuleConfig{Enabled: true}, deception, store, logger)
 	return mod, store
 }
 
 func newTestModuleWithFakeEnv(fakeEnv string) (*Exposure, *mockStore) {
 	store := &mockStore{}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
-	mod := New(config.ExposureModuleConfig{Enabled: true, FakeEnv: fakeEnv}, store, logger)
+	deception := config.DeceptionConfig{HoneyTokens: true, Breadcrumbs: true, FakeErrors: true}
+	mod := New(config.ExposureModuleConfig{Enabled: true, FakeEnv: fakeEnv}, deception, store, logger)
 	return mod, store
 }
 

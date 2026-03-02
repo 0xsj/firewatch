@@ -30,9 +30,14 @@ func (a *API) handleREST(w http.ResponseWriter, r *http.Request) {
 
 	handlers.RecordEvent(a.store, a.logger, r, moduleName, severity, sigs)
 
-	httputil.JSON(w, http.StatusUnauthorized, map[string]any{
+	body := map[string]any{
 		"error":   "Unauthorized",
 		"message": "Valid authentication credentials are required",
 		"status":  401,
-	})
+	}
+	if a.deception.HoneyTokens {
+		body["hint"] = "Use X-Api-Key header with your assigned key"
+	}
+
+	httputil.JSON(w, http.StatusUnauthorized, body)
 }

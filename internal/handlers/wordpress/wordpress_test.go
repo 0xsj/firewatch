@@ -50,12 +50,20 @@ func (m *mockStore) ListIOCs(context.Context, storage.IOCFilter) ([]*models.IOC,
 	return nil, nil
 }
 func (m *mockStore) UpdateEventLinks(context.Context, string, string, string) error { return nil }
-func (m *mockStore) Close() error                                                   { return nil }
+func (m *mockStore) SaveHoneyToken(context.Context, *models.HoneyToken) error       { return nil }
+func (m *mockStore) GetHoneyTokenByValue(context.Context, string) (*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockStore) ListHoneyTokens(context.Context, storage.HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockStore) Close() error { return nil }
 
 func newTestModule() (*WordPress, *mockStore) {
 	store := &mockStore{}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
-	mod := New(config.WordPressModuleConfig{Enabled: true, FakeVersion: "6.4.2"}, store, logger)
+	deception := config.DeceptionConfig{HoneyTokens: true, Breadcrumbs: true, FakeErrors: true}
+	mod := New(config.WordPressModuleConfig{Enabled: true, FakeVersion: "6.4.2"}, deception, store, logger)
 	return mod, store
 }
 

@@ -14,17 +14,19 @@ const moduleName = "wordpress"
 // installation to detect brute force, XML-RPC abuse, and
 // admin panel scanning.
 type WordPress struct {
-	cfg    config.WordPressModuleConfig
-	store  storage.Store
-	logger *slog.Logger
+	cfg       config.WordPressModuleConfig
+	deception config.DeceptionConfig
+	store     storage.Store
+	logger    *slog.Logger
 }
 
 // New creates a WordPress honeypot module.
-func New(cfg config.WordPressModuleConfig, store storage.Store, logger *slog.Logger) *WordPress {
+func New(cfg config.WordPressModuleConfig, deception config.DeceptionConfig, store storage.Store, logger *slog.Logger) *WordPress {
 	return &WordPress{
-		cfg:    cfg,
-		store:  store,
-		logger: logger.With("module", moduleName),
+		cfg:       cfg,
+		deception: deception,
+		store:     store,
+		logger:    logger.With("module", moduleName),
 	}
 }
 

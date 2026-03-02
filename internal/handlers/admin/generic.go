@@ -21,9 +21,22 @@ func (a *Admin) handleGenericGet(w http.ResponseWriter, r *http.Request) {
 
 	handlers.RecordEvent(a.store, a.logger, r, moduleName, "medium", []string{sigGenericProbe})
 
+	html := deception.GenericAdminLoginPage()
+	if a.deception.Breadcrumbs {
+		html = deception.InjectHTML(html, moduleName, a.breadcrumbCfg())
+		deception.BreadcrumbHeaders(w, moduleName, a.breadcrumbCfg())
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(deception.GenericAdminLoginPage()))
+	_, _ = w.Write([]byte(html))
+}
+
+func (a *Admin) breadcrumbCfg() deception.BreadcrumbConfig {
+	return deception.BreadcrumbConfig{
+		Domain:         "",
+		EnabledModules: []string{"admin", "api", "cloud", "cve", "exposure", "nextjs", "wordpress"},
+	}
 }
 
 func (a *Admin) handleGenericPost(w http.ResponseWriter, r *http.Request) {

@@ -20,9 +20,15 @@ func (c *CVE) handleMOVEitGet(w http.ResponseWriter, r *http.Request) {
 
 	handlers.RecordEvent(c.store, c.logger, r, moduleName, "medium", []string{sigMOVEitProbe})
 
+	html := deception.MOVEitLoginPage()
+	if c.deception.Breadcrumbs {
+		html = deception.InjectHTML(html, moduleName, c.breadcrumbCfg())
+		deception.BreadcrumbHeaders(w, moduleName, c.breadcrumbCfg())
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(deception.MOVEitLoginPage()))
+	w.Write([]byte(html))
 }
 
 func (c *CVE) handleMOVEitPost(w http.ResponseWriter, r *http.Request) {

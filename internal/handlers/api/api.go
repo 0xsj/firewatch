@@ -13,16 +13,18 @@ const moduleName = "api"
 // API is a honeypot module that emulates common API endpoints
 // to detect enumeration, authentication probes, and API abuse.
 type API struct {
-	cfg    config.APIModuleConfig
-	store  storage.Store
-	logger *slog.Logger
+	cfg       config.APIModuleConfig
+	deception config.DeceptionConfig
+	store     storage.Store
+	logger    *slog.Logger
 }
 
-func New(cfg config.APIModuleConfig, store storage.Store, logger *slog.Logger) *API {
+func New(cfg config.APIModuleConfig, deception config.DeceptionConfig, store storage.Store, logger *slog.Logger) *API {
 	return &API{
-		cfg:    cfg,
-		store:  store,
-		logger: logger.With("module", moduleName),
+		cfg:       cfg,
+		deception: deception,
+		store:     store,
+		logger:    logger.With("module", moduleName),
 	}
 }
 

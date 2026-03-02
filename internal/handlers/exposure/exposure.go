@@ -14,16 +14,18 @@ const moduleName = "exposure"
 // files (.env, .git, config files) to detect scanners probing
 // for leaked credentials and source code.
 type Exposure struct {
-	cfg    config.ExposureModuleConfig
-	store  storage.Store
-	logger *slog.Logger
+	cfg       config.ExposureModuleConfig
+	deception config.DeceptionConfig
+	store     storage.Store
+	logger    *slog.Logger
 }
 
-func New(cfg config.ExposureModuleConfig, store storage.Store, logger *slog.Logger) *Exposure {
+func New(cfg config.ExposureModuleConfig, deception config.DeceptionConfig, store storage.Store, logger *slog.Logger) *Exposure {
 	return &Exposure{
-		cfg:    cfg,
-		store:  store,
-		logger: logger.With("module", moduleName),
+		cfg:       cfg,
+		deception: deception,
+		store:     store,
+		logger:    logger.With("module", moduleName),
 	}
 }
 

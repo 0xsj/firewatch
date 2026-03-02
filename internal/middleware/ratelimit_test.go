@@ -82,6 +82,14 @@ func (m *mockRateLimitStore) UpdateEventLinks(_ context.Context, _, _, _ string)
 	return nil
 }
 
+func (m *mockRateLimitStore) SaveHoneyToken(context.Context, *models.HoneyToken) error { return nil }
+func (m *mockRateLimitStore) GetHoneyTokenByValue(context.Context, string) (*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockRateLimitStore) ListHoneyTokens(context.Context, storage.HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	return nil, nil
+}
+
 func (m *mockRateLimitStore) Close() error {
 	return nil
 }

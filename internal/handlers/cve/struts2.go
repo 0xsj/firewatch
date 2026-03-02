@@ -21,9 +21,15 @@ func (c *CVE) handleStrutsGet(w http.ResponseWriter, r *http.Request) {
 
 	handlers.RecordEvent(c.store, c.logger, r, moduleName, "medium", []string{sigStruts2Probe})
 
+	html := deception.StrutsShowcasePage()
+	if c.deception.Breadcrumbs {
+		html = deception.InjectHTML(html, moduleName, c.breadcrumbCfg())
+		deception.BreadcrumbHeaders(w, moduleName, c.breadcrumbCfg())
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(deception.StrutsShowcasePage()))
+	w.Write([]byte(html))
 }
 
 func (c *CVE) handleStrutsPost(w http.ResponseWriter, r *http.Request) {

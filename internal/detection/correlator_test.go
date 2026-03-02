@@ -93,6 +93,14 @@ func (m *correlatorMockStore) ListIOCs(_ context.Context, _ storage.IOCFilter) (
 	return nil, nil
 }
 
+func (m *correlatorMockStore) SaveHoneyToken(context.Context, *models.HoneyToken) error { return nil }
+func (m *correlatorMockStore) GetHoneyTokenByValue(context.Context, string) (*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *correlatorMockStore) ListHoneyTokens(context.Context, storage.HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	return nil, nil
+}
+
 func (m *correlatorMockStore) Close() error { return nil }
 
 func correlatorTestLogger() *slog.Logger {

@@ -51,7 +51,14 @@ func (m *mockStore) ListIOCs(context.Context, storage.IOCFilter) ([]*models.IOC,
 	return nil, nil
 }
 func (m *mockStore) UpdateEventLinks(context.Context, string, string, string) error { return nil }
-func (m *mockStore) Close() error                                                   { return nil }
+func (m *mockStore) SaveHoneyToken(context.Context, *models.HoneyToken) error       { return nil }
+func (m *mockStore) GetHoneyTokenByValue(context.Context, string) (*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockStore) ListHoneyTokens(context.Context, storage.HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	return nil, nil
+}
+func (m *mockStore) Close() error { return nil }
 
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))

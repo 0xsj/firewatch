@@ -57,6 +57,20 @@ func (s *AlertingStore) SaveEvent(ctx context.Context, event *models.Event) erro
 	return nil
 }
 
+// --- Honey Token forwarding ---
+
+func (s *AlertingStore) SaveHoneyToken(ctx context.Context, token *models.HoneyToken) error {
+	return s.Store.SaveHoneyToken(ctx, token)
+}
+
+func (s *AlertingStore) GetHoneyTokenByValue(ctx context.Context, value string) (*models.HoneyToken, error) {
+	return s.Store.GetHoneyTokenByValue(ctx, value)
+}
+
+func (s *AlertingStore) ListHoneyTokens(ctx context.Context, f HoneyTokenFilter) ([]*models.HoneyToken, error) {
+	return s.Store.ListHoneyTokens(ctx, f)
+}
+
 // buildTitle creates a human-readable alert title from the event.
 func buildTitle(event *models.Event) string {
 	if len(event.Signatures) > 0 {

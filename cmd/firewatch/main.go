@@ -210,43 +210,43 @@ func runServe(args []string) {
 	}
 
 	mountModule("nextjs", cfg.Modules.NextJS.Enabled, func() {
-		mod := nextjsmod.New(cfg.Modules.NextJS, store, logger)
+		mod := nextjsmod.New(cfg.Modules.NextJS, cfg.Deception, store, logger)
 		for _, route := range mod.Routes() {
 			srv.Router().HandleFunc(route.Pattern, route.Handler)
 		}
 	})
 	mountModule("wordpress", cfg.Modules.WordPress.Enabled, func() {
-		mod := wpmod.New(cfg.Modules.WordPress, store, logger)
+		mod := wpmod.New(cfg.Modules.WordPress, cfg.Deception, store, logger)
 		for _, route := range mod.Routes() {
 			srv.Router().HandleFunc(route.Pattern, route.Handler)
 		}
 	})
 	mountModule("exposure", cfg.Modules.Exposure.Enabled, func() {
-		mod := exposuremod.New(cfg.Modules.Exposure, store, logger)
+		mod := exposuremod.New(cfg.Modules.Exposure, cfg.Deception, store, logger)
 		for _, route := range mod.Routes() {
 			srv.Router().HandleFunc(route.Pattern, route.Handler)
 		}
 	})
 	mountModule("api", cfg.Modules.API.Enabled, func() {
-		mod := apimod.New(cfg.Modules.API, store, logger)
+		mod := apimod.New(cfg.Modules.API, cfg.Deception, store, logger)
 		for _, route := range mod.Routes() {
 			srv.Router().HandleFunc(route.Pattern, route.Handler)
 		}
 	})
 	mountModule("cloud", cfg.Modules.Cloud.Enabled, func() {
-		mod := cloudmod.New(cfg.Modules.Cloud, store, logger)
+		mod := cloudmod.New(cfg.Modules.Cloud, cfg.Deception, store, logger)
 		for _, route := range mod.Routes() {
 			srv.Router().HandleFunc(route.Pattern, route.Handler)
 		}
 	})
 	mountModule("admin", cfg.Modules.Admin.Enabled, func() {
-		mod := adminmod.New(cfg.Modules.Admin, store, logger)
+		mod := adminmod.New(cfg.Modules.Admin, cfg.Deception, store, logger)
 		for _, route := range mod.Routes() {
 			srv.Router().HandleFunc(route.Pattern, route.Handler)
 		}
 	})
 	mountModule("cve", cfg.Modules.CVE.Enabled, func() {
-		mod := cvemod.New(cfg.Modules.CVE, store, logger)
+		mod := cvemod.New(cfg.Modules.CVE, cfg.Deception, store, logger)
 		for _, route := range mod.Routes() {
 			srv.Router().HandleFunc(route.Pattern, route.Handler)
 		}

@@ -20,10 +20,16 @@ func (a *Admin) handlePhpMyAdminGet(w http.ResponseWriter, r *http.Request) {
 
 	handlers.RecordEvent(a.store, a.logger, r, moduleName, "medium", []string{sigPhpMyAdminProbe})
 
+	html := deception.PhpMyAdminLoginPage()
+	if a.deception.Breadcrumbs {
+		html = deception.InjectHTML(html, moduleName, a.breadcrumbCfg())
+		deception.BreadcrumbHeaders(w, moduleName, a.breadcrumbCfg())
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Powered-By", "PHP/8.1.0")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(deception.PhpMyAdminLoginPage()))
+	_, _ = w.Write([]byte(html))
 }
 
 func (a *Admin) handlePhpMyAdminPost(w http.ResponseWriter, r *http.Request) {

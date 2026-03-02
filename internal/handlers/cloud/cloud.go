@@ -13,16 +13,18 @@ const moduleName = "cloud"
 // Cloud is a honeypot module that emulates cloud provider metadata
 // endpoints to detect SSRF and cloud credential theft attempts.
 type Cloud struct {
-	cfg    config.CloudModuleConfig
-	store  storage.Store
-	logger *slog.Logger
+	cfg       config.CloudModuleConfig
+	deception config.DeceptionConfig
+	store     storage.Store
+	logger    *slog.Logger
 }
 
-func New(cfg config.CloudModuleConfig, store storage.Store, logger *slog.Logger) *Cloud {
+func New(cfg config.CloudModuleConfig, deception config.DeceptionConfig, store storage.Store, logger *slog.Logger) *Cloud {
 	return &Cloud{
-		cfg:    cfg,
-		store:  store,
-		logger: logger.With("module", moduleName),
+		cfg:       cfg,
+		deception: deception,
+		store:     store,
+		logger:    logger.With("module", moduleName),
 	}
 }
 

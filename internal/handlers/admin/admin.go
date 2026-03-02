@@ -13,17 +13,19 @@ const moduleName = "admin"
 // Admin is a honeypot module that emulates common admin panels
 // (phpMyAdmin, Adminer, cPanel) to detect scanning and brute force.
 type Admin struct {
-	cfg    config.AdminModuleConfig
-	store  storage.Store
-	logger *slog.Logger
+	cfg       config.AdminModuleConfig
+	deception config.DeceptionConfig
+	store     storage.Store
+	logger    *slog.Logger
 }
 
 // New creates an Admin honeypot module.
-func New(cfg config.AdminModuleConfig, store storage.Store, logger *slog.Logger) *Admin {
+func New(cfg config.AdminModuleConfig, deception config.DeceptionConfig, store storage.Store, logger *slog.Logger) *Admin {
 	return &Admin{
-		cfg:    cfg,
-		store:  store,
-		logger: logger.With("module", moduleName),
+		cfg:       cfg,
+		deception: deception,
+		store:     store,
+		logger:    logger.With("module", moduleName),
 	}
 }
 

@@ -67,37 +67,37 @@ func setupServer(t *testing.T, modules ...string) (*httptest.Server, storage.Sto
 	for _, mod := range modules {
 		switch mod {
 		case "nextjs":
-			m := nextjsmod.New(cfg.Modules.NextJS, store, logger)
+			m := nextjsmod.New(cfg.Modules.NextJS, cfg.Deception, store, logger)
 			for _, route := range m.Routes() {
 				srv.Router().HandleFunc(route.Pattern, route.Handler)
 			}
 		case "wordpress":
-			m := wpmod.New(cfg.Modules.WordPress, store, logger)
+			m := wpmod.New(cfg.Modules.WordPress, cfg.Deception, store, logger)
 			for _, route := range m.Routes() {
 				srv.Router().HandleFunc(route.Pattern, route.Handler)
 			}
 		case "exposure":
-			m := exposuremod.New(cfg.Modules.Exposure, store, logger)
+			m := exposuremod.New(cfg.Modules.Exposure, cfg.Deception, store, logger)
 			for _, route := range m.Routes() {
 				srv.Router().HandleFunc(route.Pattern, route.Handler)
 			}
 		case "api":
-			m := apimod.New(cfg.Modules.API, store, logger)
+			m := apimod.New(cfg.Modules.API, cfg.Deception, store, logger)
 			for _, route := range m.Routes() {
 				srv.Router().HandleFunc(route.Pattern, route.Handler)
 			}
 		case "cloud":
-			m := cloudmod.New(cfg.Modules.Cloud, store, logger)
+			m := cloudmod.New(cfg.Modules.Cloud, cfg.Deception, store, logger)
 			for _, route := range m.Routes() {
 				srv.Router().HandleFunc(route.Pattern, route.Handler)
 			}
 		case "admin":
-			m := adminmod.New(cfg.Modules.Admin, store, logger)
+			m := adminmod.New(cfg.Modules.Admin, cfg.Deception, store, logger)
 			for _, route := range m.Routes() {
 				srv.Router().HandleFunc(route.Pattern, route.Handler)
 			}
 		case "cve":
-			m := cvemod.New(cfg.Modules.CVE, store, logger)
+			m := cvemod.New(cfg.Modules.CVE, cfg.Deception, store, logger)
 			for _, route := range m.Routes() {
 				srv.Router().HandleFunc(route.Pattern, route.Handler)
 			}
