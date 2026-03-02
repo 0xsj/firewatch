@@ -67,6 +67,14 @@ func newTestModule() (*WordPress, *mockStore) {
 	return mod, store
 }
 
+func newTestModuleNoDeception() (*WordPress, *mockStore) {
+	store := &mockStore{}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	deception := config.DeceptionConfig{HoneyTokens: false, Breadcrumbs: false, FakeErrors: false}
+	mod := New(config.WordPressModuleConfig{Enabled: true, FakeVersion: "6.4.2"}, deception, store, logger)
+	return mod, store
+}
+
 func TestWordPress_Name(t *testing.T) {
 	mod, _ := newTestModule()
 	if mod.Name() != "wordpress" {
@@ -305,5 +313,38 @@ func TestWordPress_StaticContent(t *testing.T) {
 	}
 	if len(store.events) != 1 {
 		t.Fatalf("events = %d, want 1", len(store.events))
+	}
+}
+
+func TestWordPress_LoginGet_BreadcrumbsInjected(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/wp-login.php", nil)
+
+	mod.handleLoginGet(rec, req)
+
+	body := rec.Body.String()
+	// With breadcrumbs enabled, HTML should contain hidden links/comments
+	// from other modules (not wordpress itself).
+	if !strings.Contains(body, "style=\"display:none\"") && !strings.Contains(body, "<!-- ") {
+		t.Error("expected breadcrumb content in HTML when Breadcrumbs enabled")
+	}
+}
+
+func TestWordPress_LoginGet_NoBreadcrumbsWhenDisabled(t *testing.T) {
+	mod, _ := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/wp-login.php", nil)
+
+	mod.handleLoginGet(rec, req)
+
+	body := rec.Body.String()
+	// Should still contain basic WordPress login page.
+	if !strings.Contains(body, "WordPress") {
+		t.Error("response body missing WordPress")
+	}
+	// Should NOT have breadcrumb hidden links from other modules.
+	if strings.Contains(body, "/phpmyadmin/") || strings.Contains(body, "/solr/admin/cores") {
+		t.Error("unexpected breadcrumb content when Breadcrumbs disabled")
 	}
 }

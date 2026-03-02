@@ -71,6 +71,14 @@ func newTestModule() (*Exposure, *mockStore) {
 	return mod, store
 }
 
+func newTestModuleNoDeception() (*Exposure, *mockStore) {
+	store := &mockStore{}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	deception := config.DeceptionConfig{HoneyTokens: false, Breadcrumbs: false, FakeErrors: false}
+	mod := New(config.ExposureModuleConfig{Enabled: true}, deception, store, logger)
+	return mod, store
+}
+
 func newTestModuleWithFakeEnv(fakeEnv string) (*Exposure, *mockStore) {
 	store := &mockStore{}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
@@ -165,6 +173,70 @@ func TestExposure_EnvCustom(t *testing.T) {
 	}
 	if len(store.events) != 1 {
 		t.Fatalf("events = %d, want 1", len(store.events))
+	}
+}
+
+func TestExposure_Env_UniquePerRequest(t *testing.T) {
+	mod, store := newTestModule()
+
+	rec1 := httptest.NewRecorder()
+	req1 := httptest.NewRequest(http.MethodGet, "/.env", nil)
+	mod.handleEnv(rec1, req1)
+
+	rec2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodGet, "/.env", nil)
+	mod.handleEnv(rec2, req2)
+
+	if rec1.Body.String() == rec2.Body.String() {
+		t.Error("two env requests returned identical content; expected unique tokens per request")
+	}
+	// Each request saves 4 tokens (db_password, aws_access_key, aws_secret_key, api_key).
+	if len(store.honeyTokens) != 8 {
+		t.Errorf("honeyTokens = %d, want 8", len(store.honeyTokens))
+	}
+}
+
+func TestExposure_Env_StaticWhenDisabled(t *testing.T) {
+	mod, store := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/.env", nil)
+
+	mod.handleEnv(rec, req)
+
+	body := rec.Body.String()
+	// Should use static ExposedEnvFile content.
+	if !strings.Contains(body, "AKIAIOSFODNN7EXAMPLE") {
+		t.Error("expected static AWS access key from ExposedEnvFile when HoneyTokens disabled")
+	}
+	if len(store.honeyTokens) != 0 {
+		t.Errorf("honeyTokens = %d, want 0 when disabled", len(store.honeyTokens))
+	}
+}
+
+func TestExposure_Env_BreadcrumbsInjected(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/.env", nil)
+
+	mod.handleEnv(rec, req)
+
+	body := rec.Body.String()
+	// Breadcrumbs enabled (no FakeEnv): should contain internal endpoints section.
+	if !strings.Contains(body, "# Internal endpoints") {
+		t.Error("expected breadcrumb env section when Breadcrumbs enabled")
+	}
+}
+
+func TestExposure_Env_NoBreadcrumbsWhenDisabled(t *testing.T) {
+	mod, _ := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/.env", nil)
+
+	mod.handleEnv(rec, req)
+
+	body := rec.Body.String()
+	if strings.Contains(body, "# Internal endpoints") {
+		t.Error("unexpected breadcrumb section when Breadcrumbs disabled")
 	}
 }
 

@@ -15,7 +15,7 @@ func TestAlertingStore_SaveEvent_DispatchesAlert(t *testing.T) {
 	inner := newTestStore(t)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 
-	alertMgr := alerts.NewManager(logger)
+	alertMgr := alerts.NewManager(logger, 0)
 	// No alerters registered — just verify it doesn't panic and the
 	// event is still saved.
 	as := NewAlertingStore(inner, alertMgr)
@@ -73,7 +73,7 @@ func TestAlertingStore_BuildTitle(t *testing.T) {
 func TestAlertingStore_SkipsWhenNoAlerters(t *testing.T) {
 	inner := newTestStore(t)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
-	alertMgr := alerts.NewManager(logger)
+	alertMgr := alerts.NewManager(logger, 0)
 
 	// Count() == 0, so the fast path should be taken.
 	as := NewAlertingStore(inner, alertMgr)

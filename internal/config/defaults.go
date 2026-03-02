@@ -66,6 +66,10 @@ func Default() *Config {
 			Slack:   SlackAlertConfig{MinSeverity: "medium"},
 			Discord: DiscordAlertConfig{MinSeverity: "medium"},
 			Webhook: WebhookAlertConfig{MinSeverity: "medium"},
+			Dedup: AlertDedupConfig{
+				Enabled: true,
+				Window:  "5m",
+			},
 		},
 		Storage: StorageConfig{
 			Type: "sqlite",

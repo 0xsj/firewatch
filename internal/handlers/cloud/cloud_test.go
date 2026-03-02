@@ -71,6 +71,14 @@ func newTestModule() (*Cloud, *mockStore) {
 	return mod, store
 }
 
+func newTestModuleNoDeception() (*Cloud, *mockStore) {
+	store := &mockStore{}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	deception := config.DeceptionConfig{HoneyTokens: false, Breadcrumbs: false, FakeErrors: false}
+	mod := New(config.CloudModuleConfig{Enabled: true}, deception, store, logger)
+	return mod, store
+}
+
 func TestCloud_Name(t *testing.T) {
 	mod, _ := newTestModule()
 	if mod.Name() != "cloud" {
@@ -243,5 +251,86 @@ func TestCloud_IMDSv2(t *testing.T) {
 	}
 	if store.events[0].Severity != "critical" {
 		t.Errorf("severity = %q, want critical", store.events[0].Severity)
+	}
+}
+
+func TestCloud_IAM_UniquePerRequest(t *testing.T) {
+	mod, store := newTestModule()
+
+	// First request.
+	rec1 := httptest.NewRecorder()
+	req1 := httptest.NewRequest(http.MethodGet, "/latest/meta-data/iam/security-credentials/", nil)
+	mod.handleIAM(rec1, req1)
+
+	// Second request.
+	rec2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodGet, "/latest/meta-data/iam/security-credentials/", nil)
+	mod.handleIAM(rec2, req2)
+
+	if rec1.Body.String() == rec2.Body.String() {
+		t.Error("two IAM requests returned identical credentials; expected unique per request")
+	}
+	// Should have 6 tokens total (3 per request).
+	if len(store.honeyTokens) != 6 {
+		t.Errorf("honeyTokens = %d, want 6", len(store.honeyTokens))
+	}
+}
+
+func TestCloud_IAM_StaticWhenDisabled(t *testing.T) {
+	mod, store := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/latest/meta-data/iam/security-credentials/", nil)
+
+	mod.handleIAM(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "AKIAIOSFODNN7EXAMPLE") {
+		t.Error("expected static access key AKIAIOSFODNN7EXAMPLE when HoneyTokens disabled")
+	}
+	if !strings.Contains(body, "wJalrXUtnFEMI") {
+		t.Error("expected static secret key when HoneyTokens disabled")
+	}
+	// No honey tokens should be saved.
+	if len(store.honeyTokens) != 0 {
+		t.Errorf("honeyTokens = %d, want 0 when disabled", len(store.honeyTokens))
+	}
+}
+
+func TestCloud_IMDSv2_StaticWhenDisabled(t *testing.T) {
+	mod, _ := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/latest/api/token", nil)
+	req.Header.Set("X-Aws-Ec2-Metadata-Token-Ttl-Seconds", "21600")
+
+	mod.handleIMDSv2(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "fake_imds_token_do_not_use") {
+		t.Error("expected static IMDS token when HoneyTokens disabled")
+	}
+}
+
+func TestCloud_Metadata_BreadcrumbHeaders(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/latest/meta-data/", nil)
+
+	mod.handleMetadata(rec, req)
+
+	// Breadcrumbs enabled: should have X-Powered-By set by BreadcrumbHeaders.
+	if xpb := rec.Header().Get("X-Powered-By"); xpb == "" {
+		t.Error("expected X-Powered-By header from breadcrumbs")
+	}
+}
+
+func TestCloud_Metadata_NoBreadcrumbsWhenDisabled(t *testing.T) {
+	mod, _ := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/latest/meta-data/", nil)
+
+	mod.handleMetadata(rec, req)
+
+	if xde := rec.Header().Get("X-Debug-Endpoint"); xde != "" {
+		t.Errorf("unexpected X-Debug-Endpoint header when breadcrumbs disabled: %q", xde)
 	}
 }

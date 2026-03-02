@@ -68,6 +68,14 @@ func newTestModule() (*Admin, *mockStore) {
 	return mod, store
 }
 
+func newTestModuleNoDeception() (*Admin, *mockStore) {
+	store := &mockStore{}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	deception := config.DeceptionConfig{HoneyTokens: false, Breadcrumbs: false, FakeErrors: false}
+	mod := New(config.AdminModuleConfig{Enabled: true}, deception, store, logger)
+	return mod, store
+}
+
 func TestAdmin_Name(t *testing.T) {
 	mod, _ := newTestModule()
 	if mod.Name() != "admin" {
@@ -284,5 +292,51 @@ func TestAdmin_GenericPost(t *testing.T) {
 	}
 	if len(e.Signatures) < 2 {
 		t.Errorf("signatures = %v, want at least 2", e.Signatures)
+	}
+}
+
+func TestAdmin_GenericGet_BreadcrumbsInjected(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+
+	mod.handleGenericGet(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "style=\"display:none\"") && !strings.Contains(body, "<!-- ") {
+		t.Error("expected breadcrumb content in HTML when Breadcrumbs enabled")
+	}
+	// Breadcrumb headers should be set.
+	if xpb := rec.Header().Get("X-Powered-By"); xpb == "" {
+		t.Error("expected X-Powered-By header from breadcrumbs")
+	}
+}
+
+func TestAdmin_GenericGet_NoBreadcrumbsWhenDisabled(t *testing.T) {
+	mod, _ := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+
+	mod.handleGenericGet(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "Admin Panel") {
+		t.Error("response body missing Admin Panel")
+	}
+	if strings.Contains(body, "/solr/admin/cores") {
+		t.Error("unexpected breadcrumb content when Breadcrumbs disabled")
+	}
+}
+
+func TestAdmin_PhpMyAdminGet_BreadcrumbsInjected(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/phpmyadmin/", nil)
+
+	mod.handlePhpMyAdminGet(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "style=\"display:none\"") && !strings.Contains(body, "<!-- ") {
+		t.Error("expected breadcrumb content in phpMyAdmin HTML when Breadcrumbs enabled")
 	}
 }

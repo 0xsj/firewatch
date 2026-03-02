@@ -67,6 +67,14 @@ func newTestModule() (*API, *mockStore) {
 	return mod, store
 }
 
+func newTestModuleNoDeception() (*API, *mockStore) {
+	store := &mockStore{}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	deception := config.DeceptionConfig{HoneyTokens: false, Breadcrumbs: false, FakeErrors: false}
+	mod := New(config.APIModuleConfig{Enabled: true}, deception, store, logger)
+	return mod, store
+}
+
 func TestAPI_Name(t *testing.T) {
 	mod, _ := newTestModule()
 	if mod.Name() != "api" {
@@ -314,5 +322,70 @@ func TestAPI_OpenAPIJSON(t *testing.T) {
 	}
 	if len(store.events) != 1 {
 		t.Fatalf("events = %d, want 1", len(store.events))
+	}
+}
+
+func TestAPI_REST_HintWhenEnabled(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+
+	mod.handleREST(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "hint") {
+		t.Error("expected hint field in REST response when HoneyTokens enabled")
+	}
+	if !strings.Contains(body, "X-Api-Key") {
+		t.Error("expected X-Api-Key hint text in REST response")
+	}
+}
+
+func TestAPI_REST_NoHintWhenDisabled(t *testing.T) {
+	mod, _ := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+
+	mod.handleREST(rec, req)
+
+	body := rec.Body.String()
+	if strings.Contains(body, "hint") {
+		t.Error("unexpected hint field in REST response when HoneyTokens disabled")
+	}
+}
+
+func TestAPI_Swagger_BreadcrumbPaths(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+
+	mod.handleSwagger(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "/internal/health") {
+		t.Error("expected breadcrumb path /internal/health when Breadcrumbs enabled")
+	}
+	if !strings.Contains(body, "/admin/backup") {
+		t.Error("expected breadcrumb path /admin/backup when Breadcrumbs enabled")
+	}
+}
+
+func TestAPI_Swagger_NoBreadcrumbPathsWhenDisabled(t *testing.T) {
+	mod, _ := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+
+	mod.handleSwagger(rec, req)
+
+	body := rec.Body.String()
+	if strings.Contains(body, "/internal/health") {
+		t.Error("unexpected breadcrumb path /internal/health when Breadcrumbs disabled")
+	}
+	if strings.Contains(body, "/admin/backup") {
+		t.Error("unexpected breadcrumb path /admin/backup when Breadcrumbs disabled")
+	}
+	// Should still have the base paths.
+	if !strings.Contains(body, "/api/v1/users") {
+		t.Error("missing base path /api/v1/users")
 	}
 }

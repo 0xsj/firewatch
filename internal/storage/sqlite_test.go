@@ -188,3 +188,130 @@ func TestSQLiteStore_SaveIOC(t *testing.T) {
 		t.Errorf("IOC value = %q, want 203.0.113.50", iocs[0].Value)
 	}
 }
+
+func TestSQLiteStore_SaveAndGetHoneyToken(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	token := &models.HoneyToken{
+		ID:        "ht-001",
+		Kind:      "aws_access_key",
+		Value:     "AKIAIOSFODNN7EXAMPLE",
+		IssuedAt:  "2024-01-15T12:00:00Z",
+		SourceIP:  "203.0.113.50",
+		Module:    "cloud",
+		Path:      "/latest/meta-data/iam/security-credentials/",
+		RequestID: "req-abc",
+	}
+
+	if err := store.SaveHoneyToken(ctx, token); err != nil {
+		t.Fatalf("SaveHoneyToken: %v", err)
+	}
+
+	got, err := store.GetHoneyTokenByValue(ctx, "AKIAIOSFODNN7EXAMPLE")
+	if err != nil {
+		t.Fatalf("GetHoneyTokenByValue: %v", err)
+	}
+	if got == nil {
+		t.Fatal("GetHoneyTokenByValue returned nil")
+	}
+	if got.ID != "ht-001" {
+		t.Errorf("ID = %q, want ht-001", got.ID)
+	}
+	if got.Kind != "aws_access_key" {
+		t.Errorf("Kind = %q, want aws_access_key", got.Kind)
+	}
+	if got.SourceIP != "203.0.113.50" {
+		t.Errorf("SourceIP = %q, want 203.0.113.50", got.SourceIP)
+	}
+	if got.Module != "cloud" {
+		t.Errorf("Module = %q, want cloud", got.Module)
+	}
+	if got.RequestID != "req-abc" {
+		t.Errorf("RequestID = %q, want req-abc", got.RequestID)
+	}
+}
+
+func TestSQLiteStore_GetHoneyTokenByValue_NotFound(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	got, err := store.GetHoneyTokenByValue(ctx, "nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent token, got nil")
+	}
+	if got != nil {
+		t.Errorf("expected nil token, got %+v", got)
+	}
+}
+
+func TestSQLiteStore_ListHoneyTokens(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	tokens := []*models.HoneyToken{
+		{ID: "ht-1", Kind: "aws_access_key", Value: "AKIA1", IssuedAt: "2024-01-15T12:00:00Z", SourceIP: "10.0.0.1", Module: "cloud", Path: "/iam/", RequestID: "r1"},
+		{ID: "ht-2", Kind: "aws_secret_key", Value: "secret1", IssuedAt: "2024-01-15T12:00:00Z", SourceIP: "10.0.0.1", Module: "cloud", Path: "/iam/", RequestID: "r1"},
+		{ID: "ht-3", Kind: "db_password", Value: "dbpass1", IssuedAt: "2024-01-15T12:01:00Z", SourceIP: "10.0.0.2", Module: "exposure", Path: "/.env", RequestID: "r2"},
+		{ID: "ht-4", Kind: "aws_access_key", Value: "AKIA2", IssuedAt: "2024-01-15T12:02:00Z", SourceIP: "10.0.0.3", Module: "cloud", Path: "/iam/", RequestID: "r3"},
+	}
+	for _, tk := range tokens {
+		if err := store.SaveHoneyToken(ctx, tk); err != nil {
+			t.Fatalf("SaveHoneyToken(%s): %v", tk.ID, err)
+		}
+	}
+
+	// List all.
+	all, err := store.ListHoneyTokens(ctx, HoneyTokenFilter{})
+	if err != nil {
+		t.Fatalf("ListHoneyTokens: %v", err)
+	}
+	if len(all) != 4 {
+		t.Errorf("ListHoneyTokens() count = %d, want 4", len(all))
+	}
+
+	// Filter by kind.
+	accessKeys, err := store.ListHoneyTokens(ctx, HoneyTokenFilter{Kind: "aws_access_key"})
+	if err != nil {
+		t.Fatalf("ListHoneyTokens(kind): %v", err)
+	}
+	if len(accessKeys) != 2 {
+		t.Errorf("ListHoneyTokens(kind=aws_access_key) count = %d, want 2", len(accessKeys))
+	}
+
+	// Filter by module.
+	exposureTokens, err := store.ListHoneyTokens(ctx, HoneyTokenFilter{Module: "exposure"})
+	if err != nil {
+		t.Fatalf("ListHoneyTokens(module): %v", err)
+	}
+	if len(exposureTokens) != 1 {
+		t.Errorf("ListHoneyTokens(module=exposure) count = %d, want 1", len(exposureTokens))
+	}
+
+	// Filter by source IP.
+	ipTokens, err := store.ListHoneyTokens(ctx, HoneyTokenFilter{SourceIP: "10.0.0.1"})
+	if err != nil {
+		t.Fatalf("ListHoneyTokens(ip): %v", err)
+	}
+	if len(ipTokens) != 2 {
+		t.Errorf("ListHoneyTokens(ip=10.0.0.1) count = %d, want 2", len(ipTokens))
+	}
+
+	// Limit.
+	limited, err := store.ListHoneyTokens(ctx, HoneyTokenFilter{Limit: 2})
+	if err != nil {
+		t.Fatalf("ListHoneyTokens(limit): %v", err)
+	}
+	if len(limited) != 2 {
+		t.Errorf("ListHoneyTokens(limit=2) count = %d, want 2", len(limited))
+	}
+
+	// Offset.
+	offset, err := store.ListHoneyTokens(ctx, HoneyTokenFilter{Limit: 2, Offset: 2})
+	if err != nil {
+		t.Fatalf("ListHoneyTokens(offset): %v", err)
+	}
+	if len(offset) != 2 {
+		t.Errorf("ListHoneyTokens(limit=2,offset=2) count = %d, want 2", len(offset))
+	}
+}

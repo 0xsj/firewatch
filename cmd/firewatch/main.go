@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/0xsj/firewatch/internal/alerts"
 	"github.com/0xsj/firewatch/internal/config"
@@ -34,6 +35,14 @@ func main() {
 		runServe(os.Args[2:])
 	case "events":
 		runEvents(os.Args[2:])
+	case "attackers":
+		runAttackers(os.Args[2:])
+	case "campaigns":
+		runCampaigns(os.Args[2:])
+	case "iocs":
+		runIOCs(os.Args[2:])
+	case "tokens":
+		runTokens(os.Args[2:])
 	case "export":
 		runExport(os.Args[2:])
 	case "stats":
@@ -52,11 +61,15 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: firewatch <command> [flags]
 
 Commands:
-  serve     Start the honeypot server (default)
-  events    Query stored events
-  export    Export threat intelligence (STIX, MISP, CSV)
-  stats     Show summary statistics
-  version   Print version and exit
+  serve      Start the honeypot server (default)
+  events     Query stored events
+  attackers  Query tracked attackers
+  campaigns  Query detected campaigns
+  iocs       Query extracted IOCs
+  tokens     Query issued honey tokens
+  export     Export threat intelligence (STIX, MISP, CSV)
+  stats      Show summary statistics
+  version    Print version and exit
 
 Run 'firewatch <command> --help' for command-specific flags.
 `)
@@ -125,7 +138,11 @@ func runServe(args []string) {
 	}
 
 	// Alerting — set up before modules so AlertingStore can wrap the store.
-	alertMgr := alerts.NewManager(logger)
+	var dedupWindow time.Duration
+	if cfg.Alerts.Dedup.Enabled && cfg.Alerts.Dedup.Window != "" {
+		dedupWindow, _ = time.ParseDuration(cfg.Alerts.Dedup.Window)
+	}
+	alertMgr := alerts.NewManager(logger, dedupWindow)
 	if url := cfg.Alerts.Slack.WebhookURL; url != "" {
 		alertMgr.Register(alerts.NewSlack(url), cfg.Alerts.Slack.MinSeverity)
 	}
@@ -264,6 +281,7 @@ func runServe(args []string) {
 		os.Exit(1)
 	}
 
+	alertMgr.Stop()
 	logger.Info("firewatch stopped")
 }
 

@@ -140,6 +140,13 @@ type AlertsConfig struct {
 	Slack   SlackAlertConfig   `yaml:"slack"`
 	Discord DiscordAlertConfig `yaml:"discord"`
 	Webhook WebhookAlertConfig `yaml:"webhook"`
+	Dedup   AlertDedupConfig   `yaml:"dedup"`
+}
+
+// AlertDedupConfig controls alert deduplication.
+type AlertDedupConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Window  string `yaml:"window"` // e.g. "5m", "1h" — parsed via time.ParseDuration
 }
 
 // SlackAlertConfig for Slack webhook alerts.

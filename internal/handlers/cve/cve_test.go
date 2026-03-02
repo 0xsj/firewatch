@@ -68,6 +68,14 @@ func newTestModule() (*CVE, *mockStore) {
 	return mod, store
 }
 
+func newTestModuleNoDeception() (*CVE, *mockStore) {
+	store := &mockStore{}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	deception := config.DeceptionConfig{HoneyTokens: false, Breadcrumbs: false, FakeErrors: false}
+	mod := New(config.CVEModuleConfig{Enabled: true}, deception, store, logger)
+	return mod, store
+}
+
 func TestCVE_Name(t *testing.T) {
 	mod, _ := newTestModule()
 	if mod.Name() != "cve" {
@@ -416,5 +424,60 @@ func TestCVE_ConfluencePost(t *testing.T) {
 	}
 	if len(e.Signatures) < 2 {
 		t.Errorf("signatures = %v, want at least 2", e.Signatures)
+	}
+}
+
+func TestCVE_ConfluenceGet_BreadcrumbsInjected(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/wiki/", nil)
+
+	mod.handleConfluenceGet(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "style=\"display:none\"") && !strings.Contains(body, "<!-- ") {
+		t.Error("expected breadcrumb content in Confluence HTML when Breadcrumbs enabled")
+	}
+}
+
+func TestCVE_ConfluenceGet_NoBreadcrumbsWhenDisabled(t *testing.T) {
+	mod, _ := newTestModuleNoDeception()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/wiki/", nil)
+
+	mod.handleConfluenceGet(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "Confluence") {
+		t.Error("response body missing Confluence")
+	}
+	if strings.Contains(body, "/phpmyadmin/") || strings.Contains(body, "/solr/admin/cores") {
+		t.Error("unexpected breadcrumb content when Breadcrumbs disabled")
+	}
+}
+
+func TestCVE_MOVEitGet_BreadcrumbsInjected(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/human.aspx", nil)
+
+	mod.handleMOVEitGet(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "style=\"display:none\"") && !strings.Contains(body, "<!-- ") {
+		t.Error("expected breadcrumb content in MOVEit HTML when Breadcrumbs enabled")
+	}
+}
+
+func TestCVE_StrutsGet_BreadcrumbsInjected(t *testing.T) {
+	mod, _ := newTestModule()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/struts2-showcase/", nil)
+
+	mod.handleStrutsGet(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "style=\"display:none\"") && !strings.Contains(body, "<!-- ") {
+		t.Error("expected breadcrumb content in Struts2 HTML when Breadcrumbs enabled")
 	}
 }
